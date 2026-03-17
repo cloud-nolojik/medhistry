@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry — Doctor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 500: '#3B82F6', 600: '#0066CC', 700: '#0052A3', 800: '#003D7A' },
+                        surface: { 50: '#F8F9FB', 100: '#F0F2F5', 200: '#E3E8EF' },
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar { width: 256px; transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar.collapsed { width: 64px; }
+        .sidebar.collapsed .nav-text, .sidebar.collapsed .nav-badge, .sidebar.collapsed .user-info { display: none; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar.collapsed .logo-text { display: none; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; margin: 2px 8px; border-radius: 6px;
+            font-size: 13.5px; font-weight: 500; color: #4B5563;
+            cursor: pointer; transition: all 150ms ease; position: relative;
+        }
+        .nav-item:hover { background: #F0F2F5; color: #1F2937; }
+        .nav-item.active { background: #EFF6FF; color: #0066CC; font-weight: 600; }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+            width: 3px; background: #0066CC; border-radius: 0 3px 3px 0;
+        }
+        .nav-item.disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+        .app-header { height: 56px; background: white; border-bottom: 1px solid #E3E8EF; }
+
+        .card {
+            background: white; border: 1px solid #E3E8EF; border-radius: 10px;
+            transition: box-shadow 200ms ease;
+        }
+        .card-hover:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 14px; font-weight: 600; border-radius: 8px;
+            padding: 10px 20px; min-height: 44px;
+            cursor: pointer; transition: all 150ms ease; border: none;
+        }
+        .btn-sm { padding: 6px 14px; min-height: 34px; font-size: 12.5px; border-radius: 6px; }
+        .btn-primary { background: #0066CC; color: white; }
+        .btn-primary:hover { background: #0052A3; }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-secondary { background: white; color: #0066CC; border: 1.5px solid #0066CC; }
+        .btn-secondary:hover { background: #EFF6FF; }
+        .btn-success { background: #059669; color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-danger { background: #FEE2E2; color: #DC2626; }
+        .btn-danger:hover { background: #FECACA; }
+        .btn-ghost { background: transparent; color: #6B7280; padding: 8px 12px; min-height: auto; }
+        .btn-ghost:hover { background: #F0F2F5; color: #1F2937; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .form-input {
+            width: 100%; height: 40px; border: 1.5px solid #E3E8EF; border-radius: 8px;
+            padding: 0 12px; font-size: 13px; transition: all 200ms ease; background: white;
+        }
+        .form-input:focus { outline: none; border-color: #0066CC; box-shadow: 0 0 0 3px rgba(0,102,204,0.08); }
+        .form-input:disabled { background: #F3F4F6; color: #6B7280; }
+        .form-label { display: block; font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 4px; letter-spacing: 0.3px; }
+        textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 5px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.4px;
+        }
+        .badge-blue { background: #EFF6FF; color: #0066CC; }
+        .badge-green { background: #ECFDF5; color: #059669; }
+        .badge-orange { background: #FFF7ED; color: #EA580C; }
+        .badge-red { background: #FEF2F2; color: #DC2626; }
+        .badge-gray { background: #F3F4F6; color: #6B7280; }
+        .badge-purple { background: #F5F3FF; color: #7C3AED; }
+
+        .queue-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px; cursor: pointer; transition: all 150ms ease;
+            border-bottom: 1px solid #F0F2F5;
+        }
+        .queue-item:hover { background: #F8F9FB; }
+        .queue-item.active-patient { background: #EFF6FF; border-left: 3px solid #0066CC; }
+        .queue-item.done { opacity: 0.5; }
+
+        .tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 150ms ease; }
+        .tab:hover { color: #1F2937; }
+        .tab.active { color: #0066CC; border-bottom-color: #0066CC; font-weight: 600; }
+
+        .vital-card { text-align: center; padding: 10px 8px; border-radius: 8px; background: #F8F9FB; min-width: 80px; }
+        .vital-value { font-size: 18px; font-weight: 800; line-height: 1; }
+        .vital-label { font-size: 10px; font-weight: 600; color: #9CA3AF; margin-top: 4px; letter-spacing: 0.3px; }
+        .vital-normal .vital-value { color: #059669; }
+        .vital-warning .vital-value { color: #EA580C; }
+        .vital-critical .vital-value { color: #DC2626; }
+
+        .allergy-banner {
+            background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px;
+            padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+        }
+
+        .rx-row { display: flex; gap: 8px; align-items: end; padding: 8px 0; border-bottom: 1px solid #F0F2F5; }
+        .rx-row:last-child { border-bottom: none; }
+
+        .toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 18px; border-radius: 10px; border-left: 4px solid;
+            background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            font-size: 13px; font-weight: 500; color: #1F2937;
+            animation: toastIn 300ms cubic-bezier(0.16, 1, 0.3, 1); max-width: 360px;
+        }
+        .toast.removing { animation: toastOut 200ms ease forwards; }
+        .toast-error { border-left-color: #DC2626; }
+        .toast-success { border-left-color: #059669; }
+        .toast-info { border-left-color: #0066CC; }
+        @keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);
+            display: flex; align-items: center; justify-content: center; z-index: 9000;
+            animation: fadeIn 150ms ease;
+        }
+        .modal-box {
+            background: white; border-radius: 12px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.16);
+            max-width: 580px; width: 92%; max-height: 88vh; overflow-y: auto;
+            animation: modalIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalIn { from { transform: translateY(16px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+        .divider { height: 1px; background: #E3E8EF; }
+        .section-label { font-size: 11px; font-weight: 700; color: #9CA3AF; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot-green { background: #22C55E; }
+        .dot-red { background: #EF4444; }
+        .dot-orange { background: #F97316; }
+        .dot-blue { background: #3B82F6; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+
+        .history-item { padding: 10px 0; border-bottom: 1px solid #F0F2F5; }
+        .history-item:last-child { border-bottom: none; }
+
+        /* AI Summary gradient shimmer */
+        @keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+        .ai-loading { background: linear-gradient(90deg, #F0F2F5 25%, #E8ECF0 50%, #F0F2F5 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; }
+
+        /* Subtle pulse for AI banner */
+        @keyframes subtlePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            50% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        }
+
+        /* Blink for pending consent indicators */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+    </style>
+</head>
+<body class="bg-surface-50 text-gray-900 overflow-hidden h-screen">
+
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div class="flex h-screen" id="appShell" style="display:none;">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar flex flex-col border-r border-surface-200 bg-white" id="sidebar">
+        <div class="flex items-center gap-3 px-4 h-14 border-b border-surface-200 flex-shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg>
+            </div>
+            <span class="logo-text font-bold text-[15px] text-gray-900 tracking-tight">Medhistry</span>
+        </div>
+
+        <nav class="flex-1 py-3 overflow-y-auto">
+            <div class="section-label px-5 mb-1 mt-1">MAIN</div>
+            <div class="nav-item active" data-page="consultation" onclick="navTo('consultation')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span class="nav-text">Consultation</span>
+            </div>
+            <div class="nav-item" data-page="mypatients" onclick="navTo('mypatients')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                <span class="nav-text">My Patients</span>
+            </div>
+            <div class="nav-item" data-page="schedule" onclick="navTo('schedule')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span class="nav-text">Schedule</span>
+            </div>
+
+            <div class="divider mx-4 my-3"></div>
+            <div class="section-label px-5 mb-1">OTHER</div>
+            <div class="nav-item disabled">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span class="nav-text">Reports</span>
+                <span class="nav-badge badge badge-gray ml-auto">SOON</span>
+            </div>
+            <div class="nav-item" data-page="settings" onclick="navTo('settings')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                <span class="nav-text">Settings</span>
+            </div>
+        </nav>
+
+        <div class="border-t border-surface-200 p-3">
+            <div class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-50 cursor-pointer transition-colors">
+                <div class="avatar bg-emerald-100 text-emerald-600">VS</div>
+                <div class="user-info flex-1 min-w-0">
+                    <div class="text-[13px] font-semibold text-gray-900 truncate">Dr. Sharma</div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="dot dot-green"></span>
+                        <span class="text-[11px] text-gray-500">Cardiology</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== MAIN ===== -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <header class="app-header flex items-center justify-between px-6 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="btn-ghost p-2 rounded-lg">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div>
+                    <div class="text-[13px] font-medium text-gray-900" id="headerTitle">Consultation</div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="dot dot-green" style="width:6px;height:6px;"></span>
+                        <span class="text-[11px] text-gray-400">Room 101 — Cardiology</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-[12px] text-gray-400 font-medium" id="headerClock"></div>
+                <div class="relative cursor-pointer p-2 rounded-lg hover:bg-surface-50 transition-colors" onclick="toggleNotifications()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    <span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center" id="notifBadge">3</span>
+                    <div id="notifDropdown" style="display:none;" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-surface-200 z-50">
+                        <div class="px-4 py-3 border-b border-surface-200 flex items-center justify-between">
+                            <span class="text-[13px] font-semibold text-gray-900">Notifications</span>
+                            <button class="text-[11px] text-brand-600 font-medium hover:underline" onclick="event.stopPropagation();clearNotifs()">Mark all read</button>
+                        </div>
+                        <div class="max-h-72 overflow-y-auto">
+                            <div class="px-4 py-3 bg-blue-50 border-b border-surface-200 cursor-pointer hover:bg-blue-100" onclick="event.stopPropagation();toast('Lab results ready for Rajesh Kumar','info')">
+                                <div class="text-[12px] font-semibold text-gray-900">Lab Results Ready</div>
+                                <div class="text-[11px] text-gray-500 mt-0.5">Rajesh Kumar — CBC & Lipid Profile</div>
+                                <div class="text-[10px] text-gray-400 mt-1">5 minutes ago</div>
+                            </div>
+                            <div class="px-4 py-3 bg-blue-50 border-b border-surface-200 cursor-pointer hover:bg-blue-100" onclick="event.stopPropagation();toast('Cross-hospital records available','info')">
+                                <div class="text-[12px] font-semibold text-gray-900">Cross-Hospital Records</div>
+                                <div class="text-[11px] text-gray-500 mt-0.5">Anjali Mehta shared records from Apollo Hospital</div>
+                                <div class="text-[10px] text-gray-400 mt-1">20 minutes ago</div>
+                            </div>
+                            <div class="px-4 py-3 bg-blue-50 border-b border-surface-200 cursor-pointer hover:bg-blue-100" onclick="event.stopPropagation();toast('Emergency patient added to queue','error')">
+                                <div class="text-[12px] font-semibold text-gray-900">Emergency Patient</div>
+                                <div class="text-[11px] text-gray-500 mt-0.5">Sunita Devi — Priority queue, chest pain</div>
+                                <div class="text-[10px] text-gray-400 mt-1">2 minutes ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar bg-emerald-600 text-white text-[12px]">VS</div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-hidden" id="mainContent"></main>
+    </div>
+</div>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen" class="h-screen flex items-center justify-center bg-white">
+    <div class="w-full max-w-sm px-6">
+        <div class="flex items-center justify-center gap-3 mb-8">
+            <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg>
+            </div>
+            <span class="text-xl font-bold text-gray-900 tracking-tight">Medhistry</span>
+        </div>
+        <p class="text-center text-sm text-gray-500 mb-8">Sign in to Doctor Portal</p>
+        <div id="loginStep1">
+            <label class="form-label">Phone Number <span class="text-red-500">*</span></label>
+            <div class="flex gap-2 mb-1">
+                <span class="form-input flex items-center justify-center text-gray-500 text-sm" style="width:56px;flex-shrink:0;">+91</span>
+                <input type="tel" id="loginPhone" class="form-input" placeholder="Enter phone number" maxlength="10" onkeydown="if(event.key==='Enter')sendOTP()">
+            </div>
+            <p class="text-[11px] text-gray-400 mb-5">Demo: 9999999999</p>
+            <button class="btn btn-primary w-full" onclick="sendOTP()">Send OTP</button>
+        </div>
+        <div id="loginStep2" style="display:none;">
+            <label class="form-label">Enter OTP <span class="text-red-500">*</span></label>
+            <input type="tel" id="loginOTP" class="form-input mb-1" placeholder="6-digit code" maxlength="6" onkeydown="if(event.key==='Enter')verifyOTP()">
+            <p class="text-[11px] text-gray-400 mb-5">Demo: 999999</p>
+            <button class="btn btn-primary w-full" onclick="verifyOTP()">Verify & Sign In</button>
+            <button class="btn btn-ghost w-full mt-2" onclick="document.getElementById('loginStep2').style.display='none';document.getElementById('loginStep1').style.display='block';">← Change number</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const DOCTOR = { name: 'Dr. Sharma', dept: 'Cardiology', room: '101', capacity: 15 };
+
+const QUEUE = [
+    { id: 1, token: 'A041', name: 'Sunita Devi', age: 55, gender: 'F', phone: '8877665544', complaint: 'Chest pain', status: 'done', priority: 'emergency', blood: 'A+', checkinTime: Date.now() - 75*60000,
+      allergies: ['Aspirin'],
+      vitals: { bp: '150/95', hr: 88, temp: 98.6, spo2: 96, wt: 62 },
+      meds: [{ name: 'Metoprolol 50mg', freq: 'BD', since: '6 months' }, { name: 'Amlodipine 5mg', freq: 'OD', since: '6 months' }],
+      history: [
+        { date: '11 Mar', doctor: 'Dr. Sharma', dept: 'Cardiology', hospital: 'Krishna Hospital', reason: 'BP check', diagnosis: 'Hypertension', notes: 'BP 145/90. Increased Metoprolol to 50mg BD.' },
+        { date: '15 Feb', doctor: 'Dr. Sharma', dept: 'Cardiology', hospital: 'Krishna Hospital', reason: 'Follow-up', diagnosis: 'Hypertension', notes: 'BP controlled at 130/85. Continue meds.' }
+      ],
+      labs: [{ test: 'Lipid Profile', date: '11 Mar', result: 'LDL 145 mg/dL', status: 'abnormal' }, { test: 'ECG', date: '11 Mar', result: 'Normal sinus rhythm', status: 'normal' }]
+    },
+    { id: 2, token: 'A042', name: 'Rajesh Kumar Singh', age: 45, gender: 'M', phone: '9876543210', complaint: 'Follow-up chest pain', status: 'in-room', priority: 'normal', blood: 'B+', checkinTime: Date.now() - 42*60000,
+      allergies: [],
+      vitals: { bp: '130/85', hr: 72, temp: 98.4, spo2: 98, wt: 78 },
+      meds: [{ name: 'Atorvastatin 20mg', freq: 'OD (night)', since: '3 months' }, { name: 'Ecosprin 75mg', freq: 'OD', since: '3 months' }],
+      history: [
+        { date: '15 Mar', doctor: 'Dr. Sharma', dept: 'Cardiology', hospital: 'Krishna Hospital', reason: 'Follow-up', diagnosis: 'Stable angina', notes: 'Stress test normal. Continue medication.' },
+        { date: '01 Mar', doctor: 'Dr. Sharma', dept: 'Cardiology', hospital: 'Krishna Hospital', reason: 'Chest pain', diagnosis: 'Stable angina', notes: 'TMT done. Mild ST changes. Started Atorvastatin.' },
+        { date: '20 Jan', doctor: 'Dr. Reddy', dept: 'Gen. Med', hospital: 'Apollo Hospital', reason: 'Routine checkup', diagnosis: 'Hyperlipidemia', notes: 'High cholesterol noted. Referred to cardiologist.' }
+      ],
+      labs: [{ test: 'CBC', date: '15 Mar', result: 'Hb 14.2', status: 'normal' }, { test: 'Lipid Profile', date: '15 Mar', result: 'LDL 120 mg/dL', status: 'normal' }, { test: 'TMT', date: '01 Mar', result: 'Mildly positive', status: 'abnormal' }]
+    },
+    { id: 3, token: 'A043', name: 'Priya Sharma', age: 32, gender: 'F', phone: '9123456789', complaint: 'Palpitations', status: 'waiting', priority: 'normal', blood: 'O+', checkinTime: Date.now() - 35*60000,
+      allergies: ['Sulfa drugs', 'Penicillin'],
+      vitals: { bp: '118/75', hr: 95, temp: 98.2, spo2: 99, wt: 58 },
+      meds: [],
+      history: [
+        { date: '12 Mar', doctor: 'Dr. Patel', dept: 'Orthopedic', hospital: 'Krishna Hospital', reason: 'Knee pain follow-up', diagnosis: 'Mild meniscal tear', notes: 'Physiotherapy continued. Pain reducing.' }
+      ],
+      labs: []
+    },
+    { id: 4, token: 'A044', name: 'Amit Patel', age: 67, gender: 'M', phone: '9988776655', complaint: 'Breathlessness', status: 'waiting', priority: 'normal', blood: 'AB+', checkinTime: Date.now() - 28*60000,
+      allergies: ['Ibuprofen'],
+      vitals: { bp: '140/90', hr: 82, temp: 98.8, spo2: 94, wt: 72 },
+      meds: [{ name: 'Metformin 500mg', freq: 'BD', since: '2 years' }, { name: 'Telmisartan 40mg', freq: 'OD', since: '1 year' }],
+      history: [
+        { date: '14 Mar', doctor: 'Dr. Nair', dept: 'Gen. Medicine', hospital: 'Krishna Hospital', reason: 'Diabetes follow-up', diagnosis: 'Type 2 DM', notes: 'HbA1c 7.2%. Increase Metformin.' },
+        { date: '05 Mar', doctor: 'Dr. Rao', dept: 'Cardiology', hospital: 'City Hospital', reason: 'Echocardiogram', diagnosis: 'Mild LV dysfunction', notes: 'EF 50%. Monitor closely.' }
+      ],
+      labs: [{ test: 'HbA1c', date: '14 Mar', result: '7.2%', status: 'abnormal' }, { test: 'Echo', date: '05 Mar', result: 'EF 50%', status: 'abnormal' }]
+    },
+    { id: 5, token: 'A045', name: 'Meera Gupta', age: 40, gender: 'F', phone: '9090909090', complaint: 'Dizziness', status: 'waiting', priority: 'normal', blood: 'B-', checkinTime: Date.now() - 18*60000,
+      allergies: [],
+      vitals: { bp: '110/70', hr: 68, temp: 98.4, spo2: 99, wt: 55 },
+      meds: [],
+      history: [],
+      labs: []
+    },
+    { id: 6, token: 'A046', name: 'Vikram Reddy', age: 52, gender: 'M', phone: '8080808080', complaint: 'Chest tightness', status: 'waiting', priority: 'emergency', blood: 'O+', checkinTime: Date.now() - 8*60000,
+      allergies: ['Clopidogrel'],
+      vitals: { bp: '155/100', hr: 96, temp: 99.0, spo2: 95, wt: 85 },
+      meds: [{ name: 'Ramipril 5mg', freq: 'OD', since: '4 months' }],
+      history: [
+        { date: '20 Feb', doctor: 'Dr. Das', dept: 'Cardiology', hospital: 'Fortis Hospital', reason: 'Hypertension', diagnosis: 'Essential HTN', notes: 'Started on Ramipril. RBS normal.' }
+      ],
+      labs: [{ test: 'ECG', date: '20 Feb', result: 'LVH pattern', status: 'abnormal' }]
+    },
+    { id: 7, token: 'A047', name: 'Deepa Nair', age: 29, gender: 'F', phone: '7070707070', complaint: 'Routine checkup', status: 'waiting', priority: 'normal', blood: 'A-', checkinTime: Date.now() - 5*60000,
+      allergies: [],
+      vitals: { bp: '115/72', hr: 70, temp: 98.4, spo2: 99, wt: 52 },
+      meds: [],
+      history: [],
+      labs: []
+    },
+];
+
+const MEDICINES = [
+    'Atorvastatin 10mg','Atorvastatin 20mg','Atorvastatin 40mg',
+    'Amlodipine 2.5mg','Amlodipine 5mg','Amlodipine 10mg',
+    'Metoprolol 25mg','Metoprolol 50mg','Metoprolol 100mg',
+    'Ecosprin 75mg','Ecosprin 150mg',
+    'Telmisartan 20mg','Telmisartan 40mg','Telmisartan 80mg',
+    'Clopidogrel 75mg','Ramipril 2.5mg','Ramipril 5mg',
+    'Nitroglycerin 0.5mg SL','Isosorbide Mononitrate 10mg',
+    'Furosemide 20mg','Furosemide 40mg',
+    'Digoxin 0.25mg','Warfarin 2mg','Warfarin 5mg',
+    'Paracetamol 500mg','Paracetamol 650mg',
+    'Pantoprazole 40mg','Omeprazole 20mg',
+];
+
+const FREQUENCIES = ['OD (Once daily)', 'BD (Twice daily)', 'TDS (Thrice daily)', 'QID (4 times)', 'SOS (As needed)', 'HS (At bedtime)', 'Stat (Immediately)'];
+const DURATIONS = ['3 days', '5 days', '7 days', '10 days', '14 days', '1 month', '2 months', '3 months', 'Ongoing'];
+const INSTRUCTIONS = ['After meals', 'Before meals', 'Empty stomach', 'With water', 'At bedtime', 'As directed'];
+
+const LAB_TESTS = [
+    { name: 'CBC (Complete Blood Count)', cat: 'Blood' },
+    { name: 'Lipid Profile', cat: 'Blood' },
+    { name: 'Blood Sugar (Fasting)', cat: 'Blood' },
+    { name: 'Blood Sugar (PP)', cat: 'Blood' },
+    { name: 'HbA1c', cat: 'Blood' },
+    { name: 'Kidney Function Test (KFT)', cat: 'Blood' },
+    { name: 'Liver Function Test (LFT)', cat: 'Blood' },
+    { name: 'Thyroid Profile (T3, T4, TSH)', cat: 'Blood' },
+    { name: 'Troponin I', cat: 'Cardiac' },
+    { name: 'BNP / NT-proBNP', cat: 'Cardiac' },
+    { name: 'ECG (12-lead)', cat: 'Cardiac' },
+    { name: 'Echocardiogram (2D Echo)', cat: 'Cardiac' },
+    { name: 'TMT (Treadmill Test)', cat: 'Cardiac' },
+    { name: 'Chest X-ray', cat: 'Imaging' },
+    { name: 'CT Angiography', cat: 'Imaging' },
+    { name: 'Urine Routine', cat: 'Urine' },
+];
+
+// DDI (Drug-Drug Interaction) rules
+const DDI_RULES = [
+    { drugs: ['Ecosprin', 'Aspirin'], allergy: 'Aspirin', msg: 'ALLERGY: Patient is allergic to Aspirin/Ecosprin!' },
+    { drugs: ['Clopidogrel'], allergy: 'Clopidogrel', msg: 'ALLERGY: Patient is allergic to Clopidogrel!' },
+    { drugs: ['Ibuprofen'], allergy: 'Ibuprofen', msg: 'ALLERGY: Patient is allergic to Ibuprofen!' },
+    { drugs: ['Warfarin', 'Ecosprin'], msg: 'Warfarin + Ecosprin increases bleeding risk significantly' },
+    { drugs: ['Warfarin', 'Clopidogrel'], msg: 'Warfarin + Clopidogrel: High bleeding risk — use with caution' },
+    { drugs: ['Metoprolol', 'Amlodipine'], msg: 'Metoprolol + Amlodipine may cause excessive bradycardia' },
+    { drugs: ['Ramipril', 'Telmisartan'], msg: 'Ramipril + Telmisartan: Dual RAAS blockade — risk of hyperkalemia' },
+    { drugs: ['Digoxin', 'Furosemide'], msg: 'Digoxin + Furosemide: Hypokalemia from Furosemide increases Digoxin toxicity risk' },
+    { drugs: ['Atorvastatin', 'Warfarin'], msg: 'Atorvastatin may increase Warfarin effect — monitor INR closely' },
+];
+
+// Quick Rx templates
+const RX_TEMPLATES = [
+    { name: 'Hypertension (Standard)', meds: [
+        { medicine: 'Amlodipine 5mg', frequency: 'OD (Once daily)', duration: '1 month', instruction: 'After meals' },
+        { medicine: 'Telmisartan 40mg', frequency: 'OD (Once daily)', duration: '1 month', instruction: 'Before meals' },
+    ]},
+    { name: 'Stable Angina', meds: [
+        { medicine: 'Ecosprin 75mg', frequency: 'OD (Once daily)', duration: '3 months', instruction: 'After meals' },
+        { medicine: 'Atorvastatin 20mg', frequency: 'OD (Once daily)', duration: '3 months', instruction: 'At bedtime' },
+        { medicine: 'Metoprolol 50mg', frequency: 'BD (Twice daily)', duration: '1 month', instruction: 'After meals' },
+    ]},
+    { name: 'Fever + Body Pain', meds: [
+        { medicine: 'Paracetamol 650mg', frequency: 'TDS (Thrice daily)', duration: '3 days', instruction: 'After meals' },
+        { medicine: 'Pantoprazole 40mg', frequency: 'OD (Once daily)', duration: '5 days', instruction: 'Before meals' },
+    ]},
+    { name: 'Cholesterol Control', meds: [
+        { medicine: 'Atorvastatin 20mg', frequency: 'OD (Once daily)', duration: '3 months', instruction: 'At bedtime' },
+    ]},
+    { name: 'Heart Failure (Mild)', meds: [
+        { medicine: 'Ramipril 2.5mg', frequency: 'OD (Once daily)', duration: '1 month', instruction: 'After meals' },
+        { medicine: 'Furosemide 20mg', frequency: 'OD (Once daily)', duration: '14 days', instruction: 'Empty stomach' },
+        { medicine: 'Metoprolol 25mg', frequency: 'OD (Once daily)', duration: '1 month', instruction: 'After meals' },
+    ]},
+];
+
+const CONSULT_FEE = 500; // Demo consultation fee
+
+// ==================== CROSS-HOSPITAL RECORDS DATA ====================
+const CROSS_HOSPITAL_DATA = {
+    // Patient 2 - Rajesh: has Apollo records, AUTHORIZED
+    2: {
+        abhaId: '91-4823-7156-9034',
+        hospitals: [
+            {
+                name: 'Apollo Hospital', city: 'Hyderabad', consent: 'authorized', consentExpiry: '15 Sep 2026', lastUpdated: '20 Jan 2026',
+                records: {
+                    consultations: [
+                        { date: '20 Jan 2026', doctor: 'Dr. Reddy', dept: 'Gen. Medicine', reason: 'Routine checkup', diagnosis: 'Hyperlipidemia', notes: 'High cholesterol noted. Total cholesterol 280. Referred to cardiologist. Advised diet modification.' }
+                    ],
+                    prescriptions: [
+                        { date: '20 Jan 2026', doctor: 'Dr. Reddy', medicines: ['Atorvastatin 10mg OD', 'Omega-3 capsules OD'] }
+                    ],
+                    labs: [
+                        { date: '20 Jan 2026', test: 'Lipid Profile', result: 'Total Chol: 280, LDL: 185, HDL: 38, TG: 210', status: 'abnormal' },
+                        { date: '20 Jan 2026', test: 'Blood Sugar (Fasting)', result: '102 mg/dL', status: 'normal' },
+                        { date: '20 Jan 2026', test: 'CBC', result: 'Hb 13.8, WBC 7200, Plt 2.5L', status: 'normal' }
+                    ],
+                    imaging: [
+                        { date: '18 Jan 2026', test: 'Chest X-ray', result: 'Normal cardiac silhouette. Clear lung fields.', status: 'normal' }
+                    ],
+                    dischargeSummaries: []
+                }
+            }
+        ]
+    },
+    // Patient 4 - Amit: has City Hospital records, AUTHORIZED
+    4: {
+        abhaId: '91-6712-3489-5621',
+        hospitals: [
+            {
+                name: 'City Hospital', city: 'Pune', consent: 'authorized', consentExpiry: '20 Aug 2026', lastUpdated: '05 Mar 2026',
+                records: {
+                    consultations: [
+                        { date: '05 Mar 2026', doctor: 'Dr. Rao', dept: 'Cardiology', reason: 'Echocardiogram', diagnosis: 'Mild LV dysfunction', notes: 'EF 50%. Mild diastolic dysfunction. No valvular abnormality. Monitor closely.' },
+                        { date: '10 Dec 2025', doctor: 'Dr. Kulkarni', dept: 'Gen. Medicine', reason: 'Diabetes management', diagnosis: 'Type 2 DM + HTN', notes: 'HbA1c 7.8%. BP 148/92. Increased Metformin to 1000mg. Added Telmisartan.' }
+                    ],
+                    prescriptions: [
+                        { date: '05 Mar 2026', doctor: 'Dr. Rao', medicines: ['Ramipril 2.5mg OD', 'Furosemide 20mg SOS'] },
+                        { date: '10 Dec 2025', doctor: 'Dr. Kulkarni', medicines: ['Metformin 1000mg BD', 'Telmisartan 40mg OD', 'Ecosprin 75mg OD'] }
+                    ],
+                    labs: [
+                        { date: '05 Mar 2026', test: 'Echocardiogram (2D Echo)', result: 'EF 50%, Grade 1 DD, No RWMA', status: 'abnormal' },
+                        { date: '05 Mar 2026', test: 'BNP', result: '180 pg/mL', status: 'abnormal' },
+                        { date: '10 Dec 2025', test: 'HbA1c', result: '7.8%', status: 'abnormal' },
+                        { date: '10 Dec 2025', test: 'KFT', result: 'Creatinine 1.1, eGFR 72', status: 'normal' }
+                    ],
+                    imaging: [],
+                    dischargeSummaries: [
+                        { date: '12 Nov 2025', summary: 'Admitted for uncontrolled diabetes + UTI. 3-day stay. Insulin started briefly. Discharged on oral meds.' }
+                    ]
+                }
+            },
+            {
+                name: 'Sahyadri Hospital', city: 'Pune', consent: 'expired', consentExpiry: '01 Jan 2026', lastUpdated: '15 Jun 2025',
+                records: { consultations: [], prescriptions: [], labs: [], imaging: [], dischargeSummaries: [] }
+            }
+        ]
+    },
+    // Patient 6 - Vikram: has Fortis records, consent PENDING
+    6: {
+        abhaId: '91-8934-2156-7890',
+        hospitals: [
+            {
+                name: 'Fortis Hospital', city: 'Mumbai', consent: 'pending', consentRequestDate: '17 Mar 2026', lastUpdated: null,
+                records: { consultations: [], prescriptions: [], labs: [], imaging: [], dischargeSummaries: [] }
+            }
+        ]
+    },
+    // Patient 7 - Deepa: has ABHA but consent DENIED from Max Hospital
+    7: {
+        abhaId: '91-1245-6789-3456',
+        hospitals: [
+            {
+                name: 'Max Hospital', city: 'Delhi', consent: 'denied', consentDeniedDate: '10 Mar 2026', lastUpdated: null,
+                records: { consultations: [], prescriptions: [], labs: [], imaging: [], dischargeSummaries: [] }
+            }
+        ]
+    },
+    // Patient 5 - Meera: has ABHA but no records found anywhere
+    5: {
+        abhaId: '91-5678-1234-9087',
+        hospitals: []
+    }
+};
+
+// AI Summaries per patient (generated from cross-hospital + local data)
+const AI_SUMMARIES = {
+    2: {
+        generatedAt: '17 Mar 2026, 9:15 AM',
+        combined: 'Rajesh Kumar Singh, 45M, presents with stable angina diagnosed 1 month ago at Krishna Hospital. Treadmill test showed mild ST changes. Currently on Atorvastatin 20mg and Ecosprin 75mg with good response — LDL improved from 185 (Apollo, Jan) to 120 (Krishna, Mar). Previously seen at Apollo Hospital for routine checkup where hyperlipidemia was first detected. Cardiac risk profile is moderate given age, gender, and lipid history.',
+        keyFindings: [
+            { type: 'positive', text: 'LDL dropped from 185 to 120 mg/dL over 2 months — good medication response' },
+            { type: 'warning', text: 'TMT mildly positive — needs periodic monitoring' },
+            { type: 'info', text: 'First diagnosed with hyperlipidemia at Apollo (Jan 2026), now managed at Krishna' },
+            { type: 'positive', text: 'Blood sugar normal (102 mg/dL fasting at Apollo) — no diabetes concern' }
+        ],
+        medicationTimeline: [
+            { med: 'Atorvastatin', history: 'Started 10mg at Apollo (Jan) → increased to 20mg at Krishna (Mar)' },
+            { med: 'Ecosprin 75mg', history: 'Started at Krishna Hospital (Mar) for stable angina' },
+            { med: 'Omega-3', history: 'Prescribed at Apollo (Jan) — check if still taking' }
+        ],
+        riskFactors: ['Male, 45 years', 'Hyperlipidemia', 'Positive TMT', 'Family history unknown'],
+        conflicts: []
+    },
+    4: {
+        generatedAt: '17 Mar 2026, 9:20 AM',
+        combined: 'Amit Patel, 67M, complex multi-morbidity: Type 2 DM (2+ years, HbA1c trending up from 7.2 to 7.8%) + Essential Hypertension + Mild LV dysfunction (EF 50%). Currently on Metformin 500mg BD, Telmisartan 40mg OD. City Hospital records show prior admission for uncontrolled diabetes + UTI (Nov 2025). Echocardiogram at City Hospital (Mar) shows EF 50% with Grade 1 diastolic dysfunction. BNP elevated at 180. Renal function borderline (eGFR 72). Allergic to Ibuprofen.',
+        keyFindings: [
+            { type: 'critical', text: 'HbA1c rising: 7.2% (Krishna, Mar) vs 7.8% (City Hospital, Dec) — needs dose adjustment or therapy escalation' },
+            { type: 'warning', text: 'EF 50% with elevated BNP (180) — early heart failure, avoid fluid overload' },
+            { type: 'warning', text: 'eGFR 72 — borderline renal function, dose-adjust nephrotoxic drugs' },
+            { type: 'critical', text: 'ALLERGY: Ibuprofen — avoid all NSAIDs' },
+            { type: 'info', text: 'Prior hospitalization for uncontrolled diabetes + UTI (Nov 2025, City Hospital)' }
+        ],
+        medicationTimeline: [
+            { med: 'Metformin', history: 'On 500mg BD (Krishna) — was 1000mg BD at City Hospital. Verify current dose with patient' },
+            { med: 'Telmisartan 40mg', history: 'Started Dec 2025 at City Hospital, continued at Krishna' },
+            { med: 'Ecosprin 75mg', history: 'Prescribed at City Hospital Dec 2025 — not in current med list. Confirm if still taking' }
+        ],
+        riskFactors: ['Age 67', 'Type 2 DM (poorly controlled)', 'Hypertension', 'LV dysfunction EF 50%', 'Borderline renal function', 'Prior hospitalization'],
+        conflicts: [
+            { type: 'dose_discrepancy', text: 'Metformin dose mismatch: 500mg BD (Krishna) vs 1000mg BD (City Hospital, Dec 2025). Clarify with patient.' },
+            { type: 'missing_med', text: 'Ecosprin 75mg prescribed at City Hospital (Dec 2025) not in current medication list. Was it discontinued?' }
+        ]
+    }
+};
+
+let currentPage = 'consultation';
+let activePatientId = 2; // Rajesh is currently in-room
+let consultTab = 'notes';
+let prescriptions = [];
+let labOrders = [];
+let consultNotes = {};  // per-patient: { patientId: { notes, diagnosis, instructions, complaint } }
+let followUpDate = '';
+
+// ==================== LOGIN ====================
+function sendOTP() {
+    const phone = document.getElementById('loginPhone').value.trim();
+    if (phone.length !== 10 || !/^\d+$/.test(phone)) { toast('Enter a valid 10-digit phone number', 'error'); return; }
+    document.getElementById('loginStep1').style.display = 'none';
+    document.getElementById('loginStep2').style.display = 'block';
+    document.getElementById('loginOTP').focus();
+    toast('OTP sent to +91 ' + phone, 'success');
+}
+
+function verifyOTP() {
+    const otp = document.getElementById('loginOTP').value.trim();
+    if (otp !== '999999') { toast('Invalid OTP. Demo code: 999999', 'error'); return; }
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    startClock();
+    renderConsultation();
+}
+
+// ==================== NAVIGATION ====================
+function navTo(page) {
+    currentPage = page;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+    const titles = { consultation: 'Consultation', mypatients: 'My Patients', schedule: 'Schedule', settings: 'Settings' };
+    document.getElementById('headerTitle').textContent = titles[page] || page;
+    if (page === 'consultation') renderConsultation();
+    else if (page === 'mypatients') renderMyPatients();
+    else if (page === 'schedule') renderSchedule();
+    else if (page === 'settings') renderSettings();
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+function startClock() {
+    const update = () => {
+        const now = new Date();
+        document.getElementById('headerClock').textContent = now.toLocaleDateString('en-IN', {weekday:'short',day:'numeric',month:'short'}) + ' • ' + now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    };
+    update(); setInterval(update, 30000);
+}
+
+// ==================== CONSULTATION (SPLIT VIEW) ====================
+function renderConsultation() {
+    const waiting = QUEUE.filter(q => q.status === 'waiting').sort((a,b) => a.priority === 'emergency' ? -1 : b.priority === 'emergency' ? 1 : 0);
+    const inRoom = QUEUE.find(q => q.status === 'in-room');
+    const done = QUEUE.filter(q => q.status === 'done');
+    const totalInQueue = waiting.length + (inRoom ? 1 : 0);
+
+    document.getElementById('mainContent').innerHTML = `
+        <div class="flex h-full">
+            <!-- Queue Panel -->
+            <div class="w-[280px] flex-shrink-0 border-r border-surface-200 bg-white flex flex-col">
+                <div class="px-4 py-3 border-b border-surface-200">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[13px] font-semibold text-gray-900">Patient Queue</span>
+                        <span class="badge badge-blue">${totalInQueue} waiting</span>
+                    </div>
+                    <div class="text-[11px] text-gray-400 mb-2">${done.length} completed today</div>
+                    <input class="form-input" style="height:32px;font-size:11px;" placeholder="Search by name or token..." id="queueSearch" oninput="filterQueue(this.value)">
+                </div>
+                <div class="flex-1 overflow-y-auto">
+                    ${inRoom ? `
+                        <div class="px-3 pt-2 pb-1"><span class="text-[10px] font-bold text-brand-600 uppercase tracking-wider">In Room</span></div>
+                        ${renderQueueItem(inRoom)}
+                    ` : ''}
+                    ${waiting.length ? `
+                        <div class="px-3 pt-3 pb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Waiting (${waiting.length})</span></div>
+                        ${waiting.map(w => renderQueueItem(w)).join('')}
+                    ` : ''}
+                    ${done.length ? `
+                        <div class="px-3 pt-3 pb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completed (${done.length})</span></div>
+                        ${done.map(d => renderQueueItem(d)).join('')}
+                    ` : ''}
+                </div>
+                ${waiting.length && !inRoom ? `
+                    <div class="p-3 border-t border-surface-200">
+                        <button class="btn btn-primary btn-sm w-full" onclick="callNext()">Call Next Patient</button>
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- Patient/Consultation Panel -->
+            <div class="flex-1 overflow-y-auto bg-surface-50" id="consultPanel">
+                ${activePatientId ? renderPatientConsult(QUEUE.find(q => q.id === activePatientId)) : renderNoPatient()}
+            </div>
+        </div>
+    `;
+}
+
+function renderQueueItem(q) {
+    const isActive = q.id === activePatientId;
+    const waitColors = { waiting: 'text-orange-500', 'in-room': 'text-brand-600', done: 'text-gray-400' };
+    const lastVisit = q.history.length ? q.history[0].date + ' — ' + q.history[0].diagnosis : 'First visit';
+    const allergyTip = q.allergies.length ? '⚠ ' + q.allergies.join(', ') : 'No allergies';
+    return `
+        <div class="queue-item ${isActive ? 'active-patient' : ''} ${q.status === 'done' ? 'done' : ''}" onclick="selectPatient(${q.id})" title="${q.age}/${q.gender} • ${q.blood} • ${allergyTip} • Last: ${lastVisit}">
+            <div class="relative">
+                <div class="avatar ${q.status==='in-room'?'bg-brand-100 text-brand-600':q.status==='done'?'bg-gray-100 text-gray-400':'bg-surface-100 text-gray-600'}" style="width:34px;height:34px;font-size:11px;">
+                    ${q.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                </div>
+                ${q.priority==='emergency'?'<span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">!</span>':''}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[12px] font-semibold text-gray-900 truncate">${q.name}</span>
+                    ${q.allergies.length ? '<span class="dot dot-red" style="width:6px;height:6px;" title="Has allergies"></span>' : ''}
+                    ${AI_SUMMARIES[q.id] ? '<span style="display:inline-flex;align-items:center;gap:2px;padding:0 4px;border-radius:4px;background:linear-gradient(135deg,#3B82F6,#6366F1);color:white;font-size:8px;font-weight:700;line-height:14px;" title="AI Summary available from cross-hospital records">AI</span>' : ''}
+                    ${!AI_SUMMARIES[q.id] && CROSS_HOSPITAL_DATA[q.id]?.hospitals?.some(h => h.consent === 'authorized') ? '<span style="display:inline-flex;align-items:center;padding:0 3px;border-radius:3px;background:#FFF7ED;border:1px solid #FDBA74;font-size:8px;font-weight:600;color:#EA580C;line-height:13px;" title="Has cross-hospital records">XH</span>' : ''}
+                    ${!AI_SUMMARIES[q.id] && CROSS_HOSPITAL_DATA[q.id]?.hospitals?.some(h => h.consent === 'pending') ? '<span style="display:inline-flex;width:6px;height:6px;border-radius:50%;background:#F97316;animation:blink 1.5s ease-in-out infinite;" title="Consent pending"></span>' : ''}
+                </div>
+                <div class="text-[11px] text-gray-500 truncate">${q.complaint}</div>
+                <div class="text-[10px] text-gray-400">${q.age}/${q.gender} • ${q.blood}</div>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <div class="text-[11px] font-mono ${waitColors[q.status]}">${q.token}</div>
+                <span class="badge text-[9px] ${q.status==='in-room'?'badge-blue':q.status==='done'?'badge-gray':'badge-orange'}" style="padding:1px 5px;">${q.status==='in-room'?'IN ROOM':q.status==='done'?'DONE':'WAITING'}</span>
+                ${q.status === 'waiting' ? (() => {
+                    const mins = Math.round((Date.now() - q.checkinTime) / 60000);
+                    const color = mins > 30 ? '#DC2626' : mins > 15 ? '#EA580C' : '#059669';
+                    return '<div class="text-[10px] font-medium mt-0.5" style="color:' + color + '">' + mins + ' min</div>';
+                })() : ''}
+            </div>
+        </div>`;
+}
+
+function renderNoPatient() {
+    return `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-surface-100 flex items-center justify-center mx-auto mb-4">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+                <div class="text-[14px] font-semibold text-gray-700">No patient selected</div>
+                <div class="text-[12px] text-gray-400 mt-1">Click a patient from the queue or call next</div>
+            </div>
+        </div>`;
+}
+
+function renderPatientConsult(p) {
+    if (!p) return renderNoPatient();
+    const hasAllergies = p.allergies.length > 0;
+
+    return `
+        <div class="p-5">
+            <!-- Patient Header -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="avatar bg-brand-100 text-brand-600" style="width:44px;height:44px;font-size:15px;">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[16px] font-bold text-gray-900">${p.name}</span>
+                            <span class="badge ${p.priority==='emergency'?'badge-red':'badge-blue'}">${p.token}</span>
+                            ${p.priority==='emergency'?'<span class="badge badge-red">EMERGENCY</span>':''}
+                        </div>
+                        <div class="text-[13px] text-gray-500 mt-0.5">${p.age} yrs • ${p.gender==='M'?'Male':'Female'} • Blood: ${p.blood} • ${fmtPhone(p.phone)}</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    ${p.status === 'waiting' ? `<button class="btn btn-primary btn-sm" onclick="callPatientIn(${p.id})">Call In</button>` : ''}
+                    ${p.status === 'in-room' ? `<button class="btn btn-success btn-sm" onclick="completeConsult(${p.id})">Complete Consultation</button>` : ''}
+                    ${p.status === 'done' ? '<span class="badge badge-green text-[12px] px-3 py-1.5">COMPLETED</span>' : ''}
+                </div>
+            </div>
+
+            <!-- Allergy Alert -->
+            ${hasAllergies ? `
+                <div class="allergy-banner mb-4">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span class="text-[12px] font-bold text-red-700">ALLERGIES:</span>
+                    <span class="text-[12px] text-red-600">${p.allergies.join(', ')}</span>
+                </div>
+            ` : ''}
+
+            <!-- Vitals Row -->
+            <div class="flex gap-3 mb-4 flex-wrap">
+                ${vitalCard('BP', p.vitals.bp, p.vitals.bp.split('/')[0] > 140 ? 'warning' : 'normal')}
+                ${vitalCard('HR', p.vitals.hr + ' bpm', p.vitals.hr > 100 ? 'warning' : 'normal')}
+                ${vitalCard('Temp', p.vitals.temp + '°F', p.vitals.temp > 99.5 ? 'warning' : 'normal')}
+                ${vitalCard('SpO2', p.vitals.spo2 + '%', p.vitals.spo2 < 95 ? 'critical' : 'normal')}
+                ${vitalCard('Weight', p.vitals.wt + ' kg', 'normal')}
+                <div class="vital-card flex-1 cursor-pointer hover:bg-surface-100 transition-colors" onclick="editVitals(${p.id})">
+                    <div class="text-[11px] text-brand-600 font-semibold">+ Update</div>
+                    <div class="vital-label">Vitals</div>
+                </div>
+            </div>
+
+            <!-- Current Meds -->
+            ${p.meds.length ? `
+                <div class="card p-3 mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        <span class="text-[12px] font-semibold text-gray-700">Active Medications</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${p.meds.map(m => `<span class="badge badge-purple text-[10px]">${m.name} • ${m.freq} • ${m.since}</span>`).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Cross-hospital Records & AI Summary Banner -->
+            ${(() => {
+                const chd = CROSS_HOSPITAL_DATA[p.id];
+                const aiSum = AI_SUMMARIES[p.id];
+                if (!chd || !chd.hospitals?.length) return '';
+                const authorized = chd.hospitals.filter(h => h.consent === 'authorized');
+                const pending = chd.hospitals.filter(h => h.consent === 'pending');
+
+                if (authorized.length && aiSum) {
+                    // BIG prominent AI + cross-hospital banner — clickable
+                    return '<div onclick="switchTab(\'records\','+p.id+')" class="cursor-pointer mb-4 p-4 rounded-xl border-2 border-blue-300 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 hover:shadow-md transition-all" style="animation: subtlePulse 3s ease-in-out infinite;">' +
+                        '<div class="flex items-center justify-between">' +
+                            '<div class="flex items-center gap-3">' +
+                                '<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">' +
+                                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v2a4 4 0 01-4 4h-1v1a4 4 0 01-4 4 4 4 0 01-4-4v-1H6a4 4 0 01-4-4V9a2 2 0 012-2h2V6a4 4 0 014-4z"/></svg>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<div class="text-[13px] font-bold text-gray-900">AI Summary Available — ' + authorized.length + ' Hospital' + (authorized.length > 1 ? 's' : '') + '</div>' +
+                                    '<div class="text-[11px] text-blue-600">' + authorized.map(h => h.name).join(', ') + ' • Click to view full analysis</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-2">' +
+                                (aiSum.conflicts?.length ? '<span class="badge badge-red text-[9px]">' + aiSum.conflicts.length + ' CONFLICT' + (aiSum.conflicts.length > 1 ? 'S' : '') + '</span>' : '') +
+                                '<span class="badge text-[9px]" style="background:#EEF2FF;color:#4F46E5;">VIEW AI SUMMARY →</span>' +
+                            '</div>' +
+                        '</div>' +
+                        (aiSum.keyFindings?.filter(f => f.type === 'critical').length ? '<div class="mt-2 pt-2 border-t border-blue-200">' + aiSum.keyFindings.filter(f => f.type === 'critical').map(f => '<div class="flex items-center gap-1.5 text-[11px] text-red-700 font-medium"><span>🔴</span> ' + f.text + '</div>').join('') + '</div>' : '') +
+                    '</div>';
+                }
+
+                if (authorized.length) {
+                    return '<div onclick="switchTab(\'records\','+p.id+')" class="cursor-pointer mb-4 p-3 rounded-lg border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:shadow-sm transition-all">' +
+                        '<div class="flex items-center gap-3">' +
+                            '<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">' +
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                            '</div>' +
+                            '<div class="flex-1"><div class="text-[12px] font-bold text-blue-800">Cross-hospital records available: ' + authorized.map(h => h.name).join(', ') + '</div><div class="text-[11px] text-blue-600">Click to view records →</div></div>' +
+                        '</div>' +
+                    '</div>';
+                }
+
+                if (pending.length) {
+                    return '<div class="mb-4 p-3 rounded-lg border border-orange-200 bg-orange-50">' +
+                        '<div class="flex items-center gap-2">' +
+                            '<span class="text-[14px]">⏳</span>' +
+                            '<div class="flex-1"><div class="text-[12px] font-semibold text-orange-800">Consent pending: ' + pending.map(h => h.name).join(', ') + '</div><div class="text-[11px] text-orange-600">Waiting for patient approval on ABHA app</div></div>' +
+                            '<button class="btn btn-sm btn-ghost text-[11px] border border-orange-300" onclick="event.stopPropagation();sendConsentReminder(\'' + pending[0].name + '\',' + p.id + ')">Send Reminder</button>' +
+                        '</div>' +
+                    '</div>';
+                }
+                return '';
+            })()}
+
+            <!-- Tabs -->
+            <div class="flex border-b border-surface-200 mb-4 gap-1" id="consultTabs">
+                <div class="tab ${consultTab==='notes'?'active':''}" data-tab="notes" onclick="switchTab('notes',${p.id})">Notes</div>
+                <div class="tab ${consultTab==='prescription'?'active':''}" data-tab="prescription" onclick="switchTab('prescription',${p.id})">Prescription</div>
+                <div class="tab ${consultTab==='labs'?'active':''}" data-tab="labs" onclick="switchTab('labs',${p.id})">Lab Orders</div>
+                <div class="tab ${consultTab==='records'?'active':''}" data-tab="records" onclick="switchTab('records',${p.id})" style="${(() => {
+                    const chd = CROSS_HOSPITAL_DATA[p.id];
+                    const ai = AI_SUMMARIES[p.id];
+                    if (ai) return 'position:relative;';
+                    if (chd?.hospitals?.length) return 'position:relative;';
+                    return '';
+                })()}">
+                    Records
+                    ${(() => {
+                        const chd = CROSS_HOSPITAL_DATA[p.id];
+                        const ai = AI_SUMMARIES[p.id];
+                        const hospitalCount = chd?.hospitals?.filter(h => h.consent === 'authorized').length || 0;
+                        if (ai) {
+                            return '<span style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 6px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#6366F1);color:white;font-size:9px;font-weight:700;letter-spacing:0.3px;">AI + ' + hospitalCount + '</span>';
+                        }
+                        if (hospitalCount > 0) {
+                            return '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;margin-left:4px;border-radius:8px;background:#EA580C;color:white;font-size:9px;font-weight:700;">' + hospitalCount + '</span>';
+                        }
+                        if (chd?.hospitals?.some(h => h.consent === 'pending')) {
+                            return '<span style="display:inline-flex;align-items:center;justify-content:center;width:8px;height:8px;border-radius:50%;background:#F97316;margin-left:4px;animation:blink 1.5s ease-in-out infinite;"></span>';
+                        }
+                        return '';
+                    })()}
+                </div>
+                <div class="tab ${consultTab==='followup'?'active':''}" data-tab="followup" onclick="switchTab('followup',${p.id})">Follow-up</div>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tabContent">
+                ${renderTabContent(p)}
+            </div>
+        </div>
+    `;
+}
+
+function vitalCard(label, value, status) {
+    return `<div class="vital-card vital-${status}"><div class="vital-value">${value}</div><div class="vital-label">${label}</div></div>`;
+}
+
+// ==================== TABS ====================
+function switchTab(tab, patientId) {
+    consultTab = tab;
+    const p = QUEUE.find(q => q.id === patientId);
+    document.querySelectorAll('#consultTabs .tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.getElementById('tabContent').innerHTML = renderTabContent(p);
+}
+
+function renderTabContent(p) {
+    if (consultTab === 'notes') return renderNotesTab(p);
+    if (consultTab === 'prescription') return renderPrescriptionTab(p);
+    if (consultTab === 'labs') return renderLabsTab(p);
+    if (consultTab === 'records') return renderRecordsTab(p);
+    if (consultTab === 'followup') return renderFollowUpTab(p);
+    return '';
+}
+
+// ---- Notes Tab ----
+function getPatientNotes(pid) {
+    if (!consultNotes[pid]) consultNotes[pid] = { complaint: '', diagnosis: '', notes: '', instructions: '' };
+    return consultNotes[pid];
+}
+
+function renderNotesTab(p) {
+    const n = getPatientNotes(p.id);
+    // Pre-fill complaint from queue data if empty
+    if (!n.complaint && p.complaint) n.complaint = p.complaint;
+    const saved = n._saved;
+
+    return `
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-[13px] font-semibold text-gray-900">SOAP Notes</span>
+                    <span class="text-[10px] text-gray-400 font-medium px-1.5 py-0.5 bg-gray-100 rounded">Subjective → Objective → Assessment → Plan</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    ${saved ? '<span class="text-[11px] text-green-600 font-medium">✓ Saved</span>' : '<span class="text-[11px] text-gray-400">Unsaved</span>'}
+                    ${p.history.length ? `<button class="btn btn-ghost btn-sm text-[11px]" onclick="prefillFromHistory(${p.id})">Pre-fill from last visit</button>` : ''}
+                </div>
+            </div>
+
+            <!-- S — Subjective -->
+            <div class="mb-4 p-3 rounded-lg border border-surface-200 bg-white">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">S</span>
+                    <span class="text-[12px] font-semibold text-gray-700">Subjective</span>
+                    <span class="text-[10px] text-gray-400">— What the patient tells you</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label">Chief Complaint <span class="text-red-500">*</span></label>
+                        <input class="form-input" value="${n.complaint}" id="noteComplaint" placeholder="Main reason for visit">
+                    </div>
+                    <div>
+                        <label class="form-label">History of Present Illness</label>
+                        <input class="form-input" value="${n.hpi || ''}" id="noteHPI" placeholder="Duration, onset, severity, associated symptoms...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- O — Objective -->
+            <div class="mb-4 p-3 rounded-lg border border-surface-200 bg-white">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-md bg-green-100 text-green-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">O</span>
+                    <span class="text-[12px] font-semibold text-gray-700">Objective</span>
+                    <span class="text-[10px] text-gray-400">— What you observe/examine</span>
+                </div>
+                <div class="flex gap-2 mb-2 flex-wrap text-[11px] text-gray-500">
+                    <span class="px-2 py-0.5 rounded bg-surface-50">BP: ${p.vitals.bp}</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-50">HR: ${p.vitals.hr} bpm</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-50">Temp: ${p.vitals.temp}°F</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-50">SpO2: ${p.vitals.spo2}%</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-50">Wt: ${p.vitals.wt} kg</span>
+                    <span class="text-[10px] text-gray-400 italic ml-1">Auto-pulled from vitals</span>
+                </div>
+                <textarea class="form-input" rows="3" placeholder="Physical examination findings: Heart sounds, lung auscultation, peripheral pulses, edema..." id="noteExam">${n.notes}</textarea>
+            </div>
+
+            <!-- A — Assessment -->
+            <div class="mb-4 p-3 rounded-lg border border-surface-200 bg-white">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-md bg-orange-100 text-orange-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">A</span>
+                    <span class="text-[12px] font-semibold text-gray-700">Assessment</span>
+                    <span class="text-[10px] text-gray-400">— Your clinical judgment</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label">Primary Diagnosis <span class="text-red-500">*</span></label>
+                        <input class="form-input" placeholder="e.g., Stable Angina" value="${n.diagnosis}" id="noteDiagnosis" list="diagList">
+                        <datalist id="diagList">
+                            <option value="Stable Angina"><option value="Unstable Angina"><option value="Hypertension">
+                            <option value="Atrial Fibrillation"><option value="Heart Failure"><option value="Myocardial Infarction">
+                            <option value="Hyperlipidemia"><option value="Palpitations - benign"><option value="Type 2 Diabetes Mellitus">
+                            <option value="Anxiety-related palpitations">
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="form-label">Differential Diagnoses</label>
+                        <input class="form-input" value="${n.differentials || ''}" id="noteDifferentials" placeholder="Other possible diagnoses to rule out...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- P — Plan -->
+            <div class="mb-4 p-3 rounded-lg border border-surface-200 bg-white">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-6 h-6 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">P</span>
+                    <span class="text-[12px] font-semibold text-gray-700">Plan</span>
+                    <span class="text-[10px] text-gray-400">— Treatment & next steps</span>
+                </div>
+                <textarea class="form-input" rows="2" placeholder="Treatment plan, medications (use Prescription tab for details), investigations ordered, patient instructions..." id="noteInstructions">${n.instructions}</textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button class="btn btn-primary btn-sm" onclick="saveNotes(${p.id})">Save Notes</button>
+                <button class="btn btn-secondary btn-sm" onclick="saveAndNext(${p.id})">Save & Go to Prescription →</button>
+                <span class="text-[10px] text-gray-400 ml-auto">Ctrl+S to save</span>
+            </div>
+        </div>
+    `;
+}
+
+function saveNotes(pid) {
+    const n = getPatientNotes(pid);
+    n.complaint = document.getElementById('noteComplaint')?.value || '';
+    n.hpi = document.getElementById('noteHPI')?.value || '';
+    n.diagnosis = document.getElementById('noteDiagnosis')?.value || '';
+    n.differentials = document.getElementById('noteDifferentials')?.value || '';
+    n.notes = document.getElementById('noteExam')?.value || '';
+    n.instructions = document.getElementById('noteInstructions')?.value || '';
+
+    if (!n.complaint || !n.diagnosis) {
+        toast('Please fill Chief Complaint (S) and Primary Diagnosis (A)', 'error');
+        return false;
+    }
+    n._saved = true;
+    toast('SOAP notes saved for ' + QUEUE.find(q=>q.id===pid)?.name, 'success');
+    const p = QUEUE.find(q => q.id === pid);
+    document.getElementById('tabContent').innerHTML = renderNotesTab(p);
+    return true;
+}
+
+function saveAndNext(pid) {
+    if (saveNotes(pid)) {
+        switchTab('prescription', pid);
+    }
+}
+
+function prefillFromHistory(pid) {
+    const p = QUEUE.find(q => q.id === pid);
+    if (!p || !p.history.length) return;
+    const last = p.history[0];
+    const n = getPatientNotes(pid);
+    document.getElementById('noteComplaint').value = last.reason;
+    document.getElementById('noteDiagnosis').value = last.diagnosis;
+    document.getElementById('noteExam').value = last.notes;
+    n.complaint = last.reason;
+    n.diagnosis = last.diagnosis;
+    n.notes = last.notes;
+    toast('Pre-filled from visit on ' + last.date, 'info');
+}
+
+// ---- Prescription Tab ----
+function renderPrescriptionTab(p) {
+    const ddiWarnings = checkDDI(p);
+    return `
+        <div class="card p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[13px] font-semibold text-gray-900">Prescription</span>
+                <div class="flex gap-2">
+                    <button class="btn btn-sm btn-ghost border border-surface-200" onclick="showTemplates(${p.id})">⚡ Quick Rx</button>
+                    <button class="btn btn-sm btn-secondary" onclick="addPrescriptionRow()">+ Add Medicine</button>
+                </div>
+            </div>
+            ${hasAllergy(p) ? `<div class="allergy-banner mb-3 text-[11px]"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="font-bold text-red-700">Allergies: ${p.allergies.join(', ')}</span></div>` : ''}
+            ${ddiWarnings.length ? `<div class="mb-3">${ddiWarnings.map(w => `<div class="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg mb-1.5 text-[11px]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="text-red-700 font-semibold">${w}</span></div>`).join('')}</div>` : ''}
+            <div id="rxRows">
+                ${prescriptions.length ? prescriptions.map((rx, i) => renderRxRow(rx, i)).join('') : '<div class="text-center py-6 text-[13px] text-gray-400">No medicines added yet. Click "+ Add Medicine" or "Quick Rx" to start.</div>'}
+            </div>
+        </div>
+        ${prescriptions.length ? `
+            <div class="flex gap-3 flex-wrap">
+                <button class="btn btn-primary btn-sm" onclick="savePrescription(${p.id})">Save Prescription</button>
+                <button class="btn btn-secondary btn-sm" onclick="toast('Prescription sent to print','info')">Print Rx</button>
+                <button class="btn btn-sm btn-ghost border border-surface-200 text-green-700" onclick="shareWhatsApp(${p.id})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492l4.625-1.465A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75c-2.115 0-4.142-.66-5.85-1.886l-.42-.287-2.744.87.91-2.672-.315-.46A9.712 9.712 0 012.25 12c0-5.385 4.365-9.75 9.75-9.75S21.75 6.615 21.75 12s-4.365 9.75-9.75 9.75z"/></svg>
+                    Send via WhatsApp
+                </button>
+            </div>
+        ` : ''}
+    `;
+}
+
+function calcQty(freq, duration) {
+    if (!freq || !duration) return '';
+    const perDay = { 'OD (Once daily)': 1, 'BD (Twice daily)': 2, 'TDS (Thrice daily)': 3, 'QID (4 times)': 4, 'SOS (As needed)': 0, 'HS (At bedtime)': 1, 'Stat (Immediately)': 1 };
+    const days = { '3 days': 3, '5 days': 5, '7 days': 7, '10 days': 10, '14 days': 14, '1 month': 30, '2 months': 60, '3 months': 90, 'Ongoing': 30 };
+    const pd = perDay[freq]; const d = days[duration];
+    if (pd === 0) return 'SOS';
+    if (pd && d) return pd * d;
+    return '';
+}
+
+function renderRxRow(rx, index) {
+    const qty = calcQty(rx.frequency, rx.duration);
+    return `
+        <div class="rx-row">
+            <div class="flex-1">
+                <label class="form-label">Medicine</label>
+                <input class="form-input" list="medList" value="${rx.medicine}" placeholder="Type medicine name..." onchange="prescriptions[${index}].medicine=this.value">
+                <datalist id="medList">${MEDICINES.map(m => `<option value="${m}">`).join('')}</datalist>
+            </div>
+            <div style="width:140px;">
+                <label class="form-label">Frequency</label>
+                <select class="form-input" onchange="prescriptions[${index}].frequency=this.value;updateRxQty(${index})">
+                    <option value="">Select</option>
+                    ${FREQUENCIES.map(f => `<option ${rx.frequency===f?'selected':''}>${f}</option>`).join('')}
+                </select>
+            </div>
+            <div style="width:100px;">
+                <label class="form-label">Duration</label>
+                <select class="form-input" onchange="prescriptions[${index}].duration=this.value;updateRxQty(${index})">
+                    <option value="">Select</option>
+                    ${DURATIONS.map(d => `<option ${rx.duration===d?'selected':''}>${d}</option>`).join('')}
+                </select>
+            </div>
+            <div style="width:60px;">
+                <label class="form-label">Qty</label>
+                <div class="form-input flex items-center justify-center text-[12px] font-bold ${qty ? 'text-brand-600 bg-blue-50' : 'text-gray-300'}" style="border-color:${qty ? '#BFDBFE' : '#E3E8EF'};">${qty || '--'}</div>
+            </div>
+            <div style="width:120px;">
+                <label class="form-label">Instructions</label>
+                <select class="form-input" onchange="prescriptions[${index}].instruction=this.value">
+                    <option value="">Select</option>
+                    ${INSTRUCTIONS.map(ins => `<option ${rx.instruction===ins?'selected':''}>${ins}</option>`).join('')}
+                </select>
+            </div>
+            <button class="btn-ghost p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 mt-4" onclick="removePrescription(${index})">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+        </div>
+    `;
+}
+
+function updateRxQty(index) {
+    // Re-render prescription tab to update qty display
+    const p = QUEUE.find(q => q.id === activePatientId);
+    if (p) document.getElementById('tabContent').innerHTML = renderPrescriptionTab(p);
+}
+
+function addPrescriptionRow() {
+    prescriptions.push({ medicine: '', frequency: '', duration: '', instruction: '' });
+    const p = QUEUE.find(q => q.id === activePatientId);
+    document.getElementById('tabContent').innerHTML = renderPrescriptionTab(p);
+}
+
+function removePrescription(index) {
+    prescriptions.splice(index, 1);
+    const p = QUEUE.find(q => q.id === activePatientId);
+    document.getElementById('tabContent').innerHTML = renderPrescriptionTab(p);
+}
+
+// DDI Check
+function checkDDI(patient) {
+    const warnings = [];
+    const allMeds = [...prescriptions.map(rx => rx.medicine), ...patient.meds.map(m => m.name)];
+
+    DDI_RULES.forEach(rule => {
+        // Check allergy-based DDI
+        if (rule.allergy && patient.allergies.includes(rule.allergy)) {
+            const conflicting = prescriptions.find(rx => rule.drugs.some(d => rx.medicine.toLowerCase().includes(d.toLowerCase())));
+            if (conflicting) warnings.push(rule.msg);
+        }
+        // Check drug-drug interaction (need both drugs present)
+        if (!rule.allergy && rule.drugs.length === 2) {
+            const has0 = allMeds.some(m => m.toLowerCase().includes(rule.drugs[0].toLowerCase()));
+            const has1 = allMeds.some(m => m.toLowerCase().includes(rule.drugs[1].toLowerCase()));
+            if (has0 && has1) warnings.push(rule.msg);
+        }
+    });
+    return [...new Set(warnings)];
+}
+
+// Quick Rx Templates
+function showTemplates(patientId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg';
+    modal.id = 'templateModal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+        <div class="modal-box" onclick="event.stopPropagation()" style="max-width:500px;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-surface-200">
+                <span class="text-[15px] font-bold text-gray-900">Quick Rx Templates</span>
+                <button onclick="document.getElementById('templateModal').remove()" class="btn-ghost p-1 rounded-lg text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="p-2">
+                ${RX_TEMPLATES.map((t, i) => `
+                    <div class="px-4 py-3 mx-2 my-1 rounded-lg cursor-pointer hover:bg-surface-50 transition-colors" onclick="applyTemplate(${i}, ${patientId})">
+                        <div class="text-[13px] font-semibold text-gray-900">${t.name}</div>
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            ${t.meds.map(m => `<span class="badge badge-purple text-[10px]">${m.medicine} • ${m.frequency.split(' ')[0]}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('<div class="divider mx-4"></div>')}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function applyTemplate(templateIdx, patientId) {
+    const template = RX_TEMPLATES[templateIdx];
+    prescriptions = template.meds.map(m => ({ ...m }));
+    document.getElementById('templateModal')?.remove();
+    const p = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderPrescriptionTab(p);
+    toast('Applied: ' + template.name + ' (' + template.meds.length + ' medicines)', 'success');
+}
+
+// Save Prescription
+function savePrescription(patientId) {
+    const valid = prescriptions.filter(rx => rx.medicine);
+    if (!valid.length) { toast('Add at least one medicine', 'error'); return; }
+    const ddi = checkDDI(QUEUE.find(q => q.id === patientId));
+    if (ddi.length) {
+        if (!confirm('There are drug interaction warnings. Continue saving?')) return;
+    }
+    toast('Prescription saved (' + valid.length + ' medicines)', 'success');
+}
+
+// WhatsApp Share
+function shareWhatsApp(patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    if (!p) return;
+    const valid = prescriptions.filter(rx => rx.medicine);
+    if (!valid.length) { toast('No medicines to share', 'error'); return; }
+    let msg = '*Medhistry — Prescription*\n';
+    msg += '━━━━━━━━━━━━━\n';
+    msg += '*Patient:* ' + p.name + '\n';
+    msg += '*Doctor:* ' + DOCTOR.name + ' (' + DOCTOR.dept + ')\n';
+    msg += '*Date:* ' + new Date().toLocaleDateString('en-IN') + '\n\n';
+    valid.forEach((rx, i) => {
+        msg += (i+1) + '. *' + rx.medicine + '*\n';
+        msg += '   ' + rx.frequency + ' | ' + rx.duration + '\n';
+        if (rx.instruction) msg += '   _' + rx.instruction + '_\n';
+    });
+    msg += '\n_Krishna Multispecialty Hospital_';
+
+    const url = 'https://wa.me/91' + p.phone + '?text=' + encodeURIComponent(msg);
+    toast('Opening WhatsApp for ' + p.name, 'info');
+    window.open(url, '_blank');
+}
+
+// ---- Labs Tab ----
+function renderLabsTab(p) {
+    const categories = [...new Set(LAB_TESTS.map(t => t.cat))];
+    return `
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <div class="card p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[13px] font-semibold text-gray-900">Order Lab Tests</span>
+                    </div>
+                    ${categories.map(cat => `
+                        <div class="mb-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">${cat}</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${LAB_TESTS.filter(t => t.cat === cat).map(t => {
+                                    const ordered = labOrders.includes(t.name);
+                                    return `<button class="text-[11px] font-medium px-2.5 py-1.5 rounded-md border transition-all ${ordered ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-surface-200 hover:border-brand-600 hover:text-brand-600'}" onclick="toggleLabOrder('${t.name}', ${p.id})">${ordered ? '✓ ' : ''}${t.name}</button>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${labOrders.length ? `
+                        <div class="divider my-3"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[12px] text-gray-500">${labOrders.length} test(s) selected</span>
+                            <div class="flex gap-2">
+                                <select class="form-input" style="height:34px;width:120px;font-size:12px;" id="labUrgency">
+                                    <option>Routine</option><option>Same-day</option><option>Stat (Urgent)</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm" onclick="submitLabOrders()">Send to Lab</button>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            <div>
+                <div class="card p-4">
+                    <span class="text-[13px] font-semibold text-gray-900 mb-3 block">Past Results</span>
+                    ${p.labs.length ? p.labs.map(l => `
+                        <div class="flex items-center justify-between py-2 border-b border-surface-200 last:border-0 cursor-pointer hover:bg-surface-50 rounded px-2 -mx-2 transition-colors" onclick="toast('Opening ${l.test} report','info')">
+                            <div>
+                                <div class="text-[12px] font-medium text-gray-900">${l.test}</div>
+                                <div class="text-[11px] text-gray-500">${l.date}</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[12px] ${l.status==='abnormal'?'text-red-600 font-semibold':'text-gray-600'}">${l.result}</span>
+                                <span class="badge text-[9px] ${l.status==='abnormal'?'badge-red':'badge-green'}">${l.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="text-[13px] text-gray-400 text-center py-6">No previous lab results</div>'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function toggleLabOrder(testName, patientId) {
+    const idx = labOrders.indexOf(testName);
+    if (idx >= 0) labOrders.splice(idx, 1);
+    else labOrders.push(testName);
+    const p = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderLabsTab(p);
+}
+
+function submitLabOrders() {
+    const urgency = document.getElementById('labUrgency')?.value || 'Routine';
+    toast(`${labOrders.length} test(s) sent to lab (${urgency})`, 'success');
+    labOrders = [];
+    const p = QUEUE.find(q => q.id === activePatientId);
+    document.getElementById('tabContent').innerHTML = renderLabsTab(p);
+}
+
+// ---- Records Tab (Cross-Hospital + AI Summary) ----
+let askAIOpen = false;
+let askAIQuery = '';
+let askAIResponse = '';
+
+function renderRecordsTab(p) {
+    const crossData = CROSS_HOSPITAL_DATA[p.id];
+    const aiSummary = AI_SUMMARIES[p.id];
+    const hasAbha = crossData && crossData.abhaId;
+    const hasHospitals = crossData && crossData.hospitals && crossData.hospitals.length > 0;
+    const authorizedHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'authorized') : [];
+    const pendingHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'pending') : [];
+    const deniedHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'denied') : [];
+    const expiredHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'expired') : [];
+
+    return `
+        <!-- AI Summary Card (if available) -->
+        ${aiSummary ? renderAISummaryCard(p, aiSummary) : ''}
+
+        <!-- ABHA & Consent Status Bar -->
+        <div class="card p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span class="text-[13px] font-semibold text-gray-900">Cross-Hospital Records</span>
+                </div>
+                ${hasAbha ? `<span class="badge badge-blue text-[10px]">ABHA: ${crossData.abhaId}</span>` : `<span class="badge badge-gray text-[10px]">No ABHA ID linked</span>`}
+            </div>
+
+            ${!hasAbha ? `
+                <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[13px] font-medium text-gray-700">No ABHA ID linked</div>
+                        <div class="text-[11px] text-gray-500">Patient needs to link their ABHA ID to access cross-hospital records</div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="toast('Ask patient to share ABHA ID at billing counter','info')">Request ABHA</button>
+                </div>
+            ` : ''}
+
+            ${hasAbha && !hasHospitals ? `
+                <div class="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[13px] font-medium text-gray-700">No records found on ABDM network</div>
+                        <div class="text-[11px] text-gray-500">This patient has an ABHA ID but no external hospital records were found</div>
+                    </div>
+                </div>
+            ` : ''}
+
+            ${hasHospitals ? `
+                <div class="space-y-2">
+                    ${crossData.hospitals.map(h => renderConsentStatusRow(h, p.id)).join('')}
+                </div>
+            ` : ''}
+        </div>
+
+        <!-- Hospital Records (Authorized) -->
+        ${authorizedHospitals.length ? authorizedHospitals.map(h => renderHospitalRecords(h, p)).join('') : ''}
+
+        <!-- This Hospital Records -->
+        <div class="card p-4 mb-4">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
+                </div>
+                <span class="text-[13px] font-semibold text-gray-900">Krishna Hospital</span>
+                <span class="badge badge-green text-[10px]">This Hospital</span>
+            </div>
+            ${p.history.length ? `
+                <div class="space-y-1">
+                    ${p.history.filter(h => h.hospital === 'Krishna Hospital').map(h => `
+                        <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-50 cursor-pointer transition-colors" onclick="showRecordDetail('${h.date}', '${h.doctor}', '${h.diagnosis}', \`${h.notes}\`)">
+                            <div class="w-8 text-center">
+                                <div class="text-[11px] font-bold text-gray-900">${h.date.split(' ')[0]}</div>
+                                <div class="text-[9px] text-gray-400">${h.date.split(' ')[1]}</div>
+                            </div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[12px] font-medium text-gray-900">${h.diagnosis}</div>
+                                <div class="text-[11px] text-gray-500 truncate">${h.doctor} • ${h.dept} • ${h.reason}</div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<div class="text-[13px] text-gray-400 text-center py-4">No visits at this hospital</div>'}
+
+            ${p.labs.length ? `
+                <div class="divider my-3"></div>
+                <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Lab Results</div>
+                <div class="flex flex-wrap gap-2">
+                    ${p.labs.map(l => `
+                        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border ${l.status==='abnormal'?'border-red-200 bg-red-50':'border-surface-200 bg-white'} cursor-pointer hover:shadow-sm transition-shadow" onclick="toast('${l.test}: ${l.result}','info')">
+                            <span class="w-1.5 h-1.5 rounded-full ${l.status==='abnormal'?'bg-red-500':'bg-green-500'}"></span>
+                            <span class="text-[11px] font-medium ${l.status==='abnormal'?'text-red-700':'text-gray-700'}">${l.test}</span>
+                            <span class="text-[10px] text-gray-400">${l.date}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+
+        <!-- Ask AI Section -->
+        ${(aiSummary || authorizedHospitals.length) ? renderAskAI(p) : ''}
+    `;
+}
+
+function renderConsentStatusRow(hospital, patientId) {
+    const statusConfig = {
+        authorized: { icon: '✓', color: 'green', bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', badge: 'badge-green', label: 'AUTHORIZED' },
+        pending: { icon: '⏳', color: 'orange', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', badge: 'badge-orange', label: 'PENDING' },
+        denied: { icon: '✕', color: 'red', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'badge-red', label: 'DENIED' },
+        expired: { icon: '↻', color: 'gray', bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-600', badge: 'badge-gray', label: 'EXPIRED' }
+    };
+    const s = statusConfig[hospital.consent] || statusConfig.pending;
+
+    return `
+        <div class="flex items-center gap-3 p-3 ${s.bg} ${s.border} border rounded-lg">
+            <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span class="text-[14px]">${s.icon}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-[12px] font-semibold text-gray-900">${hospital.name}</span>
+                    <span class="text-[11px] text-gray-500">${hospital.city || ''}</span>
+                </div>
+                <div class="text-[11px] ${s.text}">
+                    ${hospital.consent === 'authorized' ? `Access until ${hospital.consentExpiry} • Updated ${hospital.lastUpdated}` : ''}
+                    ${hospital.consent === 'pending' ? `Consent requested on ${hospital.consentRequestDate} • Waiting for patient approval` : ''}
+                    ${hospital.consent === 'denied' ? `Patient declined on ${hospital.consentDeniedDate}` : ''}
+                    ${hospital.consent === 'expired' ? `Expired on ${hospital.consentExpiry}` : ''}
+                </div>
+            </div>
+            <span class="badge ${s.badge} text-[9px]">${s.label}</span>
+            ${hospital.consent === 'pending' ? `<button class="btn btn-sm btn-ghost text-[11px] border border-orange-300" onclick="sendConsentReminder('${hospital.name}', ${patientId})">Send Reminder</button>` : ''}
+            ${hospital.consent === 'denied' ? `<button class="btn btn-sm btn-ghost text-[11px] border border-red-300" onclick="requestNewConsent('${hospital.name}', ${patientId})">Request Again</button>` : ''}
+            ${hospital.consent === 'expired' ? `<button class="btn btn-sm btn-ghost text-[11px] border border-gray-300" onclick="renewConsent('${hospital.name}', ${patientId})">Renew Access</button>` : ''}
+        </div>
+    `;
+}
+
+function renderHospitalRecords(hospital, patient) {
+    const recs = hospital.records;
+    const totalRecords = (recs.consultations?.length || 0) + (recs.prescriptions?.length || 0) + (recs.labs?.length || 0) + (recs.imaging?.length || 0) + (recs.dischargeSummaries?.length || 0);
+
+    return `
+        <div class="card p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
+                    </div>
+                    <span class="text-[13px] font-semibold text-gray-900">${hospital.name}</span>
+                    <span class="badge badge-orange text-[10px]">${hospital.city}</span>
+                    <span class="text-[10px] text-gray-400">${totalRecords} records</span>
+                </div>
+                <span class="text-[10px] text-gray-400">Updated: ${hospital.lastUpdated}</span>
+            </div>
+
+            ${recs.consultations?.length ? `
+                <div class="mb-3">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Consultations</div>
+                    ${recs.consultations.map(c => `
+                        <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-50 cursor-pointer transition-colors" onclick="showRecordDetail('${c.date}', '${c.doctor}', '${c.diagnosis}', \`${c.notes}\`)">
+                            <div class="w-8 text-center">
+                                <div class="text-[10px] font-bold text-gray-700">${c.date.split(' ')[0]}</div>
+                                <div class="text-[9px] text-gray-400">${c.date.split(' ')[1]}</div>
+                            </div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[12px] font-medium text-gray-900">${c.diagnosis}</div>
+                                <div class="text-[11px] text-gray-500 truncate">${c.doctor} • ${c.dept} • ${c.reason}</div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            ${recs.prescriptions?.length ? `
+                <div class="mb-3">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Prescriptions</div>
+                    ${recs.prescriptions.map(rx => `
+                        <div class="p-2.5 rounded-lg hover:bg-surface-50 transition-colors">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[11px] font-medium text-gray-700">${rx.date}</span>
+                                <span class="text-[11px] text-gray-500">• ${rx.doctor}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                ${rx.medicines.map(m => `<span class="badge badge-purple text-[10px]">${m}</span>`).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            ${recs.labs?.length ? `
+                <div class="mb-3">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Lab Results</div>
+                    <div class="flex flex-wrap gap-2">
+                        ${recs.labs.map(l => `
+                            <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border ${l.status==='abnormal'?'border-red-200 bg-red-50':'border-surface-200 bg-white'} cursor-pointer hover:shadow-sm transition-shadow" onclick="toast('${l.test}: ${l.result}','info')">
+                                <span class="w-1.5 h-1.5 rounded-full ${l.status==='abnormal'?'bg-red-500':'bg-green-500'}"></span>
+                                <span class="text-[11px] font-medium ${l.status==='abnormal'?'text-red-700':'text-gray-700'}">${l.test}</span>
+                                <span class="text-[10px] text-gray-400">${l.date}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${recs.imaging?.length ? `
+                <div class="mb-3">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Imaging</div>
+                    ${recs.imaging.map(img => `
+                        <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-50 transition-colors cursor-pointer" onclick="toast('${img.test}: ${img.result}','info')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span class="text-[11px] font-medium text-gray-700">${img.test}</span>
+                            <span class="text-[10px] text-gray-400">${img.date}</span>
+                            <span class="badge text-[9px] ${img.status==='normal'?'badge-green':'badge-red'}">${img.status.toUpperCase()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            ${recs.dischargeSummaries?.length ? `
+                <div class="mb-1">
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Discharge Summaries</div>
+                    ${recs.dischargeSummaries.map(ds => `
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors" onclick="toast('Discharge summary: ${ds.date}','info')">
+                            <div class="flex items-center gap-2 mb-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                <span class="text-[11px] font-semibold text-amber-800">${ds.date}</span>
+                            </div>
+                            <div class="text-[11px] text-amber-700">${ds.summary}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function renderAISummaryCard(patient, ai) {
+    return `
+        <div class="card mb-4 overflow-hidden" style="border-color:#BFDBFE;">
+            <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v2a4 4 0 01-4 4h-1v1a4 4 0 01-4 4 4 4 0 01-4-4v-1H6a4 4 0 01-4-4V9a2 2 0 012-2h2V6a4 4 0 014-4z"/></svg>
+                        </div>
+                        <span class="text-[13px] font-bold text-brand-800">AI Patient Summary</span>
+                        <span class="badge badge-blue text-[9px]">POWERED BY MEDHISTRY AI</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400">${ai.generatedAt}</span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="text-[12.5px] text-gray-700 leading-relaxed mb-4">${ai.combined}</div>
+
+                <!-- Key Findings -->
+                <div class="mb-4">
+                    <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Key Findings</div>
+                    <div class="space-y-1.5">
+                        ${ai.keyFindings.map(f => {
+                            const config = {
+                                critical: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '🔴' },
+                                warning: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: '🟠' },
+                                positive: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: '🟢' },
+                                info: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: 'ℹ️' }
+                            };
+                            const c = config[f.type] || config.info;
+                            return `<div class="flex items-start gap-2 p-2 ${c.bg} ${c.border} border rounded-md"><span class="text-[11px] flex-shrink-0 mt-0.5">${c.icon}</span><span class="text-[11px] ${c.text}">${f.text}</span></div>`;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <!-- Medication Timeline -->
+                ${ai.medicationTimeline?.length ? `
+                    <div class="mb-4">
+                        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Medication Timeline</div>
+                        <div class="space-y-1">
+                            ${ai.medicationTimeline.map(m => `
+                                <div class="flex items-start gap-2 p-2 bg-purple-50 border border-purple-100 rounded-md">
+                                    <span class="badge badge-purple text-[9px] mt-0.5 flex-shrink-0">${m.med}</span>
+                                    <span class="text-[11px] text-purple-700">${m.history}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Conflicts -->
+                ${ai.conflicts?.length ? `
+                    <div class="mb-4">
+                        <div class="text-[11px] font-bold text-red-500 uppercase tracking-wider mb-2">⚠ Conflicts Detected</div>
+                        <div class="space-y-1.5">
+                            ${ai.conflicts.map(c => `
+                                <div class="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-md">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    <div>
+                                        <div class="text-[11px] font-semibold text-red-700">${c.type === 'dose_discrepancy' ? 'Dose Discrepancy' : c.type === 'missing_med' ? 'Missing Medication' : 'Conflict'}</div>
+                                        <div class="text-[11px] text-red-600">${c.text}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Risk Factors -->
+                ${ai.riskFactors?.length ? `
+                    <div>
+                        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Risk Factors</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${ai.riskFactors.map(r => `<span class="badge badge-gray text-[10px]">${r}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function renderAskAI(patient) {
+    return `
+        <div class="card p-4 mb-4" style="border-color:#C7D2FE;">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-6 h-6 rounded-md bg-indigo-100 flex items-center justify-center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <span class="text-[13px] font-semibold text-indigo-900">Ask AI About This Patient</span>
+            </div>
+            <div class="flex gap-2 mb-2">
+                <input class="form-input flex-1" id="askAIInput" placeholder="e.g., What's the trend in HbA1c? Any drug interactions to watch for?" value="${askAIQuery}" onkeydown="if(event.key==='Enter')submitAskAI(${patient.id})">
+                <button class="btn btn-sm btn-primary" onclick="submitAskAI(${patient.id})" style="background:#6366F1;">Ask AI</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+                <button class="text-[10px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer border-0" onclick="quickAskAI('What medications should I be cautious about?', ${patient.id})">Drug interactions?</button>
+                <button class="text-[10px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer border-0" onclick="quickAskAI('Summarize lab trends across hospitals', ${patient.id})">Lab trends</button>
+                <button class="text-[10px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer border-0" onclick="quickAskAI('What are the key risk factors?', ${patient.id})">Risk factors</button>
+                <button class="text-[10px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer border-0" onclick="quickAskAI('Any conflicting information between hospitals?', ${patient.id})">Conflicts?</button>
+            </div>
+            ${askAIResponse ? `
+                <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-lg mt-2">
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                        <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v2a4 4 0 01-4 4h-1v1a4 4 0 01-4 4 4 4 0 01-4-4v-1H6a4 4 0 01-4-4V9a2 2 0 012-2h2V6a4 4 0 014-4z"/></svg></div>
+                        <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">AI Response</span>
+                    </div>
+                    <div class="text-[12px] text-indigo-800 leading-relaxed">${askAIResponse}</div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// ---- Records Tab Support Functions ----
+function showRecordDetail(date, doctor, diagnosis, notes) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg';
+    modal.id = 'recordDetailModal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+        <div class="modal-box" onclick="event.stopPropagation()" style="max-width:480px;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-surface-200">
+                <span class="text-[15px] font-bold text-gray-900">Visit Record</span>
+                <button onclick="document.getElementById('recordDetailModal').remove()" class="btn-ghost p-1 rounded-lg text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div><div class="text-[10px] font-bold text-gray-400 uppercase">Date</div><div class="text-[13px] font-medium text-gray-900">${date}</div></div>
+                    <div><div class="text-[10px] font-bold text-gray-400 uppercase">Doctor</div><div class="text-[13px] font-medium text-gray-900">${doctor}</div></div>
+                    <div class="col-span-2"><div class="text-[10px] font-bold text-gray-400 uppercase">Diagnosis</div><div class="text-[13px] font-medium text-gray-900">${diagnosis}</div></div>
+                </div>
+                <div class="divider mb-3"></div>
+                <div class="text-[10px] font-bold text-gray-400 uppercase mb-1">Clinical Notes</div>
+                <div class="text-[12.5px] text-gray-700 leading-relaxed">${notes}</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function sendConsentReminder(hospitalName, patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    toast('Consent reminder sent to ' + (p?.name || 'patient') + ' for ' + hospitalName + ' records', 'info');
+}
+
+function requestNewConsent(hospitalName, patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    toast('New consent request sent to ' + (p?.name || 'patient') + ' for ' + hospitalName, 'info');
+    // Demo: change status to pending
+    const cd = CROSS_HOSPITAL_DATA[patientId];
+    if (cd) {
+        const h = cd.hospitals.find(h => h.name === hospitalName);
+        if (h) { h.consent = 'pending'; h.consentRequestDate = '17 Mar 2026'; }
+    }
+    const patient = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(patient);
+}
+
+function renewConsent(hospitalName, patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    toast('Renewal request sent to ' + (p?.name || 'patient') + ' for ' + hospitalName, 'info');
+    const cd = CROSS_HOSPITAL_DATA[patientId];
+    if (cd) {
+        const h = cd.hospitals.find(h => h.name === hospitalName);
+        if (h) { h.consent = 'pending'; h.consentRequestDate = '17 Mar 2026'; }
+    }
+    const patient = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(patient);
+}
+
+function submitAskAI(patientId) {
+    const input = document.getElementById('askAIInput');
+    if (!input || !input.value.trim()) { toast('Type a question first', 'error'); return; }
+    askAIQuery = input.value.trim();
+
+    // Demo AI responses based on patient
+    const responses = {
+        2: {
+            'default': 'Based on records from Apollo Hospital and Krishna Hospital: Rajesh has shown good response to statin therapy with LDL dropping from 185 to 120 mg/dL. The mildly positive TMT warrants continued monitoring. Recommend: continue current regimen, repeat TMT in 6 months, and verify if Omega-3 from Apollo prescription is still being taken.',
+            'drug': 'No significant drug interactions in current regimen (Atorvastatin 20mg + Ecosprin 75mg). Both are well-tolerated together. Note: Omega-3 prescribed at Apollo may have mild antiplatelet effect when combined with Ecosprin — clinically insignificant but worth noting.',
+            'lab': 'LDL trend: 185 mg/dL (Apollo, Jan 2026) → 120 mg/dL (Krishna, Mar 2026). Significant improvement with Atorvastatin dose increase from 10mg to 20mg. HDL was low at 38 (Apollo) — recommend rechecking. Blood sugar was normal (102 fasting) at Apollo.',
+            'risk': 'Key risk factors: Male 45 yrs, Hyperlipidemia (improving), Positive TMT (mild ST changes). Family history unknown — important to ask. Framingham risk score estimated moderate. Current management appropriate.',
+            'conflict': 'No conflicting information detected between Apollo Hospital and Krishna Hospital records. Treatment at Krishna is a continuation and escalation of what was started at Apollo.'
+        },
+        4: {
+            'default': 'Amit presents a complex multi-morbidity picture. Key concern: Metformin dose appears to have been reduced from 1000mg BD (City Hospital, Dec 2025) to 500mg BD (current). Verify with patient. HbA1c trending up (7.2→7.8%) suggests dose reduction may be premature. EF 50% with BNP 180 indicates early heart failure — avoid fluid overload and nephrotoxic agents. eGFR 72 requires dose monitoring.',
+            'drug': 'Critical considerations: 1) Ecosprin 75mg was prescribed at City Hospital but missing from current list — verify discontinuation. 2) Avoid NSAIDs (Ibuprofen allergy + renal function + cardiac status). 3) If adding ACE inhibitor, monitor potassium closely with Telmisartan already on board (dual RAAS blockade risk). 4) Metformin safe at current eGFR (72) but recheck renal function regularly.',
+            'lab': 'HbA1c trend: 7.2% (Krishna, Mar) — but City Hospital had 7.8% in Dec 2025. This suggests improvement OR different lab calibration. Recommend trending with same lab. BNP 180 pg/mL is elevated (>100 suggests HF). eGFR 72 is borderline — monitor. Echo EF 50% is mildly reduced.',
+            'risk': 'High-risk patient: Age 67, poorly controlled DM, HTN, LV dysfunction, borderline renal function, prior hospitalization for DM complications. Ibuprofen allergy limits pain management options. Recommend: comprehensive cardiac rehab, dietician referral, quarterly HbA1c monitoring.',
+            'conflict': 'Two conflicts detected: 1) Metformin dose: 500mg BD (Krishna) vs 1000mg BD (City Hospital, Dec). Was this intentional reduction? 2) Ecosprin 75mg prescribed at City Hospital not in current medication list — was it deliberately stopped or accidentally omitted?'
+        }
+    };
+
+    const patientResponses = responses[patientId];
+    if (patientResponses) {
+        const q = askAIQuery.toLowerCase();
+        if (q.includes('drug') || q.includes('interaction') || q.includes('caution')) askAIResponse = patientResponses['drug'];
+        else if (q.includes('lab') || q.includes('trend') || q.includes('result')) askAIResponse = patientResponses['lab'];
+        else if (q.includes('risk') || q.includes('factor')) askAIResponse = patientResponses['risk'];
+        else if (q.includes('conflict') || q.includes('discrepan')) askAIResponse = patientResponses['conflict'];
+        else askAIResponse = patientResponses['default'];
+    } else {
+        askAIResponse = 'No cross-hospital records available for AI analysis. AI summaries are generated when records from multiple hospitals are available.';
+    }
+
+    const p = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(p);
+    toast('AI analysis complete', 'info');
+}
+
+function quickAskAI(question, patientId) {
+    askAIQuery = question;
+    document.getElementById('askAIInput').value = question;
+    submitAskAI(patientId);
+}
+
+// ---- Follow-up Tab ----
+function renderFollowUpTab(p) {
+    return `
+        <div class="card p-4">
+            <span class="text-[13px] font-semibold text-gray-900 mb-3 block">Follow-up</span>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">Follow-up Date</label>
+                    <input type="date" class="form-input" value="${followUpDate}" onchange="followUpDate=this.value">
+                </div>
+                <div>
+                    <label class="form-label">Quick Set</label>
+                    <div class="flex gap-2 mt-1">
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="setFollowUp(7)">1 week</button>
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="setFollowUp(14)">2 weeks</button>
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="setFollowUp(30)">1 month</button>
+                    </div>
+                </div>
+                <div class="col-span-2">
+                    <label class="form-label">Follow-up Instructions</label>
+                    <textarea class="form-input" rows="3" placeholder="What should the patient do before next visit? (e.g., Repeat blood work, monitor BP at home...)"></textarea>
+                </div>
+                <div class="col-span-2">
+                    <label class="form-label">Refer to Another Doctor?</label>
+                    <div class="flex gap-2 mt-1">
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="toast('Referral to Orthopedics noted','info')">Orthopedic</button>
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="toast('Referral to Gen. Medicine noted','info')">Gen. Medicine</button>
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="toast('Referral to Neurology noted','info')">Neurology</button>
+                        <button class="btn btn-sm btn-ghost border border-surface-200" onclick="toast('Referral to Endocrinology noted','info')">Endocrinology</button>
+                    </div>
+                </div>
+            </div>
+            ${followUpDate ? `<button class="btn btn-primary btn-sm mt-4" onclick="toast('Follow-up scheduled for ${followUpDate}','success')">Schedule Follow-up</button>` : ''}
+        </div>
+    `;
+}
+
+function setFollowUp(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    followUpDate = d.toISOString().split('T')[0];
+    const p = QUEUE.find(q => q.id === activePatientId);
+    document.getElementById('tabContent').innerHTML = renderFollowUpTab(p);
+}
+
+// ==================== QUEUE ACTIONS ====================
+function selectPatient(id) {
+    // P0 FIX: Confirm before switching if there are unsaved changes
+    if (activePatientId && activePatientId !== id) {
+        const currentNotes = consultNotes[activePatientId];
+        const hasUnsavedNotes = currentNotes && (currentNotes.complaint || currentNotes.diagnosis || currentNotes.notes) && !currentNotes._saved;
+        const hasUnsavedRx = prescriptions.length > 0;
+        if (hasUnsavedNotes || hasUnsavedRx) {
+            const currentP = QUEUE.find(q => q.id === activePatientId);
+            const newP = QUEUE.find(q => q.id === id);
+            showSwitchConfirmModal(currentP, newP, id);
+            return;
+        }
+    }
+    doSelectPatient(id);
+}
+
+function doSelectPatient(id) {
+    activePatientId = id;
+    consultTab = 'notes';
+    prescriptions = [];
+    labOrders = [];
+    followUpDate = '';
+    askAIQuery = '';
+    askAIResponse = '';
+    renderConsultation();
+}
+
+function showSwitchConfirmModal(currentP, newP, newId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg';
+    modal.id = 'switchModal';
+    modal.innerHTML = `
+        <div class="modal-box" onclick="event.stopPropagation()" style="max-width:440px;">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-surface-200 bg-orange-50">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span class="text-[15px] font-bold text-gray-900">Unsaved Changes</span>
+            </div>
+            <div class="p-6">
+                <div class="text-[13px] text-gray-700 mb-4">You have unsaved notes${prescriptions.length ? ' and prescription' : ''} for <strong>${currentP?.name || 'current patient'}</strong>. Switching to <strong>${newP?.name || 'another patient'}</strong> will discard them.</div>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('switchModal').remove()" class="btn btn-secondary flex-1 btn-sm">Cancel</button>
+                    <button onclick="document.getElementById('switchModal').remove();saveNotes(${currentP?.id});doSelectPatient(${newId})" class="btn btn-primary flex-1 btn-sm">Save & Switch</button>
+                    <button onclick="document.getElementById('switchModal').remove();consultNotes[${currentP?.id}]={};doSelectPatient(${newId})" class="btn btn-danger flex-1 btn-sm">Discard</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function callNext() {
+    const waiting = QUEUE.filter(q => q.status === 'waiting').sort((a,b) => a.priority === 'emergency' ? -1 : b.priority === 'emergency' ? 1 : 0);
+    if (!waiting.length) { toast('No patients waiting', 'info'); return; }
+    const next = waiting[0];
+    next.status = 'in-room';
+    activePatientId = next.id;
+    consultTab = 'notes';
+    prescriptions = [];
+    labOrders = [];
+    followUpDate = '';
+    toast('Called ' + next.name + ' (' + next.token + ')', 'success');
+    renderConsultation();
+}
+
+function callPatientIn(id) {
+    const current = QUEUE.find(q => q.status === 'in-room');
+    if (current) {
+        toast('Complete current patient first (' + current.name + ')', 'error');
+        return;
+    }
+    const p = QUEUE.find(q => q.id === id);
+    if (p) {
+        p.status = 'in-room';
+        activePatientId = id;
+        consultTab = 'notes';
+        prescriptions = [];
+        labOrders = [];
+        consultNotes = '';
+        diagnosis = '';
+        followUpDate = '';
+        toast('Called ' + p.name + ' into room', 'success');
+        renderConsultation();
+    }
+}
+
+function completeConsult(id) {
+    const p = QUEUE.find(q => q.id === id);
+    if (!p) return;
+
+    // Show billing summary modal before completing
+    const rxCount = prescriptions.filter(rx => rx.medicine).length;
+    const labCount = labOrders.length;
+    const labFee = labCount * 200; // Demo: 200 per test
+    const total = CONSULT_FEE + labFee;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg';
+    modal.id = 'billingModal';
+    modal.innerHTML = `
+        <div class="modal-box" onclick="event.stopPropagation()" style="max-width:440px;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-surface-200">
+                <span class="text-[15px] font-bold text-gray-900">Consultation Summary</span>
+                <button onclick="document.getElementById('billingModal').remove()" class="btn-ghost p-1 rounded-lg text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4 pb-4 border-b border-surface-200">
+                    <div class="avatar bg-brand-100 text-brand-600">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+                    <div>
+                        <div class="text-[14px] font-semibold text-gray-900">${p.name}</div>
+                        <div class="text-[12px] text-gray-500">${p.token} • ${p.complaint}</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-[13px]">
+                        <span class="text-gray-600">Consultation Fee</span>
+                        <span class="font-semibold text-gray-900">₹${CONSULT_FEE}</span>
+                    </div>
+                    ${rxCount ? `<div class="flex justify-between text-[13px]"><span class="text-gray-600">Prescription (${rxCount} medicines)</span><span class="text-gray-500">Included</span></div>` : ''}
+                    ${labCount ? `<div class="flex justify-between text-[13px]"><span class="text-gray-600">Lab Tests (${labCount})</span><span class="font-semibold text-gray-900">₹${labFee}</span></div>` : ''}
+                    ${followUpDate ? `<div class="flex justify-between text-[13px]"><span class="text-gray-600">Follow-up</span><span class="text-gray-500">${followUpDate}</span></div>` : ''}
+                </div>
+
+                <div class="flex justify-between text-[15px] font-bold pt-3 border-t border-surface-200 mb-5">
+                    <span>Total</span>
+                    <span class="text-brand-600">₹${total}</span>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('billingModal').remove()" class="btn btn-secondary flex-1 btn-sm">Cancel</button>
+                    <button onclick="confirmComplete(${id})" class="btn btn-success flex-1 btn-sm">Complete & Send to Billing</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function confirmComplete(id) {
+    document.getElementById('billingModal')?.remove();
+    const p = QUEUE.find(q => q.id === id);
+    if (!p) return;
+    p.status = 'done';
+    toast(p.name + ' completed — sent to billing', 'success');
+    const nextWaiting = QUEUE.filter(q => q.status === 'waiting').sort((a,b) => a.priority === 'emergency' ? -1 : 1);
+    if (nextWaiting.length) {
+        activePatientId = nextWaiting[0].id;
+    } else {
+        activePatientId = null;
+    }
+    consultTab = 'notes';
+    prescriptions = [];
+    labOrders = [];
+    followUpDate = '';
+    renderConsultation();
+}
+
+// ==================== EDIT VITALS ====================
+function editVitals(patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    if (!p) return;
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg';
+    modal.id = 'vitalsModal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+        <div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-surface-200">
+                <span class="text-[15px] font-bold text-gray-900">Update Vitals — ${p.name}</span>
+                <button onclick="document.getElementById('vitalsModal').remove()" class="btn-ghost p-1 rounded-lg text-gray-400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="p-6 grid grid-cols-2 gap-4">
+                <div><label class="form-label">BP (mmHg)</label><input class="form-input" value="${p.vitals.bp}" id="vBp"></div>
+                <div><label class="form-label">Heart Rate (bpm)</label><input class="form-input" type="number" value="${p.vitals.hr}" id="vHr"></div>
+                <div><label class="form-label">Temperature (°F)</label><input class="form-input" type="number" step="0.1" value="${p.vitals.temp}" id="vTemp"></div>
+                <div><label class="form-label">SpO2 (%)</label><input class="form-input" type="number" value="${p.vitals.spo2}" id="vSpo2"></div>
+                <div><label class="form-label">Weight (kg)</label><input class="form-input" type="number" step="0.1" value="${p.vitals.wt}" id="vWt"></div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3">
+                <button onclick="document.getElementById('vitalsModal').remove()" class="btn btn-secondary flex-1">Cancel</button>
+                <button onclick="saveVitals(${p.id})" class="btn btn-primary flex-1">Save</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function saveVitals(patientId) {
+    const p = QUEUE.find(q => q.id === patientId);
+    if (!p) return;
+    p.vitals.bp = document.getElementById('vBp').value;
+    p.vitals.hr = parseInt(document.getElementById('vHr').value) || p.vitals.hr;
+    p.vitals.temp = parseFloat(document.getElementById('vTemp').value) || p.vitals.temp;
+    p.vitals.spo2 = parseInt(document.getElementById('vSpo2').value) || p.vitals.spo2;
+    p.vitals.wt = parseFloat(document.getElementById('vWt').value) || p.vitals.wt;
+    document.getElementById('vitalsModal').remove();
+    toast('Vitals updated', 'success');
+    renderConsultation();
+}
+
+// ==================== MY PATIENTS ====================
+function renderMyPatients() {
+    const allPatients = QUEUE.filter(q => q.status === 'done' || q.status === 'in-room');
+    document.getElementById('mainContent').innerHTML = `
+        <div class="p-6">
+            <div class="text-[18px] font-bold text-gray-900 mb-5">My Patients</div>
+            <div class="card">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-surface-200 text-left">
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Patient</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Age/Gender</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Complaint</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Token</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${QUEUE.map(p => `
+                            <tr class="border-b border-surface-200 last:border-0 cursor-pointer hover:bg-surface-50 transition-colors" onclick="navTo('consultation');selectPatient(${p.id})">
+                                <td class="px-5 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="avatar bg-brand-100 text-brand-600 text-[11px]">${p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+                                        <div>
+                                            <div class="text-[13px] font-medium">${p.name}</div>
+                                            <div class="text-[11px] text-gray-500">${fmtPhone(p.phone)}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-3 text-[13px] text-gray-600">${p.age} / ${p.gender==='M'?'Male':'Female'}</td>
+                                <td class="px-5 py-3 text-[13px] text-gray-600">${p.complaint}</td>
+                                <td class="px-5 py-3"><span class="text-[12px] font-mono text-gray-500">${p.token}</span></td>
+                                <td class="px-5 py-3"><span class="badge ${p.status==='in-room'?'badge-blue':p.status==='done'?'badge-green':'badge-orange'}">${p.status==='in-room'?'IN ROOM':p.status==='done'?'DONE':'WAITING'}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== SCHEDULE ====================
+function renderSchedule() {
+    document.getElementById('mainContent').innerHTML = `
+        <div class="p-6">
+            <div class="text-[18px] font-bold text-gray-900 mb-5">Today's Schedule</div>
+            <div class="grid grid-cols-3 gap-5 mb-6">
+                <div class="card p-5 text-center">
+                    <div class="text-[28px] font-extrabold text-brand-600">${QUEUE.length}</div>
+                    <div class="text-[13px] text-gray-600 mt-1">Total Patients</div>
+                </div>
+                <div class="card p-5 text-center">
+                    <div class="text-[28px] font-extrabold text-green-600">${QUEUE.filter(q=>q.status==='done').length}</div>
+                    <div class="text-[13px] text-gray-600 mt-1">Completed</div>
+                </div>
+                <div class="card p-5 text-center">
+                    <div class="text-[28px] font-extrabold text-orange-500">${QUEUE.filter(q=>q.status==='waiting').length}</div>
+                    <div class="text-[13px] text-gray-600 mt-1">Remaining</div>
+                </div>
+            </div>
+            <div class="card p-5">
+                <div class="text-[13px] font-semibold text-gray-900 mb-4">OPD Hours</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Morning Shift</label>
+                        <div class="text-[14px] font-medium text-gray-700">9:00 AM — 1:00 PM</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Evening Shift</label>
+                        <div class="text-[14px] font-medium text-gray-700">4:00 PM — 7:00 PM</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Room</label>
+                        <div class="text-[14px] font-medium text-gray-700">Room ${DOCTOR.room}</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Max Capacity</label>
+                        <div class="text-[14px] font-medium text-gray-700">${DOCTOR.capacity} patients/session</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== SETTINGS ====================
+function renderSettings() {
+    document.getElementById('mainContent').innerHTML = `
+        <div class="p-6">
+            <div class="text-[18px] font-bold text-gray-900 mb-5">Settings</div>
+            <div class="grid grid-cols-2 gap-5">
+                <div class="card p-5">
+                    <div class="text-[13px] font-semibold text-gray-900 mb-4">Profile</div>
+                    <div class="space-y-3">
+                        <div><label class="form-label">Name</label><input class="form-input" value="Dr. Vinod Sharma"></div>
+                        <div><label class="form-label">Department</label><input class="form-input" value="Cardiology" disabled></div>
+                        <div><label class="form-label">Registration No.</label><input class="form-input" value="MCI-2008/12345" disabled></div>
+                        <div><label class="form-label">Phone</label><input class="form-input" value="+91 99999 99999"></div>
+                    </div>
+                    <button class="btn btn-primary mt-4 text-[13px]" onclick="toast('Profile saved','success')">Save</button>
+                </div>
+                <div class="card p-5">
+                    <div class="text-[13px] font-semibold text-gray-900 mb-4">Consultation Preferences</div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="form-label">Default Prescription Duration</label>
+                            <select class="form-input"><option>5 days</option><option>7 days</option><option selected>14 days</option><option>1 month</option></select>
+                        </div>
+                        <div>
+                            <label class="form-label">Token Auto-advance</label>
+                            <select class="form-input"><option selected>Yes — auto-suggest next patient</option><option>No — manual selection</option></select>
+                        </div>
+                        <div>
+                            <label class="form-label">Prescription Print Format</label>
+                            <select class="form-input"><option>A5 — Standard Rx Pad</option><option>A4 — Full Page</option><option>Thermal — POS Printer</option></select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-4 text-[13px]" onclick="toast('Preferences saved','success')">Save</button>
+                </div>
+                <div class="card p-5 col-span-2">
+                    <div class="text-[13px] font-semibold text-gray-900 mb-4">System</div>
+                    <div class="flex items-center justify-between text-[13px] py-2">
+                        <span class="text-gray-700">Offline Mode</span><span class="badge badge-green">Enabled</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[13px] py-2">
+                        <span class="text-gray-700">Cross-Hospital Records</span><span class="badge badge-green">Active</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[13px] py-2">
+                        <span class="text-gray-700">App Version</span><span class="text-gray-500">v1.0.0-beta</span>
+                    </div>
+                    <button class="btn btn-ghost mt-3 text-[13px] text-red-500 hover:text-red-600" onclick="toast('Logged out','info')">Sign Out</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== NOTIFICATIONS ====================
+function toggleNotifications() {
+    const dd = document.getElementById('notifDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+function clearNotifs() {
+    document.getElementById('notifBadge').style.display = 'none';
+    document.querySelectorAll('#notifDropdown .bg-blue-50').forEach(el => el.classList.remove('bg-blue-50'));
+    toast('All notifications marked as read', 'success');
+}
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('notifDropdown');
+    if (dd && dd.style.display === 'block' && !e.target.closest('#notifDropdown') && !e.target.closest('[onclick*="toggleNotifications"]')) {
+        dd.style.display = 'none';
+    }
+});
+
+// ==================== UTILITIES ====================
+function fmtPhone(p) { return p.replace(/(\d{5})(\d{5})/, '$1 $2'); }
+
+// Queue search/filter
+function filterQueue(term) {
+    const items = document.querySelectorAll('.queue-item');
+    const t = term.toLowerCase().trim();
+    items.forEach(item => {
+        if (!t) { item.style.display = ''; return; }
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(t) ? '' : 'none';
+    });
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (consultTab === 'notes' && activePatientId) saveNotes(activePatientId);
+        else if (consultTab === 'prescription' && activePatientId) savePrescription(activePatientId);
+    }
+    if (e.ctrlKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        const tabs = ['notes', 'prescription', 'labs', 'records', 'followup'];
+        const idx = tabs.indexOf(consultTab);
+        if (idx < tabs.length - 1 && activePatientId) switchTab(tabs[idx + 1], activePatientId);
+    }
+    if (e.ctrlKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const tabs = ['notes', 'prescription', 'labs', 'records', 'followup'];
+        const idx = tabs.indexOf(consultTab);
+        if (idx > 0 && activePatientId) switchTab(tabs[idx - 1], activePatientId);
+    }
+});
+function hasAllergy(p) { return p.allergies && p.allergies.length > 0; }
+
+function toast(msg, type='info') {
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    const icon = type==='success' ? '✓' : type==='error' ? '✕' : 'ℹ';
+    el.innerHTML = `<span style="font-weight:800;font-size:14px;">${icon}</span> <span>${msg}</span>`;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 200); }, 3500);
+}
+</script>
+</body>
+</html>
