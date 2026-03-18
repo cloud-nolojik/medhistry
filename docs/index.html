@@ -45,7 +45,7 @@
   }
 
   .cards {
-    max-width: 800px; margin: -40px auto 40px; padding: 0 24px;
+    max-width: 900px; margin: -40px auto 40px; padding: 0 24px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
   }
   @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
@@ -163,30 +163,42 @@
       <span>ABHA Linking</span>
     </div>
   </a>
-</div>
 
-<div class="coming-soon">
-  <h3>Coming Soon</h3>
-  <div class="soon-grid">
-    <div class="soon-item">
-      <div class="icon">
-        <svg width="24" height="24" fill="none" stroke="#94A3B8" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-      </div>
-      <div>
-        <h4>Patient Mobile App</h4>
-        <p>Health records, appointments, prescriptions</p>
-      </div>
+  <a href="patient/" class="card card-patient" style="border-left: 3px solid #8B5CF6;">
+    <div class="card-arrow">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l6 5-6 5"/></svg>
     </div>
-    <div class="soon-item">
-      <div class="icon">
-        <svg width="24" height="24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4"/></svg>
-      </div>
-      <div>
-        <h4>Lab Portal</h4>
-        <p>Sample tracking, reports, integrations</p>
-      </div>
+    <div class="card-icon" style="background: linear-gradient(135deg, #F5F3FF, #EDE9FE);">
+      <svg width="28" height="28" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/><path d="M9 6h6M9 10h6"/></svg>
     </div>
-  </div>
+    <h3>Patient App</h3>
+    <p>Mobile-first health records, ABDM consent management, appointments, medications, and health tracking.</p>
+    <div class="card-features">
+      <span>ABDM Consent</span>
+      <span>Health Records</span>
+      <span>Appointments</span>
+      <span>Medications</span>
+      <span>OTP Flow</span>
+    </div>
+  </a>
+
+  <a href="lab/" class="card card-lab" style="border-left: 3px solid #EA580C;">
+    <div class="card-arrow">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l6 5-6 5"/></svg>
+    </div>
+    <div class="card-icon" style="background: linear-gradient(135deg, #FFF7ED, #FFEDD5);">
+      <svg width="28" height="28" fill="none" stroke="#EA580C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6l-4 8h14l-4-8V3"/><path d="M8 3h8"/><circle cx="12" cy="15" r="1.5"/></svg>
+    </div>
+    <h3>Lab Portal</h3>
+    <p>Sample queue management, result entry with auto-flagging, report generation, inventory tracking, and ABDM integration.</p>
+    <div class="card-features">
+      <span>Sample Queue</span>
+      <span>Result Entry</span>
+      <span>Auto-Flag</span>
+      <span>Reports</span>
+      <span>Inventory</span>
+    </div>
+  </a>
 </div>
 
 <div class="footer">
