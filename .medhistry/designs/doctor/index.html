@@ -178,6 +178,11 @@
             50% { opacity: 0.3; }
         }
 
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
@@ -599,6 +604,11 @@ const AI_SUMMARIES = {
         ]
     }
 };
+
+// OTP verification state per patient — tracks which patients have completed ABDM OTP verification
+// In real flow: doctor requests records → ABDM sends OTP to patient's phone → patient shares OTP → records fetched
+const otpVerifiedPatients = {}; // { patientId: { verified: true, verifiedAt: '...' } }
+const otpPendingPatients = {}; // { patientId: { otpSent: true, sentAt: '...', expiresIn: 300 } }
 
 let currentPage = 'consultation';
 let activePatientId = 2; // Rajesh is currently in-room
@@ -1346,10 +1356,12 @@ function renderRecordsTab(p) {
     const pendingHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'pending') : [];
     const deniedHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'denied') : [];
     const expiredHospitals = hasHospitals ? crossData.hospitals.filter(h => h.consent === 'expired') : [];
+    const isOtpVerified = otpVerifiedPatients[p.id]?.verified === true;
+    const isOtpPending = otpPendingPatients[p.id]?.otpSent === true;
 
     return `
-        <!-- AI Summary Card (if available) -->
-        ${aiSummary ? renderAISummaryCard(p, aiSummary) : ''}
+        <!-- AI Summary Card (only if OTP verified) -->
+        ${(aiSummary && isOtpVerified) ? renderAISummaryCard(p, aiSummary) : ''}
 
         <!-- ABHA & Consent Status Bar -->
         <div class="card p-4 mb-4">
@@ -1393,10 +1405,13 @@ function renderRecordsTab(p) {
             ` : ''}
         </div>
 
-        <!-- Hospital Records (Authorized) -->
-        ${authorizedHospitals.length ? authorizedHospitals.map(h => renderHospitalRecords(h, p)).join('') : ''}
+        <!-- ABDM OTP Verification Gate -->
+        ${authorizedHospitals.length > 0 && !isOtpVerified ? renderOtpVerificationCard(p, authorizedHospitals, isOtpPending) : ''}
 
-        <!-- This Hospital Records -->
+        <!-- Hospital Records (Authorized) — ONLY shown after OTP verification -->
+        ${(authorizedHospitals.length && isOtpVerified) ? authorizedHospitals.map(h => renderHospitalRecords(h, p)).join('') : ''}
+
+        <!-- This Hospital Records (always visible — own hospital, no OTP needed) -->
         <div class="card p-4 mb-4">
             <div class="flex items-center gap-2 mb-3">
                 <div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -1439,8 +1454,106 @@ function renderRecordsTab(p) {
             ` : ''}
         </div>
 
-        <!-- Ask AI Section -->
-        ${(aiSummary || authorizedHospitals.length) ? renderAskAI(p) : ''}
+        <!-- Ask AI Section (only after OTP verified) -->
+        ${((aiSummary || authorizedHospitals.length) && isOtpVerified) ? renderAskAI(p) : ''}
+    `;
+}
+
+// ---- ABDM OTP Verification Card ----
+function renderOtpVerificationCard(patient, authorizedHospitals, isOtpPending) {
+    const hospitalNames = authorizedHospitals.map(h => h.name).join(', ');
+    const totalRecords = authorizedHospitals.reduce((sum, h) => {
+        const r = h.records;
+        return sum + (r.consultations?.length||0) + (r.prescriptions?.length||0) + (r.labs?.length||0) + (r.imaging?.length||0) + (r.dischargeSummaries?.length||0);
+    }, 0);
+
+    return `
+        <div class="card mb-4 overflow-hidden" style="border: 1.5px solid #BFDBFE;">
+            <!-- Header banner -->
+            <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); padding: 16px 20px; border-bottom: 1px solid #BFDBFE;">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0066CC, #3B82F6);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[14px] font-bold text-gray-900">ABDM Verification Required</div>
+                        <div class="text-[12px] text-gray-600">Patient OTP needed to fetch cross-hospital records</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[11px] font-semibold text-brand-600">${authorizedHospitals.length} hospital${authorizedHospitals.length > 1 ? 's' : ''}</div>
+                        <div class="text-[10px] text-gray-500">${totalRecords} records available</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <!-- ABDM flow explanation -->
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="flex flex-col items-center gap-1 flex-shrink-0">
+                        <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-[11px] font-bold text-blue-700">1</div>
+                        <div class="w-0.5 h-4 bg-blue-100"></div>
+                        <div class="w-7 h-7 rounded-full ${isOtpPending ? 'bg-orange-100' : 'bg-gray-100'} flex items-center justify-center text-[11px] font-bold ${isOtpPending ? 'text-orange-700' : 'text-gray-400'}">2</div>
+                        <div class="w-0.5 h-4 bg-gray-100"></div>
+                        <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[11px] font-bold text-gray-400">3</div>
+                    </div>
+                    <div class="flex-1 space-y-4">
+                        <div>
+                            <div class="text-[12px] font-semibold text-gray-900">Send OTP to patient</div>
+                            <div class="text-[11px] text-gray-500">OTP will be sent to patient's ABHA-linked mobile number</div>
+                        </div>
+                        <div>
+                            <div class="text-[12px] font-semibold ${isOtpPending ? 'text-orange-700' : 'text-gray-400'}">Patient shares OTP</div>
+                            <div class="text-[11px] ${isOtpPending ? 'text-orange-600' : 'text-gray-400'}">Ask the patient to tell you the 6-digit OTP they received</div>
+                        </div>
+                        <div>
+                            <div class="text-[12px] font-semibold text-gray-400">Records fetched securely</div>
+                            <div class="text-[11px] text-gray-400">Records from ${hospitalNames} will be pulled via ABDM gateway</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${!isOtpPending ? `
+                    <!-- Send OTP Button -->
+                    <div class="flex items-center gap-3">
+                        <button class="btn btn-primary flex-1" onclick="sendAbdmOtp(${patient.id})">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                            Send OTP to Patient
+                        </button>
+                        <div class="text-[10px] text-gray-400 text-center" style="max-width:120px;">OTP sent to ABHA-linked<br>mobile number</div>
+                    </div>
+                ` : `
+                    <!-- OTP Entry Section -->
+                    <div class="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-2 h-2 rounded-full bg-orange-500" style="animation: blink 1.2s ease-in-out infinite;"></div>
+                            <span class="text-[12px] font-semibold text-orange-700">OTP sent to patient's mobile</span>
+                            <span class="text-[10px] text-orange-500 ml-auto">Expires in 5:00</span>
+                        </div>
+                        <div class="text-[11px] text-orange-600 mb-3">Ask ${patient.name} to share the 6-digit OTP received on their ABHA-linked mobile</div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1.5" id="otpInputGroup">
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp1" oninput="otpAutoFocus(this,1)" onkeydown="otpBackspace(event,1)">
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp2" oninput="otpAutoFocus(this,2)" onkeydown="otpBackspace(event,2)">
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp3" oninput="otpAutoFocus(this,3)" onkeydown="otpBackspace(event,3)">
+                                <span class="text-gray-300 text-[18px] self-center mx-0.5">-</span>
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp4" oninput="otpAutoFocus(this,4)" onkeydown="otpBackspace(event,4)">
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp5" oninput="otpAutoFocus(this,5)" onkeydown="otpBackspace(event,5)">
+                                <input type="text" maxlength="1" class="form-input text-center font-bold text-[18px]" style="width:42px;height:48px;border-color:#FDBA74;font-family:monospace;" id="otp6" oninput="otpAutoFocus(this,6)" onkeydown="otpBackspace(event,6)">
+                            </div>
+                            <button class="btn btn-primary btn-sm" style="height:48px;min-width:100px;" onclick="verifyAbdmOtp(${patient.id})" id="verifyOtpBtn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Verify
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 mt-3">
+                            <button class="text-[11px] text-orange-600 font-medium hover:underline cursor-pointer" onclick="resendAbdmOtp(${patient.id})">Resend OTP</button>
+                            <span class="text-[10px] text-gray-400">•</span>
+                            <button class="text-[11px] text-gray-500 hover:underline cursor-pointer" onclick="cancelAbdmOtp(${patient.id})">Cancel</button>
+                        </div>
+                    </div>
+                `}
+            </div>
+        </div>
     `;
 }
 
@@ -1692,6 +1805,75 @@ function renderAskAI(patient) {
             ` : ''}
         </div>
     `;
+}
+
+// ---- ABDM OTP Verification Functions ----
+function sendAbdmOtp(patientId) {
+    otpPendingPatients[patientId] = { otpSent: true, sentAt: new Date().toISOString(), expiresIn: 300 };
+    const p = QUEUE.find(q => q.id === patientId);
+    toast('OTP sent to ' + (p?.name || 'patient') + "'s ABHA-linked mobile number", 'info');
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(p);
+    // Auto-focus first OTP input
+    setTimeout(() => { const el = document.getElementById('otp1'); if (el) el.focus(); }, 100);
+}
+
+function otpAutoFocus(el, idx) {
+    if (el.value.length === 1 && idx < 6) {
+        const next = document.getElementById('otp' + (idx + 1));
+        if (next) next.focus();
+    }
+    // Auto-verify when all 6 digits entered
+    if (idx === 6 && el.value.length === 1) {
+        const allFilled = [1,2,3,4,5,6].every(i => document.getElementById('otp'+i)?.value.length === 1);
+        if (allFilled) {
+            setTimeout(() => { const btn = document.getElementById('verifyOtpBtn'); if (btn) btn.click(); }, 200);
+        }
+    }
+}
+
+function otpBackspace(e, idx) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 1) {
+        const prev = document.getElementById('otp' + (idx - 1));
+        if (prev) { prev.focus(); prev.value = ''; }
+    }
+}
+
+function verifyAbdmOtp(patientId) {
+    const otp = [1,2,3,4,5,6].map(i => document.getElementById('otp'+i)?.value || '').join('');
+    if (otp.length < 6) { toast('Please enter the complete 6-digit OTP', 'error'); return; }
+
+    // Demo: show verifying animation
+    const btn = document.getElementById('verifyOtpBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">↻</span> Verifying...'; }
+
+    // Simulate API call delay
+    setTimeout(() => {
+        // Demo: any 6 digits works
+        otpVerifiedPatients[patientId] = { verified: true, verifiedAt: new Date().toISOString() };
+        delete otpPendingPatients[patientId];
+        const p = QUEUE.find(q => q.id === patientId);
+        toast('OTP verified! Fetching records from ABDM...', 'info');
+
+        // Simulate fetching records
+        setTimeout(() => {
+            toast('Records fetched successfully from ' + (CROSS_HOSPITAL_DATA[patientId]?.hospitals?.filter(h=>h.consent==='authorized').map(h=>h.name).join(', ') || 'hospitals'), 'info');
+            document.getElementById('tabContent').innerHTML = renderRecordsTab(p);
+        }, 1200);
+    }, 1500);
+}
+
+function resendAbdmOtp(patientId) {
+    otpPendingPatients[patientId] = { otpSent: true, sentAt: new Date().toISOString(), expiresIn: 300 };
+    const p = QUEUE.find(q => q.id === patientId);
+    toast('OTP resent to ' + (p?.name || 'patient') + "'s mobile", 'info');
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(p);
+    setTimeout(() => { const el = document.getElementById('otp1'); if (el) el.focus(); }, 100);
+}
+
+function cancelAbdmOtp(patientId) {
+    delete otpPendingPatients[patientId];
+    const p = QUEUE.find(q => q.id === patientId);
+    document.getElementById('tabContent').innerHTML = renderRecordsTab(p);
 }
 
 // ---- Records Tab Support Functions ----
