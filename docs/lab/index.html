@@ -634,12 +634,12 @@
 
       <div class="card" style="margin-bottom: 24px;">
         <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
-          <button class="button-primary" onclick="filterSamples('all')" id="filter-all" style="background: var(--brand-600);">All</button>
-          <button class="button-secondary" onclick="filterSamples('pending')">Pending Collection</button>
-          <button class="button-secondary" onclick="filterSamples('in-transit')">In Transit</button>
-          <button class="button-secondary" onclick="filterSamples('processing')">Processing</button>
-          <button class="button-secondary" onclick="filterSamples('completed')">Completed</button>
-          <button class="button-secondary" onclick="filterSamples('rejected')">Rejected</button>
+          <button class="button-primary" onclick="filterSamples('all')" id="filter-all" style="background: var(--brand-600);">All (15)</button>
+          <button class="button-secondary" onclick="filterSamples('pending')" id="filter-pending">Pending Collection</button>
+          <button class="button-secondary" onclick="filterSamples('in-transit')" id="filter-in-transit">In Transit</button>
+          <button class="button-secondary" onclick="filterSamples('processing')" id="filter-processing">Processing</button>
+          <button class="button-secondary" onclick="filterSamples('completed')" id="filter-completed">Completed</button>
+          <button class="button-secondary" onclick="filterSamples('rejected')" id="filter-rejected">Rejected</button>
         </div>
 
         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
@@ -682,6 +682,24 @@
         </div>
       </div>
 
+      <!-- Awaiting Results List -->
+      <div id="awaiting-results-list" class="card" style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Samples Awaiting Results</h3>
+        <table class="table-striped">
+          <thead>
+            <tr style="background: var(--surface-100);">
+              <th>Sample ID</th>
+              <th>Patient Name</th>
+              <th>Tests</th>
+              <th>Priority</th>
+              <th>Collected At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="awaiting-results-tbody"></tbody>
+        </table>
+      </div>
+
       <div id="results-sample-card" class="card" style="margin-bottom: 24px; display: none;">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
           <div>
@@ -713,6 +731,56 @@
         <div id="lft-form" class="card" style="margin-bottom: 24px; display: none;">
           <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Liver Function Test (LFT)</h3>
           <div id="lft-results"></div>
+          <div style="margin-top: 20px; display: flex; gap: 8px;">
+            <button class="button-primary" onclick="saveDraft()">Save Draft</button>
+            <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
+          </div>
+        </div>
+
+        <!-- RFT Form -->
+        <div id="rft-form" class="card" style="margin-bottom: 24px; display: none;">
+          <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Renal Function Test (RFT/KFT)</h3>
+          <div id="rft-results"></div>
+          <div style="margin-top: 20px; display: flex; gap: 8px;">
+            <button class="button-primary" onclick="saveDraft()">Save Draft</button>
+            <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
+          </div>
+        </div>
+
+        <!-- Blood Sugar Form -->
+        <div id="bs-form" class="card" style="margin-bottom: 24px; display: none;">
+          <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Blood Sugar</h3>
+          <div id="bs-results"></div>
+          <div style="margin-top: 20px; display: flex; gap: 8px;">
+            <button class="button-primary" onclick="saveDraft()">Save Draft</button>
+            <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
+          </div>
+        </div>
+
+        <!-- Lipid Profile Form -->
+        <div id="lipid-form" class="card" style="margin-bottom: 24px; display: none;">
+          <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Lipid Profile</h3>
+          <div id="lipid-results"></div>
+          <div style="margin-top: 20px; display: flex; gap: 8px;">
+            <button class="button-primary" onclick="saveDraft()">Save Draft</button>
+            <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
+          </div>
+        </div>
+
+        <!-- TSH Form -->
+        <div id="tsh-form" class="card" style="margin-bottom: 24px; display: none;">
+          <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Thyroid Stimulating Hormone (TSH)</h3>
+          <div id="tsh-results"></div>
+          <div style="margin-top: 20px; display: flex; gap: 8px;">
+            <button class="button-primary" onclick="saveDraft()">Save Draft</button>
+            <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
+          </div>
+        </div>
+
+        <!-- Urine Routine Form -->
+        <div id="urine-form" class="card" style="margin-bottom: 24px; display: none;">
+          <h3 style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">Urine Routine Examination</h3>
+          <div id="urine-results"></div>
           <div style="margin-top: 20px; display: flex; gap: 8px;">
             <button class="button-primary" onclick="saveDraft()">Save Draft</button>
             <button class="button-primary" style="background: var(--brand-700);" onclick="submitResults()">Submit for Review</button>
@@ -980,13 +1048,19 @@ const appState = {
   currentReportTab: 'all',
   currentFilter: 'all',
   selectedReports: new Set(),
-  samples: generateSampleData(),
-  reports: generateReportData(),
-  inventory: generateInventoryData(),
-  equipment: generateEquipmentData(),
+  samples: [],
+  reports: [],
+  inventory: [],
+  equipment: [],
   selectedSample: null,
   currentTestType: null
 };
+
+// Initialize data after appState exists
+appState.samples = generateSampleData();
+appState.reports = generateReportData();
+appState.inventory = generateInventoryData();
+appState.equipment = generateEquipmentData();
 
 function generateSampleData() {
   const patients = [
@@ -1113,6 +1187,8 @@ function switchScreen(screenName) {
     renderInventory();
   } else if (screenName === 'enter-results') {
     resetResultsForm();
+    const awaitingList = document.getElementById('awaiting-results-list');
+    if (awaitingList) awaitingList.style.display = 'block';
   }
 }
 
@@ -1148,9 +1224,15 @@ function renderSampleQueue() {
 
 function filterSamples(filter) {
   appState.currentFilter = filter;
-  document.querySelectorAll('[id^="filter-"]').forEach(el => el.classList.remove('button-primary'));
-  document.querySelectorAll('[id^="filter-"]').forEach(el => el.className = 'button-secondary');
-  document.getElementById(`filter-${filter}`).className = 'button-primary';
+  document.querySelectorAll('[id^="filter-"]').forEach(el => {
+    el.className = 'button-secondary';
+    el.style.background = '';
+  });
+  const activeBtn = document.getElementById(`filter-${filter}`);
+  if (activeBtn) {
+    activeBtn.className = 'button-primary';
+    activeBtn.style.background = 'var(--brand-600)';
+  }
   renderSampleQueue();
 }
 
@@ -1253,10 +1335,13 @@ function renderSelectedSample(sample) {
 
   document.getElementById('results-form-container').style.display = 'block';
 
-  // Show only the relevant test forms
-  document.getElementById('cbc-form').style.display = 'none';
-  document.getElementById('lft-form').style.display = 'none';
+  // Hide all test forms
+  ['cbc-form', 'lft-form', 'rft-form', 'bs-form', 'lipid-form', 'tsh-form', 'urine-form'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
+  // Show only the relevant test forms
   sample.tests.forEach(test => {
     if (test === 'CBC') {
       renderCBCForm();
@@ -1265,6 +1350,26 @@ function renderSelectedSample(sample) {
     if (test === 'LFT') {
       renderLFTForm();
       document.getElementById('lft-form').style.display = 'block';
+    }
+    if (test === 'RFT') {
+      renderRFTForm();
+      document.getElementById('rft-form').style.display = 'block';
+    }
+    if (test === 'Blood Sugar') {
+      renderBSForm();
+      document.getElementById('bs-form').style.display = 'block';
+    }
+    if (test === 'Lipid Profile') {
+      renderLipidForm();
+      document.getElementById('lipid-form').style.display = 'block';
+    }
+    if (test === 'TSH') {
+      renderTSHForm();
+      document.getElementById('tsh-form').style.display = 'block';
+    }
+    if (test === 'Urine Routine') {
+      renderUrineForm();
+      document.getElementById('urine-form').style.display = 'block';
     }
   });
 
@@ -1328,6 +1433,114 @@ function renderLFTForm() {
   container.innerHTML = html;
 }
 
+function renderRFTForm() {
+  const container = document.getElementById('rft-results');
+  const params = [
+    { name: 'Blood Urea', unit: 'mg/dL', min: 15, max: 40, value: '' },
+    { name: 'Serum Creatinine', unit: 'mg/dL', min: 0.7, max: 1.3, value: '' },
+    { name: 'Uric Acid', unit: 'mg/dL', min: 3.5, max: 7.2, value: '' },
+    { name: 'Sodium', unit: 'mEq/L', min: 136, max: 145, value: '' },
+    { name: 'Potassium', unit: 'mEq/L', min: 3.5, max: 5.0, value: '' },
+    { name: 'Chloride', unit: 'mEq/L', min: 98, max: 106, value: '' },
+    { name: 'Calcium', unit: 'mg/dL', min: 8.5, max: 10.5, value: '' }
+  ];
+  container.innerHTML = renderTestFormGrid(params, 'rft');
+}
+
+function renderBSForm() {
+  const container = document.getElementById('bs-results');
+  const params = [
+    { name: 'Fasting Blood Sugar', unit: 'mg/dL', min: 70, max: 100, value: '' },
+    { name: 'Post Prandial Blood Sugar', unit: 'mg/dL', min: 70, max: 140, value: '' },
+    { name: 'HbA1c', unit: '%', min: 4.0, max: 5.6, value: '' }
+  ];
+  container.innerHTML = renderTestFormGrid(params, 'bs');
+}
+
+function renderLipidForm() {
+  const container = document.getElementById('lipid-results');
+  const params = [
+    { name: 'Total Cholesterol', unit: 'mg/dL', min: 0, max: 200, value: '' },
+    { name: 'HDL Cholesterol', unit: 'mg/dL', min: 40, max: 60, value: '' },
+    { name: 'LDL Cholesterol', unit: 'mg/dL', min: 0, max: 100, value: '' },
+    { name: 'VLDL Cholesterol', unit: 'mg/dL', min: 5, max: 40, value: '' },
+    { name: 'Triglycerides', unit: 'mg/dL', min: 0, max: 150, value: '' },
+    { name: 'TC/HDL Ratio', unit: '', min: 0, max: 5.0, value: '' }
+  ];
+  container.innerHTML = renderTestFormGrid(params, 'lipid');
+}
+
+function renderTSHForm() {
+  const container = document.getElementById('tsh-results');
+  const params = [
+    { name: 'TSH', unit: 'μIU/mL', min: 0.4, max: 4.0, value: '' },
+    { name: 'Free T3', unit: 'pg/mL', min: 2.3, max: 4.2, value: '' },
+    { name: 'Free T4', unit: 'ng/dL', min: 0.8, max: 1.8, value: '' }
+  ];
+  container.innerHTML = renderTestFormGrid(params, 'tsh');
+}
+
+function renderUrineForm() {
+  const container = document.getElementById('urine-results');
+  container.innerHTML = `
+    <div class="grid-2">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">Color</label>
+        <select><option>Pale Yellow</option><option>Yellow</option><option>Dark Yellow</option><option>Amber</option><option>Red/Brown</option></select>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">Appearance</label>
+        <select><option>Clear</option><option>Slightly Turbid</option><option>Turbid</option></select>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">
+          <span>pH</span><span style="color: #666; font-weight: 400;">Ref: 4.5-8.0</span>
+        </label>
+        <input type="number" placeholder="0.0" step="0.1" data-min="4.5" data-max="8.0" onchange="checkAbnormal(this)">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">
+          <span>Specific Gravity</span><span style="color: #666; font-weight: 400;">Ref: 1.005-1.030</span>
+        </label>
+        <input type="number" placeholder="0.000" step="0.001" data-min="1.005" data-max="1.030" onchange="checkAbnormal(this)">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">Protein</label>
+        <select><option>Nil</option><option>Trace</option><option>1+</option><option>2+</option><option>3+</option></select>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">Glucose</label>
+        <select><option>Nil</option><option>Trace</option><option>1+</option><option>2+</option><option>3+</option></select>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">RBC (per HPF)</label>
+        <input type="number" placeholder="0" data-min="0" data-max="2" onchange="checkAbnormal(this)">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">WBC (per HPF)</label>
+        <input type="number" placeholder="0" data-min="0" data-max="5" onchange="checkAbnormal(this)">
+      </div>
+    </div>
+  `;
+}
+
+function renderTestFormGrid(params, prefix) {
+  let html = '<div class="grid-2">';
+  params.forEach(param => {
+    html += `
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333;">
+          <span>${param.name}</span>
+          <span style="color: #666; font-weight: 400;">Ref: ${param.min}-${param.max} ${param.unit}</span>
+        </label>
+        <input type="number" placeholder="0.00" value="${param.value}" step="0.01" class="${prefix}-input" data-param="${param.name}" data-min="${param.min}" data-max="${param.max}" onchange="checkAbnormal(this)">
+      </div>
+    `;
+  });
+  html += '</div>';
+  return html;
+}
+
 function checkAbnormal(input) {
   const value = parseFloat(input.value);
   const min = parseFloat(input.dataset.min);
@@ -1374,6 +1587,44 @@ function resetResultsForm() {
   document.getElementById('results-sample-card').style.display = 'none';
   document.getElementById('results-form-container').style.display = 'none';
   appState.selectedSample = null;
+  renderAwaitingResults();
+}
+
+function renderAwaitingResults() {
+  const tbody = document.getElementById('awaiting-results-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  // Show samples that are in processing or in-transit (need results entered)
+  const awaitingSamples = appState.samples.filter(s => s.status === 'processing' || s.status === 'in-transit');
+
+  if (awaitingSamples.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 24px; color: #666;">No samples awaiting results entry</td></tr>';
+    return;
+  }
+
+  awaitingSamples.forEach(sample => {
+    const row = document.createElement('tr');
+    const priorityClass = `badge-${sample.priority === 'stat' ? 'stat' : sample.priority === 'urgent' ? 'urgent' : 'routine'}`;
+    row.innerHTML = `
+      <td><strong>${sample.id}</strong></td>
+      <td>${sample.patient.name} (${sample.patient.age}${sample.patient.gender})</td>
+      <td>${sample.tests.join(', ')}</td>
+      <td><span class="badge ${priorityClass}">${sample.priority.toUpperCase()}</span></td>
+      <td>${sample.timestamp}</td>
+      <td><button class="button-primary" style="font-size: 12px; padding: 6px 12px;" onclick="loadSampleForResults('${sample.id}')">Enter Results</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function loadSampleForResults(sampleId) {
+  const sample = appState.samples.find(s => s.id === sampleId);
+  if (sample) {
+    appState.selectedSample = sample;
+    document.getElementById('awaiting-results-list').style.display = 'none';
+    renderSelectedSample(sample);
+  }
 }
 
 // Reports Functions
@@ -1583,6 +1834,9 @@ function showToast(message) {
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
   renderSampleQueue();
+  renderReports();
+  renderInventory();
+  renderAwaitingResults();
 });
 </script>
 
