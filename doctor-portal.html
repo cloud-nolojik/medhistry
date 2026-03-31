@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry Doctor Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Color System */
+        :root {
+            --primary: #0066CC;
+            --primary-dark: #0052A3;
+            --primary-light: #EFF6FF;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --surface-50: #F8FAFC;
+            --surface-100: #F1F5F9;
+            --surface-200: #E2E8F0;
+            --text-dark: #0F172A;
+            --text-medium: #475569;
+            --text-light: #94A3B8;
+        }
+
+        body {
+            background-color: var(--surface-50);
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+        }
+
+        /* Login Modal */
+        .modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            display: flex;
+            height: 500px;
+            width: 900px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .modal-brand-panel {
+            background: linear-gradient(135deg, #0066CC 0%, #0052A3 100%);
+            color: white;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 40%;
+            align-items: flex-start;
+        }
+
+        .modal-brand-panel h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+        }
+
+        .modal-brand-panel p {
+            font-size: 16px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .modal-form-panel {
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 60%;
+            background: white;
+        }
+
+        .modal-form-panel h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .modal-form-panel > p:not(.modal-hint) {
+            color: var(--text-medium);
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--surface-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            background: white;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-light);
+        }
+
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-100);
+            color: var(--text-dark);
+            padding: 12px 20px;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--surface-200);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1.5px solid var(--surface-200);
+            color: var(--text-dark);
+            padding: 10px 18px;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .btn-success:hover {
+            background-color: #047857;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .modal-hint {
+            font-size: 13px;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-bottom: 1px solid var(--surface-200);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            height: 70px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--surface-200);
+        }
+
+        .header-tagline {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .doctor-info {
+            text-align: right;
+        }
+
+        .doctor-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .doctor-specialty {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 70px);
+            margin-top: 70px;
+            gap: 16px;
+            padding: 16px;
+            background: var(--surface-50);
+        }
+
+        /* Queue Panel */
+        .queue-panel {
+            width: 360px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--surface-200);
+        }
+
+        .queue-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--surface-200);
+        }
+
+        .queue-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 16px;
+        }
+
+        .queue-search {
+            width: 100%;
+            padding: 10px 12px 10px 38px;
+            border: 1px solid var(--surface-200);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .queue-search:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .queue-filters {
+            display: flex;
+            gap: 6px;
+            padding: 0 8px;
+            border-bottom: 1px solid var(--surface-200);
+            background: var(--surface-50);
+        }
+
+        .filter-pill {
+            flex: 1;
+            padding: 10px 8px;
+            border: none;
+            background: none;
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-pill.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .filter-pill:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .queue-items {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .queue-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--surface-200);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .queue-item:hover {
+            background: var(--surface-50);
+            border-left-color: var(--primary);
+        }
+
+        .queue-item.active {
+            background: var(--primary-light);
+            border-left-color: var(--primary);
+        }
+
+        .queue-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .queue-token {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .queue-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-new {
+            background-color: #DCFCE7;
+            color: #166534;
+        }
+
+        .badge-returning {
+            background-color: #DBEAFE;
+            color: #0C4A6E;
+        }
+
+        .badge-cross {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .queue-complaint {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .queue-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wait-time {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .wait-time.green {
+            color: var(--success);
+        }
+
+        .wait-time.amber {
+            color: var(--warning);
+        }
+
+        .wait-time.red {
+            color: var(--danger);
+        }
+
+        .queue-status-select {
+            padding: 6px 8px;
+            font-size: 11px;
+            border: 1px solid var(--surface-200);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        /* Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--surface-200);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .workspace-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--surface-200);
+            padding: 0 24px;
+            background: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .tab-button {
+            padding: 16px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 12px;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-button:hover {
+            color: var(--text-dark);
+        }
+
+        .workspace-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .tab-content {
+            padding: 32px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Briefing Card */
+        .patient-id-card {
+            background: white;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 32px;
+        }
+
+        .patient-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .patient-meta {
+            font-size: 14px;
+            color: var(--text-medium);
+            display: flex;
+            gap: 12px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 16px;
+            opacity: 0.7;
+        }
+
+        .briefing-section {
+            background: white;
+            border: 1px solid var(--surface-200);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid;
+        }
+
+        .pill-blue {
+            background-color: #DBEAFE;
+            color: #0C4A6E;
+            border-left-color: #0369A1;
+        }
+
+        .pill-red {
+            background-color: #FEE2E2;
+            color: #7F1D1D;
+            border-left-color: #DC2626;
+        }
+
+        .pill-green {
+            background-color: #DCFCE7;
+            color: #166534;
+            border-left-color: #16A34A;
+        }
+
+        .pill-amber {
+            background-color: #FEF3C7;
+            color: #92400E;
+            border-left-color: #F59E0B;
+        }
+
+        .medication-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .medication-table th {
+            background: var(--surface-100);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-medium);
+            border: none;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .medication-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--surface-200);
+        }
+
+        .medication-table tr:hover {
+            background: var(--surface-50);
+        }
+
+        .last-visit-card {
+            background: var(--surface-50);
+            border-left: 3px solid var(--primary);
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .last-visit-hospital {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .last-visit-meta {
+            font-size: 13px;
+            color: var(--text-medium);
+            margin-bottom: 6px;
+        }
+
+        .pending-banner {
+            background: #FEF3C7;
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .pending-item {
+            font-size: 13px;
+            color: #92400E;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .pending-icon {
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .critical-banner {
+            background: #FEE2E2;
+            border-left: 4px solid var(--danger);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .critical-title {
+            font-weight: 700;
+            color: #7F1D1D;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .critical-content {
+            color: #7F1D1D;
+            font-size: 13px;
+        }
+
+        .new-patient-banner {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #0C4A6E;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Prescription Tab */
+        .form-section {
+            margin-bottom: 28px;
+        }
+
+        .form-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-medium);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-grid.three {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        select {
+            padding: 12px 14px;
+            border: 1px solid var(--surface-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            background: white;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23475569' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .prescription-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .prescription-table th {
+            background: var(--surface-100);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-medium);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid var(--surface-200);
+        }
+
+        .prescription-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--surface-200);
+            color: var(--text-dark);
+            font-size: 13px;
+        }
+
+        .prescription-table tbody tr:hover {
+            background: var(--surface-50);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* History & Reports */
+        .history-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .history-entry {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--surface-200);
+        }
+
+        .history-entry:last-child {
+            border-bottom: none;
+        }
+
+        .history-dot {
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px var(--surface-200);
+        }
+
+        .history-date {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+
+        .history-condition {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .history-details {
+            font-size: 13px;
+            color: var(--text-medium);
+            line-height: 1.5;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .report-card {
+            border: 1px solid var(--surface-200);
+            border-radius: 10px;
+            padding: 16px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .report-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.1);
+        }
+
+        .report-title {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .report-date {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        .report-value {
+            font-size: 13px;
+            color: var(--text-medium);
+            line-height: 1.5;
+        }
+
+        .report-value.abnormal {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Notes Tab */
+        .notes-container {
+            max-width: 900px;
+        }
+
+        .textarea-field {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 24px;
+        }
+
+        .textarea-field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .textarea-field textarea {
+            padding: 14px 16px;
+            border: 1px solid var(--surface-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', monospace;
+            resize: vertical;
+            min-height: 120px;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+        }
+
+        .textarea-field textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .no-patient-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .no-patient-message p:first-child {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-medium);
+        }
+
+        .no-patient-message p:last-child {
+            font-size: 14px;
+        }
+
+        .queue-items::-webkit-scrollbar,
+        .workspace-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .queue-items::-webkit-scrollbar-track,
+        .workspace-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .queue-items::-webkit-scrollbar-thumb,
+        .workspace-content::-webkit-scrollbar-thumb {
+            background: var(--surface-200);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 1024px) {
+            .queue-panel {
+                width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal active">
+        <div class="modal-content">
+            <div class="modal-brand-panel">
+                <h1>Medhistry</h1>
+                <p>Modern healthcare for modern doctors</p>
+            </div>
+            <div class="modal-form-panel">
+                <div id="phoneStep">
+                    <h2>Sign In</h2>
+                    <p>Doctor Portal Access</p>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-dark);">Phone Number</label>
+                    <input type="tel" id="phoneInput" class="form-input" placeholder="10-digit phone number" maxlength="10">
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="loginRequestOTP()">Send OTP</button>
+                    <p class="modal-hint">First-time login will require OTP verification</p>
+                </div>
+
+                <div id="otpStep" style="display: none;">
+                    <h2>Verify OTP</h2>
+                    <p>Enter the 4-digit code sent to your phone</p>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-dark);">OTP</label>
+                    <input type="text" id="otpInput" class="form-input" placeholder="Enter 4-digit OTP" maxlength="4">
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="loginVerifyOTP()">Verify OTP</button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="loginBackToPhone()">Back</button>
+                </div>
+
+                <div id="pinStep" style="display: none;">
+                    <h2>Set PIN</h2>
+                    <p>Create your 4-digit PIN for future logins</p>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-dark);">4-Digit PIN</label>
+                    <input type="password" id="pinInput" class="form-input" placeholder="Enter your PIN" maxlength="4">
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="loginVerifyPIN()">Login</button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="loginBackToPhone()">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="header-logo">Medhistry</div>
+            <div class="header-divider"></div>
+            <div class="header-tagline">Doctor Portal</div>
+        </div>
+        <div class="header-right">
+            <div class="doctor-info">
+                <div class="doctor-name" id="currentDoctor">Dr. Vivek Malhotra</div>
+                <div class="doctor-specialty">Cardiology • City Care Hospital</div>
+            </div>
+            <button class="btn btn-secondary" onclick="logout()" style="padding: 10px 16px; font-size: 13px;">Logout</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Queue Panel -->
+        <div class="queue-panel">
+            <div class="queue-header">
+                <div class="queue-title">OPD Queue</div>
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchQueue" class="queue-search" placeholder="Search name or token" onkeyup="filterQueue()">
+                </div>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="queue-filters">
+                <button class="filter-pill active" onclick="filterByStatus('all')">All</button>
+                <button class="filter-pill" onclick="filterByStatus('waiting')">Waiting</button>
+                <button class="filter-pill" onclick="filterByStatus('with-doctor')">With Dr</button>
+                <button class="filter-pill" onclick="filterByStatus('completed')">Done</button>
+            </div>
+
+            <!-- Queue List -->
+            <div class="queue-items" id="queueList"></div>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace">
+            <!-- Tabs -->
+            <div class="workspace-tabs">
+                <button class="tab-button active" onclick="switchTab('briefing')">Briefing Card</button>
+                <button class="tab-button" onclick="switchTab('notes')">Notes</button>
+                <button class="tab-button" onclick="switchTab('prescription')">Prescription</button>
+                <button class="tab-button" onclick="switchTab('history')">History</button>
+                <button class="tab-button" onclick="switchTab('reports')">Reports</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="workspace-content">
+                <div id="briefingTab" class="tab-content active">
+                    <div id="briefingContent"><div class="no-patient-message"><p>Select a patient from the queue</p><p>Click on any patient card to view their briefing card</p></div></div>
+                </div>
+
+                <div id="notesTab" class="tab-content">
+                    <div class="notes-container">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 28px; color: var(--text-dark);">SOAP Note</h3>
+                        <div class="textarea-field"><label>Subjective</label><textarea id="notesSubjective" placeholder="Patient's chief complaint and history..."></textarea></div>
+                        <div class="textarea-field"><label>Objective</label><textarea id="notesObjective" placeholder="Vital signs, examination findings..."></textarea></div>
+                        <div class="textarea-field"><label>Assessment</label><textarea id="notesAssessment" placeholder="Diagnosis and clinical impression..."></textarea></div>
+                        <div class="textarea-field"><label>Plan</label><textarea id="notesPlan" placeholder="Treatment plan and follow-up..."></textarea></div>
+                        <button class="btn btn-primary" onclick="saveNotes()">Save Note</button>
+                    </div>
+                </div>
+
+                <div id="prescriptionTab" class="tab-content">
+                    <div style="max-width: 1000px;">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 28px; color: var(--text-dark);">Prescription</h3>
+                        <div class="form-section">
+                            <div class="form-section-title">Add Medication</div>
+                            <div class="form-grid">
+                                <div class="form-field"><label class="form-label">Drug Name</label><input type="text" id="drugName" class="form-input" placeholder="e.g., Amlodipine"></div>
+                                <div class="form-field"><label class="form-label">Dose</label><input type="text" id="drugDose" class="form-input" placeholder="e.g., 5mg"></div>
+                            </div>
+                            <div class="form-grid three">
+                                <div class="form-field"><label class="form-label">Frequency</label><select id="drugFrequency"><option>OD</option><option>BD</option><option>TDS</option></select></div>
+                                <div class="form-field"><label class="form-label">Duration (days)</label><input type="number" id="drugDuration" class="form-input" placeholder="30"></div>
+                                <div class="form-field"><label class="form-label">Quantity</label><input type="text" id="drugQuantity" class="form-input" placeholder="Auto" readonly style="background: var(--surface-50);"></div>
+                            </div>
+                            <button class="btn btn-primary" onclick="addMedication()" style="margin-top: 12px;">Add Medication</button>
+                        </div>
+                        <div class="form-section">
+                            <div class="form-section-title">Current Prescription</div>
+                            <table class="prescription-table" id="prescriptionTable">
+                                <thead><tr><th>Drug</th><th>Dose</th><th>Freq</th><th>Duration</th><th>Qty</th><th></th></tr></thead>
+                                <tbody id="prescriptionBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-outline" onclick="checkDDI()">Check Drug Interaction</button>
+                            <button class="btn btn-outline" onclick="previewPrescription()">Preview</button>
+                            <button class="btn btn-success" onclick="approvePrescription()">Approve & Print</button>
+                            <button class="btn btn-primary" onclick="sendViaWhatsapp()">Send via WhatsApp</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="historyTab" class="tab-content">
+                    <div style="max-width: 900px;">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 28px; color: var(--text-dark);">Medical History</h3>
+                        <div id="historyContent"></div>
+                    </div>
+                </div>
+
+                <div id="reportsTab" class="tab-content">
+                    <div style="max-width: 1200px;">
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 28px; color: var(--text-dark);">Reports & Documents</h3>
+                        <div style="margin-bottom: 32px;"><h4 style="font-weight: 700; margin-bottom: 16px; color: var(--text-medium); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Lab Reports</h4><div class="report-grid" id="labReports"></div></div>
+                        <div style="margin-bottom: 32px;"><h4 style="font-weight: 700; margin-bottom: 16px; color: var(--text-medium); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Scans & Imaging</h4><div class="report-grid" id="scanReports"></div></div>
+                        <div><h4 style="font-weight: 700; margin-bottom: 16px; color: var(--text-medium); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Discharge Summaries</h4><div id="dischargeSummaries"></div></div>
+                    </div>
+                </div>
+
+                <div id="noPatientSelected" class="no-patient-message"><p>No patient selected</p><p>Click a patient from the queue to view their briefing card</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const samplePatients = [
+            { id: 1, token: '12', name: 'Rajesh Kumar', age: 58, gender: 'M', phone: '9876543210', chief_complaint: 'Hypertension checkup', status: 'waiting', wait_time: 8, visit_type: 'returning', conditions: ['Hypertension', 'Diabetes'], medications: ['Amlodipine 5mg', 'Metformin 500mg', 'Aspirin 75mg'], last_visit: { hospital: 'City Care Hospital Mumbai', doctor: 'Dr. Vivek Malhotra', date: '15 Mar 2026', reason: 'Hypertension management' }, pending_items: [], critical_flag: null, history: [{ date: '15 Mar 2026', hospital: 'City Care Hospital', doctor: 'Dr. Vivek Malhotra', condition: 'Hypertension', treatment: 'Amlodipine increased to 5mg' }, { date: '28 Feb 2026', hospital: 'City Care Hospital', doctor: 'Dr. Vivek Malhotra', condition: 'Diabetes', treatment: 'Routine follow-up, glucose levels stable' }], reports: [{ date: '15 Mar 2026', type: 'Lab', title: 'Lipid Profile', values: 'Total Cholesterol: 185 (Normal)', abnormal: false }, { date: '28 Feb 2026', type: 'Lab', title: 'FBS', values: 'Fasting BS: 128 mg/dL', abnormal: false }] },
+            { id: 2, token: '13', name: 'Priya Sharma', age: 32, gender: 'F', phone: '9876543211', chief_complaint: 'Fever, headache', status: 'waiting', wait_time: 22, visit_type: 'new', conditions: [], medications: [], last_visit: null, pending_items: [], critical_flag: null, history: [], reports: [] },
+            { id: 3, token: '14', name: 'Anita Patel', age: 64, gender: 'F', phone: '9876543212', chief_complaint: 'Lower back pain follow-up', status: 'waiting', wait_time: 35, visit_type: 'returning', conditions: ['Hypothyroidism', 'Lower Back Pain'], medications: ['Thyronorm 75mcg', 'Warfarin 5mg', 'Ibuprofen 400mg'], last_visit: { hospital: 'City Care Hospital Mumbai', doctor: 'Dr. Ravi Verma', date: '8 Mar 2026', reason: 'Lower back pain management' }, pending_items: ['LFT ordered 18 days ago — no result received'], critical_flag: 'On Warfarin', history: [{ date: '8 Mar 2026', hospital: 'City Care Hospital', doctor: 'Dr. Ravi Verma', condition: 'Lower Back Pain', treatment: 'Physiotherapy + medication' }, { date: '22 Feb 2026', hospital: 'City Care Hospital', doctor: 'Dr. Ravi Verma', condition: 'Hypothyroidism', treatment: 'Thyroid levels checked, dose maintained' }], reports: [{ date: '8 Mar 2026', type: 'Scan', title: 'MRI Lumbar Spine', values: 'Mild disc bulge L4-L5', abnormal: false }, { date: '22 Feb 2026', type: 'Lab', title: 'TSH', values: '2.5 mIU/L', abnormal: false }] },
+            { id: 4, token: '15', name: 'Mohammed Irfan', age: 45, gender: 'M', phone: '9876543213', chief_complaint: 'Post-surgery follow-up', status: 'waiting', wait_time: 5, visit_type: 'cross-hospital', conditions: ['Post-Op Recovery'], medications: ['Clopidogrel 75mg', 'Atorvastatin 20mg'], last_visit: { hospital: 'Apollo Spectra Delhi', doctor: 'Dr. Sanjay Gupta', date: '20 Mar 2026', reason: 'Post coronary stent placement' }, pending_items: [], critical_flag: 'On Clopidogrel', history: [{ date: '20 Mar 2026', hospital: 'Apollo Spectra Delhi', doctor: 'Dr. Sanjay Gupta', condition: 'CAD', treatment: 'PCI with stent placement' }], reports: [{ date: '20 Mar 2026', type: 'Scan', title: 'ECG Post-PCI', values: 'Normal', abnormal: false }] },
+            { id: 5, token: '16', name: 'Deepak Singh', age: 52, gender: 'M', phone: '9876543214', chief_complaint: 'Diabetes review', status: 'with-doctor', wait_time: 12, visit_type: 'returning', conditions: ['Type 2 Diabetes', 'Hypertension', 'Dyslipidemia'], medications: ['Metformin 1000mg', 'Glipizide 5mg', 'Lisinopril 10mg'], last_visit: { hospital: 'City Care Hospital Mumbai', doctor: 'Dr. Vivek Malhotra', date: '1 Mar 2026', reason: 'Diabetes and BP review' }, pending_items: ['HbA1c ordered 5 days ago — awaiting results'], critical_flag: null, history: [], reports: [] },
+            { id: 6, token: '17', name: 'Sunita Desai', age: 48, gender: 'F', phone: '9876543215', chief_complaint: 'Migraine consultation', status: 'waiting', wait_time: 18, visit_type: 'new', conditions: [], medications: [], last_visit: null, pending_items: [], critical_flag: null, history: [], reports: [] },
+            { id: 7, token: '18', name: 'Vikram Patel', age: 41, gender: 'M', phone: '9876543216', chief_complaint: 'Asthma control', status: 'completed', wait_time: 0, visit_type: 'returning', conditions: ['Asthma', 'Allergic Rhinitis'], medications: ['Salbutamol inhaler', 'Fluticasone inhaler'], last_visit: { hospital: 'Fortis Healthcare Mumbai', doctor: 'Dr. Priya Patel', date: '10 Mar 2026', reason: 'Asthma management' }, pending_items: [], critical_flag: 'Known Penicillin Allergy', history: [], reports: [] },
+            { id: 8, token: '19', name: 'Neha Gupta', age: 35, gender: 'F', phone: '9876543217', chief_complaint: 'Thyroid follow-up', status: 'waiting', wait_time: 28, visit_type: 'returning', conditions: ['Hyperthyroidism'], medications: ['Propranolol 40mg', 'Methimazole 10mg'], last_visit: { hospital: 'City Care Hospital Mumbai', doctor: 'Dr. Vivek Malhotra', date: '25 Feb 2026', reason: 'Thyroid hormone level check' }, pending_items: [], critical_flag: null, history: [], reports: [] },
+            { id: 9, token: '20', name: 'Arun Nair', age: 67, gender: 'M', phone: '9876543218', chief_complaint: 'Heart failure check-up', status: 'waiting', wait_time: 42, visit_type: 'returning', conditions: ['Heart Failure', 'Atrial Fibrillation', 'CKD'], medications: ['Furosemide 40mg', 'Carvedilol 6.25mg', 'Enalapril 5mg'], last_visit: { hospital: 'City Care Hospital Mumbai', doctor: 'Dr. Vivek Malhotra', date: '12 Mar 2026', reason: 'Heart failure management' }, pending_items: ['BNP test ordered 22 days ago', 'Echocardiogram scheduled'], critical_flag: 'On Warfarin', history: [], reports: [] },
+            { id: 10, token: '21', name: 'Kiran Mehta', age: 29, gender: 'M', phone: '9876543219', chief_complaint: 'Annual health check', status: 'waiting', wait_time: 3, visit_type: 'new', conditions: [], medications: [], last_visit: null, pending_items: [], critical_flag: null, history: [], reports: [] }
+        ];
+
+        let currentUser = null, currentPatient = null, filteredPatients = [...samplePatients], currentPrescription = [], currentStatusFilter = 'all';
+
+        function loginRequestOTP() { const phone = document.getElementById('phoneInput').value; if (!/^\d{10}$/.test(phone)) { alert('Please enter a valid 10-digit phone number'); return; } document.getElementById('phoneStep').style.display = 'none'; document.getElementById('otpStep').style.display = 'block'; }
+        function loginVerifyOTP() { const otp = document.getElementById('otpInput').value; const phone = document.getElementById('phoneInput').value; if (otp === '1234') { currentUser = { phone, isFirstLogin: true }; document.getElementById('otpStep').style.display = 'none'; alert('OTP verified! Set your 4-digit PIN.'); document.getElementById('pinInput').value = ''; document.getElementById('pinStep').style.display = 'block'; } else { alert('Invalid OTP. Try 1234 for demo.'); } }
+        function loginVerifyPIN() { const pin = document.getElementById('pinInput').value; if (pin.length !== 4) { alert('PIN must be 4 digits'); return; } currentUser = { phone: document.getElementById('phoneInput').value, pin }; document.getElementById('loginModal').classList.remove('active'); initializePortal(); }
+        function loginBackToPhone() { document.getElementById('phoneStep').style.display = 'block'; document.getElementById('otpStep').style.display = 'none'; document.getElementById('pinStep').style.display = 'none'; document.getElementById('phoneInput').value = ''; document.getElementById('otpInput').value = ''; document.getElementById('pinInput').value = ''; }
+        function logout() { currentUser = null; currentPatient = null; document.getElementById('loginModal').classList.add('active'); document.getElementById('phoneStep').style.display = 'block'; document.getElementById('otpStep').style.display = 'none'; document.getElementById('pinStep').style.display = 'none'; }
+        function initializePortal() { renderQueueList(); }
+        function renderQueueList() {
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+            filteredPatients.forEach(patient => {
+                const waitTimeClass = patient.wait_time < 15 ? 'green' : patient.wait_time < 30 ? 'amber' : 'red';
+                let badgeClass = '', badgeText = '';
+                if (patient.visit_type === 'new') { badgeClass = 'badge-new'; badgeText = 'New'; } else if (patient.visit_type === 'cross-hospital') { badgeClass = 'badge-cross'; badgeText = 'Cross-Hospital'; } else { badgeClass = 'badge-returning'; badgeText = 'Returning'; }
+                const queueItem = document.createElement('div');
+                queueItem.className = 'queue-item';
+                if (currentPatient && currentPatient.id === patient.id) queueItem.classList.add('active');
+                let flagIcon = patient.critical_flag ? '⚠️ ' : '';
+                queueItem.innerHTML = `<div class="queue-item-header"><div style="display: flex; align-items: center;"><div class="queue-token">${patient.token}</div><div class="queue-name">${patient.name}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div><div class="queue-complaint">${flagIcon}${patient.chief_complaint}</div><div class="queue-footer"><span class="wait-time ${waitTimeClass}">${patient.wait_time} min</span><select class="queue-status-select" onchange="updatePatientStatus(${patient.id}, this.value)"><option value="waiting" ${patient.status === 'waiting' ? 'selected' : ''}>Waiting</option><option value="with-doctor" ${patient.status === 'with-doctor' ? 'selected' : ''}>With Dr</option><option value="completed" ${patient.status === 'completed' ? 'selected' : ''}>Done</option></select></div>`;
+                queueItem.onclick = () => selectPatient(patient);
+                queueList.appendChild(queueItem);
+            });
+        }
+        function selectPatient(patient) { currentPatient = patient; document.getElementById('noPatientSelected').style.display = 'none'; renderQueueList(); renderBriefingCard(); currentPrescription = []; document.getElementById('prescriptionBody').innerHTML = ''; document.getElementById('notesSubjective').value = ''; document.getElementById('notesObjective').value = ''; document.getElementById('notesAssessment').value = ''; document.getElementById('notesPlan').value = ''; renderHistory(); renderReports(); }
+        function updatePatientStatus(patientId, newStatus) { const patient = samplePatients.find(p => p.id === patientId); if (patient) { patient.status = newStatus; filteredPatients = filterPatientsByStatus(currentStatusFilter); renderQueueList(); } }
+        function filterQueue() { const searchTerm = document.getElementById('searchQueue').value.toLowerCase(); filteredPatients = samplePatients.filter(p => { const matchesSearch = p.name.toLowerCase().includes(searchTerm) || p.token.includes(searchTerm); const matchesStatus = currentStatusFilter === 'all' || p.status === currentStatusFilter; return matchesSearch && matchesStatus; }); renderQueueList(); }
+        function filterByStatus(status) { currentStatusFilter = status; filteredPatients = filterPatientsByStatus(status); document.querySelectorAll('.queue-filters .filter-pill').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); renderQueueList(); }
+        function filterPatientsByStatus(status) { if (status === 'all') return [...samplePatients]; if (status === 'waiting') return samplePatients.filter(p => p.status === 'waiting'); if (status === 'with-doctor') return samplePatients.filter(p => p.status === 'with-doctor'); if (status === 'completed') return samplePatients.filter(p => p.status === 'completed'); return samplePatients; }
+        function renderBriefingCard() {
+            if (!currentPatient) return;
+            const p = currentPatient;
+            let html = `<div class="patient-id-card"><div class="patient-name">${p.name}</div><div class="patient-meta"><span>${p.age}y</span><span>•</span><span>${p.gender}</span><span>•</span><span>${p.phone}</span></div></div>`;
+            if (p.visit_type === 'new') html += `<div class="new-patient-banner"><strong>New patient</strong> — No prior records. First consultation creates the baseline.</div>`;
+            if (p.conditions.length > 0) { html += `<div class="briefing-section"><div class="section-label"><span class="section-icon">❤️</span>Active Conditions</div><div>`; p.conditions.slice(0, 4).forEach((condition, idx) => { const colors = ['pill-blue', 'pill-red', 'pill-green', 'pill-amber']; html += `<span class="pill ${colors[idx % 4]}">${condition}</span>`; }); if (p.conditions.length > 4) html += `<span class="pill" style="background-color: var(--surface-100); color: var(--text-medium);">+${p.conditions.length - 4}</span>`; html += `</div></div>`; }
+            if (p.medications.length > 0) { html += `<div class="briefing-section"><div class="section-label"><span class="section-icon">💊</span>Current Medications</div><table class="medication-table"><thead><tr><th>Drug</th><th>Dose/Frequency</th></tr></thead><tbody>`; p.medications.slice(0, 5).forEach(med => { html += `<tr><td>${med.split(' ')[0]}</td><td>${med.substring(med.indexOf(' ') + 1)}</td></tr>`; }); if (p.medications.length > 5) html += `<tr><td colspan="2" style="color: var(--text-light);">+${p.medications.length - 5} more</td></tr>`; html += `</tbody></table></div>`; }
+            if (p.last_visit) html += `<div class="briefing-section"><div class="section-label"><span class="section-icon">📅</span>Last Visit</div><div class="last-visit-card"><div class="last-visit-hospital">${p.last_visit.hospital}</div><div class="last-visit-meta">${p.last_visit.doctor} • ${p.last_visit.date}</div><div class="last-visit-meta">${p.last_visit.reason}</div></div></div>`;
+            if (p.pending_items.length > 0) { html += `<div class="pending-banner"><div style="font-weight: 600; margin-bottom: 12px; color: #92400E; display: flex; align-items: center; gap: 8px;"><span>⏱️</span>Pending Investigations</div>`; p.pending_items.forEach(item => { html += `<div class="pending-item"><span class="pending-icon">→</span><span>${item}</span></div>`; }); html += `</div>`; }
+            if (p.critical_flag) html += `<div class="critical-banner"><div class="critical-title"><span>⚠️</span>CRITICAL FLAG</div><div class="critical-content">${p.critical_flag}</div></div>`;
+            document.getElementById('briefingContent').innerHTML = html;
+        }
+        function switchTab(tabName) { document.querySelectorAll('.workspace .tab-button').forEach(btn => btn.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active')); event.target.classList.add('active'); document.getElementById(tabName + 'Tab').classList.add('active'); if (!currentPatient) document.getElementById('noPatientSelected').style.display = 'block'; else document.getElementById('noPatientSelected').style.display = 'none'; }
+        function addMedication() { const name = document.getElementById('drugName').value.trim(); const dose = document.getElementById('drugDose').value.trim(); const freq = document.getElementById('drugFrequency').value; const duration = parseInt(document.getElementById('drugDuration').value); if (!name || !dose || !duration) { alert('Please fill all fields'); return; } const freqMultiplier = freq === 'OD' ? 1 : freq === 'BD' ? 2 : 3; const quantity = duration * freqMultiplier; currentPrescription.push({ name, dose, freq, duration, quantity }); renderPrescriptionTable(); document.getElementById('drugName').value = ''; document.getElementById('drugDose').value = ''; document.getElementById('drugDuration').value = ''; document.getElementById('drugFrequency').value = 'OD'; }
+        function renderPrescriptionTable() { const tbody = document.getElementById('prescriptionBody'); tbody.innerHTML = ''; currentPrescription.forEach((med, idx) => { const row = document.createElement('tr'); row.innerHTML = `<td>${med.name}</td><td>${med.dose}</td><td>${med.freq}</td><td>${med.duration}d</td><td>${med.quantity}</td><td><button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="removeMedication(${idx})">Remove</button></td>`; tbody.appendChild(row); }); }
+        function removeMedication(idx) { currentPrescription.splice(idx, 1); renderPrescriptionTable(); }
+        function checkDDI() { if (currentPrescription.length === 0) { alert('No medications added'); return; } alert('DDI Check: No significant drug interactions detected for this patient.'); }
+        function previewPrescription() { if (currentPrescription.length === 0) { alert('No medications added'); return; } alert('Preview: Prescription will print with top margin for pre-printed letterhead\n\n' + currentPrescription.map(m => `${m.name} ${m.dose} - ${m.freq}`).join('\n')); }
+        function approvePrescription() { if (currentPrescription.length === 0) { alert('No medications added'); return; } alert('Prescription approved and sent to printer'); }
+        function sendViaWhatsapp() { if (currentPrescription.length === 0) { alert('No medications added'); return; } alert('Prescription sent via WhatsApp to ' + currentPatient.phone); }
+        function saveNotes() { alert('Notes saved for ' + currentPatient.name); }
+        function renderHistory() { if (!currentPatient) return; const historyContent = document.getElementById('historyContent'); if (currentPatient.history.length === 0) { historyContent.innerHTML = '<p style="color: var(--text-light); font-size: 14px;">No prior visits recorded</p>'; return; } historyContent.innerHTML = '<div class="history-timeline">'; currentPatient.history.forEach(entry => { const historyDiv = document.createElement('div'); historyDiv.className = 'history-entry'; historyDiv.innerHTML = `<div class="history-dot"></div><div class="history-condition">${entry.condition}</div><div class="history-date">${entry.date} • ${entry.hospital}</div><div class="history-details"><strong>${entry.doctor}</strong><br>${entry.treatment}</div>`; historyContent.appendChild(historyDiv); }); historyContent.innerHTML += '</div>'; }
+        function renderReports() { if (!currentPatient) return; const labReports = document.getElementById('labReports'); const scanReports = document.getElementById('scanReports'); const dischargeSummaries = document.getElementById('dischargeSummaries'); labReports.innerHTML = ''; scanReports.innerHTML = ''; dischargeSummaries.innerHTML = ''; if (currentPatient.reports.length === 0) { labReports.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No lab reports</p>'; scanReports.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No scans</p>'; dischargeSummaries.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No discharge summaries</p>'; return; } currentPatient.reports.forEach(report => { const reportCard = document.createElement('div'); reportCard.className = 'report-card'; let valueClass = report.abnormal ? 'abnormal' : ''; reportCard.innerHTML = `<div class="report-title">${report.title}</div><div class="report-date">${report.date}</div><div class="report-value ${valueClass}">${report.values}</div>`; if (report.type === 'Lab') labReports.appendChild(reportCard); else if (report.type === 'Scan') scanReports.appendChild(reportCard); }); if (labReports.children.length === 0) labReports.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No lab reports</p>'; if (scanReports.children.length === 0) scanReports.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No scans</p>'; dischargeSummaries.innerHTML = '<p style="color: var(--text-light); font-size: 13px;">No discharge summaries</p>'; }
+        window.addEventListener('load', () => { document.getElementById('phoneInput').value = '9876543210'; });
+    </script>
+</body>
+</html>

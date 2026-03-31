@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Analytics - Medhistry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .brand-primary { color: #0066CC; }
+        .brand-dark { color: #0052A3; }
+        .bg-brand-50 { background-color: #EFF6FF; }
+        .bg-brand-600 { background-color: #0066CC; }
+        .bg-brand-700 { background-color: #0052A3; }
+        .bg-surface-50 { background-color: #F8F9FB; }
+        .bg-surface-100 { background-color: #F0F2F5; }
+        .border-surface-200 { border-color: #E3E8EF; }
+        .sidebar {
+            width: 256px;
+            background-color: #F8F9FB;
+            border-right: 1px solid #E3E8EF;
+        }
+        .nav-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4B5563;
+        }
+        .nav-item:hover {
+            background-color: #EFF6FF;
+        }
+        .nav-item.active {
+            background-color: #EFF6FF;
+            color: #0066CC;
+            border-left: 3px solid #0066CC;
+            padding-left: 13px;
+        }
+        .card {
+            background-color: white;
+            border: 1px solid #E3E8EF;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .btn-primary {
+            background-color: #0066CC;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #0052A3;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid #E3E8EF;
+            border-radius: 10px;
+            padding: 24px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0066CC;
+            margin: 12px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #8B92A1;
+            font-weight: 500;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background-color: #F8F9FB;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #4B5563;
+            border-bottom: 1px solid #E3E8EF;
+        }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #E3E8EF;
+            font-size: 14px;
+        }
+        tr:hover {
+            background-color: #F8F9FB;
+        }
+        .header-top {
+            background-color: white;
+            border-bottom: 1px solid #E3E8EF;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hospital-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hospital-info h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1A1F2E;
+            margin: 0;
+        }
+        .hospital-info p {
+            font-size: 12px;
+            color: #8B92A1;
+            margin: 4px 0 0 0;
+        }
+        .medhistry-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0066CC;
+        }
+        .usage-bar {
+            background-color: #E3E8EF;
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .usage-fill {
+            background-color: #0066CC;
+            height: 100%;
+            border-radius: 4px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1A1F2E;
+            margin-bottom: 20px;
+        }
+        .close-modal {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8B92A1;
+        }
+        .close-modal:hover {
+            color: #1A1F2E;
+        }
+        .audit-table {
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body class="bg-surface-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="padding: 20px; border-bottom: 1px solid #E3E8EF;">
+                <div class="medhistry-logo">Medhistry</div>
+                <div style="font-size: 12px; color: #8B92A1; margin-top: 4px;">Hospital Portal</div>
+            </div>
+            <nav>
+                <div class="nav-item active" onclick="switchTab('dashboard')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"></path>
+                        <path d="M3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z"></path>
+                        <path d="M14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                    </svg>
+                    Dashboard
+                </div>
+                <div class="nav-item" onclick="switchTab('monthly')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z"></path>
+                    </svg>
+                    Monthly Report
+                </div>
+                <div class="nav-item" onclick="switchTab('audit')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Audit Log
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="header-top">
+                <div class="hospital-header">
+                    <div style="width: 40px; height: 40px; background-color: #EFF6FF; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <span class="brand-primary" style="font-weight: 700;">CH</span>
+                    </div>
+                    <div class="hospital-info">
+                        <h1>City Care Hospital</h1>
+                        <p>Mumbai • March 2026</p>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="openExportModal()">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    Export PDF
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-24" style="background-color: #F8F9FB;">
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content">
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card">
+                            <div style="font-size: 24px;">👥</div>
+                            <div class="stat-value">247</div>
+                            <div class="stat-label">Total Patients</div>
+                            <div style="font-size: 12px; color: #28A745; margin-top: 8px;">+12% this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px;">📋</div>
+                            <div class="stat-value">612</div>
+                            <div class="stat-label">Consultations</div>
+                            <div style="font-size: 12px; color: #28A745; margin-top: 8px;">+8% this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px;">📄</div>
+                            <div class="stat-value">84%</div>
+                            <div class="stat-label">Briefing Card Usage</div>
+                            <div style="font-size: 12px; color: #28A745; margin-top: 8px;">+5% this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px;">👨‍⚕️</div>
+                            <div class="stat-value">8</div>
+                            <div class="stat-label">Active Doctors</div>
+                            <div style="font-size: 12px; color: #999; margin-top: 8px;">Full-time</div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Trend -->
+                    <div class="card mb-8">
+                        <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #1A1F2E;">Patient Registrations Trend</h2>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Doctor Consultations Table -->
+                    <div class="card">
+                        <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #1A1F2E;">Consultations by Doctor</h2>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr style="background-color: #F8F9FB;">
+                                        <th>Doctor</th>
+                                        <th>Specialization</th>
+                                        <th>Consultations</th>
+                                        <th>Briefing Card Usage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Vivek Malhotra</td>
+                                        <td>Cardiology</td>
+                                        <td>142</td>
+                                        <td>
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: 92%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #8B92A1;">92%</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Sneha Reddy</td>
+                                        <td>General Medicine</td>
+                                        <td>186</td>
+                                        <td>
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: 78%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #8B92A1;">78%</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Amit Joshi</td>
+                                        <td>Orthopedics</td>
+                                        <td>98</td>
+                                        <td>
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: 88%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #8B92A1;">88%</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Pooja Nair</td>
+                                        <td>Dermatology</td>
+                                        <td>72</td>
+                                        <td>
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: 76%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #8B92A1;">76%</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Ravi Menon</td>
+                                        <td>ENT</td>
+                                        <td>114</td>
+                                        <td>
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: 85%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #8B92A1;">85%</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Report Tab -->
+                <div id="monthly" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #1A1F2E;">March 2026 Monthly Report</h2>
+                        <div style="color: #4B5563; line-height: 1.8;">
+                            <p style="margin-bottom: 16px;"><strong>Summary:</strong> March has been a strong month for City Care Hospital with consistent patient engagement and high briefing card adoption rates across all doctors.</p>
+                            <p style="margin-bottom: 16px;"><strong>Key Metrics:</strong></p>
+                            <ul style="margin-left: 20px; margin-bottom: 16px;">
+                                <li>Total new patient registrations: 247 (↑12% vs February)</li>
+                                <li>Total consultations: 612 (↑8% vs February)</li>
+                                <li>Average briefing card usage: 84% (excellent adoption)</li>
+                                <li>Doctor utilization rate: 97%</li>
+                            </ul>
+                            <p style="margin-bottom: 16px;"><strong>Top Performer:</strong> Dr. Sneha Reddy (General Medicine) with 186 consultations and strong patient follow-up rates.</p>
+                            <p style="margin-bottom: 16px;"><strong>Recommendations:</strong> Continue current workflow. Consider scheduling training for Dr. Pooja Nair to increase briefing card usage from 76% to align with hospital average.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Log Tab -->
+                <div id="audit" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #1A1F2E;">Data Access Audit Log</h2>
+                        <div style="overflow-x: auto;">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr style="background-color: #F8F9FB;">
+                                        <th style="min-width: 160px;">Timestamp</th>
+                                        <th style="min-width: 140px;">Actor</th>
+                                        <th style="min-width: 100px;">Patient</th>
+                                        <th style="min-width: 120px;">Action</th>
+                                        <th style="min-width: 120px;">Consent ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Mar 31, 2026 14:32</td>
+                                        <td>Dr. Vivek Malhotra</td>
+                                        <td>P-004521</td>
+                                        <td>Viewed medical history</td>
+                                        <td>CONS-892104</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 14:15</td>
+                                        <td>Dr. Sneha Reddy</td>
+                                        <td>P-004518</td>
+                                        <td>Created prescription</td>
+                                        <td>CONS-892101</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 14:02</td>
+                                        <td>Receptionist: Priya Kumar</td>
+                                        <td>P-004502</td>
+                                        <td>Scheduled appointment</td>
+                                        <td>CONS-892095</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 13:48</td>
+                                        <td>Dr. Amit Joshi</td>
+                                        <td>P-004510</td>
+                                        <td>Viewed briefing card</td>
+                                        <td>CONS-892089</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 13:22</td>
+                                        <td>Dr. Pooja Nair</td>
+                                        <td>P-004515</td>
+                                        <td>Viewed medical history</td>
+                                        <td>CONS-892085</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 13:10</td>
+                                        <td>Dr. Vivek Malhotra</td>
+                                        <td>P-004503</td>
+                                        <td>Created prescription</td>
+                                        <td>CONS-892078</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 12:45</td>
+                                        <td>Hospital Admin: Amit Singh</td>
+                                        <td>P-004495</td>
+                                        <td>Exported patient list</td>
+                                        <td>CONS-892070</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 12:32</td>
+                                        <td>Dr. Ravi Menon</td>
+                                        <td>P-004508</td>
+                                        <td>Viewed briefing card</td>
+                                        <td>CONS-892065</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('exportModal')">&times;</span>
+            <div class="modal-header">Export Report as PDF</div>
+            <p style="color: #4B5563; margin-bottom: 20px;">Select data to include in the exported PDF report:</p>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" checked style="width: 16px; height: 16px; cursor: pointer; margin-right: 10px;">
+                    <span style="color: #1A1F2E;">Summary Statistics</span>
+                </label>
+                <label style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" checked style="width: 16px; height: 16px; cursor: pointer; margin-right: 10px;">
+                    <span style="color: #1A1F2E;">Doctor Consultations Table</span>
+                </label>
+                <label style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+                    <input type="checkbox" checked style="width: 16px; height: 16px; cursor: pointer; margin-right: 10px;">
+                    <span style="color: #1A1F2E;">Monthly Trend Chart</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer; margin-right: 10px;">
+                    <span style="color: #1A1F2E;">Audit Log (last 50 entries)</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="closeModal('exportModal')" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #E3E8EF; background-color: white; cursor: pointer; font-weight: 600; color: #1A1F2E;">Cancel</button>
+                <button onclick="exportPDF()" class="btn-primary">Generate PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).style.display = 'block';
+
+            // Add active class to clicked nav item
+            event.target.classList.add('active');
+        }
+
+        function openExportModal() {
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function exportPDF() {
+            alert('PDF export initiated. This would generate a professional PDF report with the selected sections. In production, this would use a library like jsPDF or trigger a backend service.');
+            closeModal('exportModal');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            let modal = document.getElementById('exportModal');
+            if (event.target == modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        // Initialize chart when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['September', 'October', 'November', 'December', 'January', 'February', 'March'],
+                    datasets: [{
+                        label: 'Patient Registrations',
+                        data: [180, 195, 210, 225, 215, 220, 247],
+                        borderColor: '#0066CC',
+                        backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0066CC',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                usePointStyle: true,
+                                font: { weight: '600', size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#E3E8EF'
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

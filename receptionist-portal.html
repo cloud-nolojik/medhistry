@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry Receptionist Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --primary-dark: #0052A3;
+            --primary-light: #EFF6FF;
+            --surface-bg: #F8FAFC;
+            --surface-card: #FFFFFF;
+            --border: #E2E8F0;
+            --text-dark: #0F172A;
+            --text-medium: #475569;
+            --text-light: #94A3B8;
+            --success: #059669;
+            --warning: #D97706;
+            --error: #DC2626;
+            --info: #0066CC;
+        }
+
+        body {
+            background-color: var(--surface-bg);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Shadows */
+        .shadow-sm {
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .shadow-md {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 13px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Transitions */
+        .transition-smooth {
+            transition: all 200ms ease-out;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--surface-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 300ms ease-out;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .sidebar-branding {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .sidebar-branding {
+            display: none;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+        }
+
+        .nav-section {
+            padding: 8px 0;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-light);
+            padding: 12px 20px 8px 20px;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .nav-section-title {
+            display: none;
+        }
+
+        .sidebar-item {
+            padding: 12px 16px;
+            margin: 0 8px;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-medium);
+            font-weight: 500;
+            font-size: 14px;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .sidebar-item:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .sidebar-item-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            stroke-width: 1.5;
+        }
+
+        .sidebar.collapsed .sidebar-item-text {
+            display: none;
+        }
+
+        .sidebar-item.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+            padding-left: 13px;
+        }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .user-info {
+            padding: 12px;
+            background-color: var(--surface-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .sidebar.collapsed .user-details {
+            display: none;
+        }
+
+        /* Header */
+        .header {
+            height: 64px;
+            background-color: var(--surface-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 20px;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .header-datetime {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .header-date {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .header-time {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .header-notif {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: var(--surface-bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+            color: var(--text-medium);
+        }
+
+        .header-notif:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 200ms ease-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: all 200ms ease-out;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 13px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        /* Stat Cards */
+        .stat-card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            border-top: 3px solid var(--border);
+            transition: all 200ms ease-out;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 13px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-card.primary {
+            border-top-color: var(--primary);
+        }
+
+        .stat-card.warning {
+            border-top-color: var(--warning);
+        }
+
+        .stat-card.success {
+            border-top-color: var(--success);
+        }
+
+        .stat-card.gray {
+            border-top-color: #9CA3AF;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card.primary .stat-icon {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background-color: #CBD5E1;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-bg);
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary-light);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            min-height: 32px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            background-color: var(--surface-bg);
+            color: var(--text-medium);
+            border: 1px solid var(--border);
+        }
+
+        .btn-icon:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text-dark);
+            background-color: var(--surface-card);
+            transition: all 200ms ease-out;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-light);
+        }
+
+        /* Step Indicator */
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .step-items {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex: 1;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--surface-bg);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-light);
+            flex-shrink: 0;
+            transition: all 200ms ease-out;
+        }
+
+        .step-circle.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .step-circle.completed {
+            background-color: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .step-line {
+            height: 2px;
+            flex: 1;
+            background-color: var(--border);
+            margin: 0 8px;
+            transition: all 200ms ease-out;
+        }
+
+        .step-line.active {
+            background-color: var(--primary);
+        }
+
+        .step-line.completed {
+            background-color: var(--success);
+        }
+
+        .step-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .step-item.active .step-label {
+            color: var(--primary);
+        }
+
+        /* Status Pills */
+        .status-pill {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 200ms ease-out;
+        }
+
+        .status-waiting {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-with-doctor {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-complete {
+            background-color: #DCFCE7;
+            color: #166534;
+        }
+
+        .status-no-show {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* Queue Table */
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .queue-header {
+            display: grid;
+            grid-template-columns: 80px 140px 120px 150px 120px 100px 100px;
+            gap: 16px;
+            padding: 12px 16px;
+            background-color: var(--surface-bg);
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+        }
+
+        .queue-row {
+            display: grid;
+            grid-template-columns: 80px 140px 120px 150px 120px 100px 100px;
+            gap: 16px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: all 200ms ease-out;
+        }
+
+        .queue-row:hover {
+            background-color: var(--surface-bg);
+        }
+
+        .queue-row:last-child {
+            border-bottom: none;
+        }
+
+        .token-number {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary);
+            padding: 8px 12px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+            text-align: center;
+            width: 50px;
+        }
+
+        .patient-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .patient-phone {
+            font-size: 13px;
+            color: var(--text-medium);
+        }
+
+        .doctor-name {
+            font-size: 13px;
+            color: var(--text-medium);
+        }
+
+        .wait-time {
+            font-size: 13px;
+            color: var(--text-medium);
+            font-weight: 500;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 200ms ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background-color: var(--surface-card);
+            border-radius: 12px;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1), 0 8px 10px rgba(0, 0, 0, 0.06);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 200ms ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background-color: var(--surface-bg);
+            border: none;
+            color: var(--text-medium);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 200ms ease-out;
+        }
+
+        .modal-close:hover {
+            background-color: var(--border);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 350px;
+            animation: slideIn 200ms ease-out;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-success {
+            background-color: #ECFDF5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+
+        .toast-error {
+            background-color: #FEF2F2;
+            color: #7F1D1D;
+            border: 1px solid #FECACA;
+        }
+
+        .toast-info {
+            background-color: #EFF6FF;
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 32px 24px;
+            text-align: center;
+            transition: all 200ms ease-out;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            color: var(--text-light);
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: var(--text-medium);
+            margin-bottom: 16px;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .alert-info {
+            background-color: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            color: #1E40AF;
+        }
+
+        .alert-warning {
+            background-color: #FFFBEB;
+            border: 1px solid #FED7AA;
+            color: #92400E;
+        }
+
+        .alert-success {
+            background-color: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            color: #065F46;
+        }
+
+        .alert-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .alert-content {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #94A3B8;
+        }
+
+        /* Utility Classes */
+        .flex-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .space-y-3 > * + * {
+            margin-top: 12px;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 16px;
+        }
+
+        /* Waiting Indicator */
+        .waiting-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Specific Overrides */
+        .registration-step {
+            display: none;
+        }
+
+        .registration-step.active {
+            display: block;
+        }
+
+        .content-section {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 256px;
+            }
+
+            .queue-header,
+            .queue-row {
+                grid-template-columns: 60px 100px 100px 80px 80px 50px;
+                font-size: 12px;
+                gap: 8px;
+                padding: 8px;
+            }
+
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header {
+                padding: 0 16px;
+            }
+
+            .content-area {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="sidebar bg-white border-r border-gray-200 flex flex-col">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">M</div>
+                <div class="sidebar-branding">
+                    <div class="sidebar-title">Medhistry</div>
+                    <div class="sidebar-subtitle">Reception</div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <div class="sidebar-item active" data-section="dashboard">
+                        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-3m2-2l6.414-6.414a2 2 0 012.828 0L19 9M7 12l5 5m5-5l2 3m-2-3v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6m14-1h.01"></path>
+                        </svg>
+                        <span class="sidebar-item-text">Dashboard</span>
+                    </div>
+                    <div class="sidebar-item" data-section="register">
+                        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                        </svg>
+                        <span class="sidebar-item-text">Register Patient</span>
+                    </div>
+                    <div class="sidebar-item" data-section="queue">
+                        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="sidebar-item-text">Today's Queue</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Documents</div>
+                    <div class="sidebar-item" data-section="documents">
+                        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="sidebar-item-text">Document Upload</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Settings</div>
+                    <div class="sidebar-item" data-section="settings">
+                        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="sidebar-item-text">Settings</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">PS</div>
+                    <div class="user-details">
+                        <div class="user-name">Priya Singh</div>
+                        <div class="user-role">Receptionist</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="header-title" id="headerTitle">Dashboard</div>
+                    <div class="header-subtitle">City Care Hospital, Mumbai</div>
+                </div>
+                <div class="header-right">
+                    <div class="header-datetime">
+                        <div class="header-date" id="headerDate">Mar 31, 2026</div>
+                        <div class="header-time" id="headerTime">10:30 AM</div>
+                    </div>
+                    <button class="header-notif" title="Notifications">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="content-section active">
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome, Priya</h1>
+                        <p class="text-gray-600">Today is <span id="todayDate">March 31, 2026</span></p>
+                    </div>
+
+                    <!-- Stat Cards -->
+                    <div class="grid-4 mb-8">
+                        <div class="stat-card primary">
+                            <div class="stat-icon">📋</div>
+                            <div class="stat-label">Checked In</div>
+                            <div class="stat-number" id="statsCheckedIn">12</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-icon">⏳</div>
+                            <div class="stat-label">Waiting</div>
+                            <div class="stat-number" id="statsWaiting">5</div>
+                        </div>
+                        <div class="stat-card primary">
+                            <div class="stat-icon">👨‍⚕️</div>
+                            <div class="stat-label">With Doctor</div>
+                            <div class="stat-number" id="statsWithDoctor">3</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="stat-icon">✓</div>
+                            <div class="stat-label">Completed</div>
+                            <div class="stat-number" id="statsComplete">4</div>
+                        </div>
+                    </div>
+
+                    <!-- Queue Summary & Actions -->
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="col-span-2">
+                            <div class="card">
+                                <div class="card-header">Today's Queue Summary</div>
+                                <div id="dashboardQueueSummary" class="space-y-3"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="card">
+                                <div class="card-header">Quick Actions</div>
+                                <div class="space-y-3">
+                                    <button class="btn btn-primary w-full" onclick="navigateToSection('register')">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        New Registration
+                                    </button>
+                                    <button class="btn btn-secondary w-full" onclick="navigateToSection('queue')">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        View Queue
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration Section -->
+                <div id="register" class="content-section">
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-bold text-gray-900">Patient Registration</h1>
+                    </div>
+
+                    <!-- Step 1: Search -->
+                    <div id="registrationStep1" class="registration-step active">
+                        <div class="card max-w-2xl">
+                            <div class="card-header">Step 1: Search Patient</div>
+
+                            <div class="form-group">
+                                <label class="form-label">Patient Phone Number</label>
+                                <div class="flex gap-3">
+                                    <input type="tel" id="searchPhone" placeholder="+91 98XXX XXXXX" class="form-input flex-1" />
+                                    <button class="btn btn-primary" onclick="searchPatient()">Search</button>
+                                </div>
+                            </div>
+
+                            <div id="searchResult" class="hidden space-y-4">
+                                <div id="patientFoundBox" class="hidden alert alert-success">
+                                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div class="alert-content">
+                                        <div class="font-semibold mb-2" id="foundPatientName"></div>
+                                        Patient profile found! Proceeding to doctor assignment.
+                                        <button class="btn btn-primary w-full mt-3" onclick="assignToDoctor()">Assign to Doctor Queue</button>
+                                    </div>
+                                </div>
+
+                                <div id="newPatientBox" class="hidden alert alert-info">
+                                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zm-11-1a1 1 0 11-2 0 1 1 0 012 0zM8 7a1 1 0 000 2h6a1 1 0 000-2H8zm0 3a1 1 0 000 2h6a1 1 0 000-2H8z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div class="alert-content">
+                                        <div class="font-semibold mb-2">New Patient - Send OTP</div>
+                                        This patient doesn't have a profile yet. An OTP will be sent to their phone for verification.
+                                        <button class="btn btn-primary w-full mt-3" onclick="sendOTP()">Send OTP to Patient</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: OTP -->
+                    <div id="registrationStep2" class="registration-step hidden">
+                        <div class="card max-w-2xl">
+                            <div class="step-indicator">
+                                <div class="step-items">
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle active">2</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">3</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">4</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">5</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">6</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-header mb-4">Step 2: Patient OTP Verification</div>
+
+                            <div class="alert alert-warning mb-6">
+                                <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div class="alert-content">
+                                    <strong>Important:</strong> Patient must enter their OTP on their own phone.
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Patient enters 4-digit OTP</label>
+                                <input type="text" id="otpInput" placeholder="Waiting for patient..." maxlength="4" class="form-input text-center text-2xl tracking-widest" disabled />
+                                <div class="flex items-center justify-center gap-2 mt-4 text-gray-600">
+                                    <div class="waiting-spinner"></div>
+                                    <span class="text-sm">Waiting for patient to enter OTP on their phone...</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-secondary w-full" onclick="goBackToSearch()">← Go Back</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Patient Info -->
+                    <div id="registrationStep3" class="registration-step hidden">
+                        <div class="card max-w-2xl">
+                            <div class="step-indicator">
+                                <div class="step-items">
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle active">3</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">4</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">5</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">6</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-header mb-4">Step 3: Patient Information</div>
+
+                            <div class="space-y-4">
+                                <div class="form-group">
+                                    <label class="form-label">Patient Name</label>
+                                    <input type="text" id="patientName" placeholder="e.g., Rajesh Kumar" class="form-input" />
+                                </div>
+
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label class="form-label">Age</label>
+                                        <input type="number" id="patientAge" placeholder="e.g., 35" class="form-input" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Gender</label>
+                                        <select id="patientGender" class="form-select">
+                                            <option value="">Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 mt-8">
+                                <button class="btn btn-secondary flex-1" onclick="goBackToSearch()">← Go Back</button>
+                                <button class="btn btn-primary flex-1" onclick="continueToConsent()">Continue to Consent</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Consent -->
+                    <div id="registrationStep4" class="registration-step hidden">
+                        <div class="card max-w-2xl">
+                            <div class="step-indicator">
+                                <div class="step-items">
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle active">4</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">5</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">6</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-header mb-4">Step 4: Patient Consent</div>
+
+                            <div class="alert alert-info mb-6">
+                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                <div class="alert-content">
+                                    <div class="font-semibold mb-1">Patient must approve consent on their phone</div>
+                                    <div class="text-sm">This action cannot be performed by the receptionist.</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                                <div class="text-sm text-gray-600 text-center mb-4">Displayed on patient's phone:</div>
+                                <div class="bg-white border border-gray-200 rounded-lg p-6 text-center mb-4">
+                                    <div class="text-sm text-gray-600 mb-4">Patient Consent Required</div>
+                                    <div class="text-gray-900 mb-6 text-sm">
+                                        <p>I consent to share my health data with Medhistry for medical consultation and record management.</p>
+                                    </div>
+                                    <div class="flex gap-3 justify-center">
+                                        <button class="btn btn-secondary" disabled>Decline</button>
+                                        <button class="btn" style="background-color: #059669; color: white;" disabled>Approve</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-6">
+                                <label class="form-label">Receptionist View</label>
+                                <button class="btn btn-primary w-full" disabled>
+                                    <div class="waiting-spinner"></div>
+                                    Waiting for patient to approve...
+                                </button>
+                                <p class="text-sm text-gray-600 mt-2">Patient must tap "Approve" on their phone before you can proceed.</p>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button class="btn btn-secondary flex-1" onclick="goBackToSearch()">← Go Back</button>
+                                <button class="btn btn-primary flex-1" onclick="continueToDocuments()">Continue to Documents</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Documents -->
+                    <div id="registrationStep5" class="registration-step hidden">
+                        <div class="card max-w-2xl">
+                            <div class="step-indicator">
+                                <div class="step-items">
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle active">5</div>
+                                        <div class="step-line"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle">6</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-header mb-4">Step 5: Document Upload (Optional)</div>
+
+                            <div class="upload-area" onclick="simulateDocumentUpload()" style="cursor: pointer;">
+                                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <div class="upload-text">Scan prescriptions, lab reports, or discharge summaries</div>
+                                <button class="btn btn-primary" onclick="simulateDocumentUpload()">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Scan Documents
+                                </button>
+                            </div>
+
+                            <div id="documentsList" class="my-6 space-y-3"></div>
+
+                            <div class="flex gap-3">
+                                <button class="btn btn-secondary flex-1" onclick="goBackToSearch()">← Go Back</button>
+                                <button class="btn btn-primary flex-1" onclick="continueToDoctor()">Continue to Doctor Assignment</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Doctor Assignment -->
+                    <div id="registrationStep6" class="registration-step hidden">
+                        <div class="card max-w-2xl">
+                            <div class="step-indicator">
+                                <div class="step-items">
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle completed">✓</div>
+                                        <div class="step-line active"></div>
+                                    </div>
+                                    <div class="step-item">
+                                        <div class="step-circle active">6</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-header mb-4">Step 6: Assign to Doctor</div>
+
+                            <div class="form-group">
+                                <label class="form-label">Select Doctor</label>
+                                <select id="doctorSelect" class="form-select">
+                                    <option value="">Choose a doctor...</option>
+                                    <option value="Dr. Vivek Malhotra">Dr. Vivek Malhotra - Cardiology</option>
+                                    <option value="Dr. Sneha Reddy">Dr. Sneha Reddy - General Medicine</option>
+                                    <option value="Dr. Amit Joshi">Dr. Amit Joshi - Orthopedics</option>
+                                </select>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button class="btn btn-secondary flex-1" onclick="goBackToSearch()">← Go Back</button>
+                                <button class="btn btn-primary flex-1" onclick="completeRegistration()">Complete & Add to Queue</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue Section -->
+                <div id="queue" class="content-section">
+                    <div class="flex items-center justify-between mb-6">
+                        <h1 class="text-3xl font-bold text-gray-900">Today's Queue</h1>
+                        <button class="btn btn-primary" onclick="openAddWalkinModal()">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Add Walk-in
+                        </button>
+                    </div>
+
+                    <div class="card mb-6">
+                        <div class="flex gap-4">
+                            <input type="text" placeholder="Search by name or token..." id="queueSearch" class="form-input flex-1" onkeyup="filterQueue()" />
+                            <select id="statusFilter" class="form-select w-48" onchange="filterQueue()">
+                                <option value="">All Statuses</option>
+                                <option value="Waiting">Waiting</option>
+                                <option value="With Doctor">With Doctor</option>
+                                <option value="Consultation Complete">Complete</option>
+                                <option value="No-show">No-show</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card overflow-x-auto">
+                        <div class="queue-header">
+                            <div>Token</div>
+                            <div>Name</div>
+                            <div>Phone</div>
+                            <div>Doctor</div>
+                            <div>Status</div>
+                            <div>Wait</div>
+                            <div>Action</div>
+                        </div>
+                        <div id="queueList"></div>
+                    </div>
+                </div>
+
+                <!-- Documents Section -->
+                <div id="documents" class="content-section">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-8">Document Upload</h1>
+
+                    <div class="card max-w-2xl mb-6">
+                        <div class="card-header">Search Patient</div>
+                        <div class="flex gap-3">
+                            <input type="tel" id="documentSearchPhone" placeholder="+91 98XXX XXXXX" class="form-input flex-1" />
+                            <button class="btn btn-primary" onclick="searchForDocumentUpload()">Search</button>
+                        </div>
+                    </div>
+
+                    <div id="documentUploadSection" class="hidden">
+                        <div class="card max-w-2xl">
+                            <div class="card-header" id="documentPatientName"></div>
+                            <p class="text-gray-600 text-sm mb-6">Upload medical documents for this patient</p>
+
+                            <div class="upload-area" onclick="simulateDocumentUploadInDocs()" style="cursor: pointer;">
+                                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <div class="upload-text">Scan or upload documents</div>
+                                <button class="btn btn-primary" onclick="simulateDocumentUploadInDocs()">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Upload Document
+                                </button>
+                            </div>
+
+                            <div id="uploadedDocuments" class="my-6 space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settings" class="content-section">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+
+                    <div class="card max-w-2xl mb-6">
+                        <div class="card-header">Account Settings</div>
+                        <div class="space-y-4 pb-6 border-b border-gray-200">
+                            <div class="form-group">
+                                <label class="form-label">Receptionist Name</label>
+                                <input type="text" value="Priya Singh" class="form-input" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" value="priya.singh@citycarehosp.com" class="form-input" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Hospital</label>
+                                <input type="text" value="City Care Hospital, Mumbai" class="form-input" disabled />
+                            </div>
+                        </div>
+                        <div class="pt-4">
+                            <button class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="card max-w-2xl">
+                        <div class="card-header">Application Info</div>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex justify-between">
+                                <span>Version</span>
+                                <span class="font-medium text-gray-900">2.0.0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Last Updated</span>
+                                <span class="font-medium text-gray-900">March 31, 2026</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Environment</span>
+                                <span class="font-medium text-gray-900">Production</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Walk-in Modal -->
+    <div id="addWalkinModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Walk-in Patient</h2>
+                <button class="modal-close" onclick="closeAddWalkinModal()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body space-y-4">
+                <div class="form-group">
+                    <label class="form-label">Patient Name</label>
+                    <input type="text" id="walkinName" placeholder="e.g., Rajesh Kumar" class="form-input" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="walkinPhone" placeholder="+91 98XXX XXXXX" class="form-input" />
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Age</label>
+                        <input type="number" id="walkinAge" placeholder="e.g., 35" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gender</label>
+                        <select id="walkinGender" class="form-select">
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Doctor</label>
+                    <select id="walkinDoctor" class="form-select">
+                        <option value="">Choose a doctor...</option>
+                        <option value="Dr. Vivek Malhotra">Dr. Vivek Malhotra - Cardiology</option>
+                        <option value="Dr. Sneha Reddy">Dr. Sneha Reddy - General Medicine</option>
+                        <option value="Dr. Amit Joshi">Dr. Amit Joshi - Orthopedics</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddWalkinModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addWalkin()">Add to Queue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="statusUpdateModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Update Patient Status</h2>
+                <button class="modal-close" onclick="closeStatusModal()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-gray-600 mb-4" id="statusUpdatePatientName"></p>
+                <div class="space-y-2">
+                    <button class="btn btn-secondary w-full text-left" onclick="updatePatientStatus('With Doctor')">
+                        <span>With Doctor</span>
+                    </button>
+                    <button class="btn btn-secondary w-full text-left" onclick="updatePatientStatus('Consultation Complete')">
+                        <span>Consultation Complete</span>
+                    </button>
+                    <button class="btn btn-secondary w-full text-left" onclick="updatePatientStatus('No-show')">
+                        <span>No-show</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStatusModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Store
+        const appData = {
+            registeredPatients: {
+                '9876543210': { name: 'Rajesh Kumar', age: 42, gender: 'Male', exists: true },
+                '9123456789': { name: 'Priya Sharma', age: 28, gender: 'Female', exists: true },
+                '9234567890': { name: 'Anita Patel', age: 35, gender: 'Female', exists: true },
+                '9345678901': { name: 'Mohammed Irfan', age: 52, gender: 'Male', exists: true },
+            },
+            queue: [
+                { tokenNo: 'T001', name: 'Rajesh Kumar', phone: '+91 98765 43210', doctor: 'Dr. Vivek Malhotra', status: 'Waiting', checkInTime: new Date(Date.now() - 12 * 60000), documents: [] },
+                { tokenNo: 'T002', name: 'Priya Sharma', phone: '+91 91234 56789', doctor: 'Dr. Sneha Reddy', status: 'With Doctor', checkInTime: new Date(Date.now() - 5 * 60000), documents: [] },
+                { tokenNo: 'T003', name: 'Anita Patel', phone: '+91 92345 67890', doctor: 'Dr. Vivek Malhotra', status: 'Waiting', checkInTime: new Date(Date.now() - 20 * 60000), documents: [] },
+                { tokenNo: 'T004', name: 'Mohammed Irfan', phone: '+91 93456 78901', doctor: 'Dr. Amit Joshi', status: 'Consultation Complete', checkInTime: new Date(Date.now() - 35 * 60000), documents: [] },
+                { tokenNo: 'T005', name: 'Sunita Devi', phone: '+91 94567 89012', doctor: 'Dr. Sneha Reddy', status: 'Waiting', checkInTime: new Date(Date.now() - 8 * 60000), documents: [] },
+                { tokenNo: 'T006', name: 'Vikram Singh', phone: '+91 95678 90123', doctor: 'Dr. Vivek Malhotra', status: 'Consultation Complete', checkInTime: new Date(Date.now() - 45 * 60000), documents: [] },
+                { tokenNo: 'T007', name: 'Meena Kumari', phone: '+91 96789 01234', doctor: 'Dr. Amit Joshi', status: 'With Doctor', checkInTime: new Date(Date.now() - 15 * 60000), documents: [] },
+            ],
+            currentRegistration: {
+                phone: '',
+                isNewPatient: false,
+                name: '',
+                age: '',
+                gender: '',
+                doctor: ''
+            },
+            currentStatusUpdatePatient: null,
+            currentDocumentPatient: null,
+            documents: {}
+        };
+
+        // UI Functions
+        function navigateToSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+            const titles = {
+                'dashboard': 'Dashboard',
+                'register': 'Patient Registration',
+                'queue': "Today's Queue",
+                'documents': 'Document Upload',
+                'settings': 'Settings'
+            };
+            document.getElementById('headerTitle').textContent = titles[sectionId];
+
+            if (sectionId === 'queue') renderQueue();
+            if (sectionId === 'dashboard') renderDashboard();
+        }
+
+        function renderDashboard() {
+            const waiting = appData.queue.filter(p => p.status === 'Waiting').length;
+            const withDoctor = appData.queue.filter(p => p.status === 'With Doctor').length;
+            const complete = appData.queue.filter(p => p.status === 'Consultation Complete').length;
+
+            document.getElementById('statsCheckedIn').textContent = appData.queue.length;
+            document.getElementById('statsWaiting').textContent = waiting;
+            document.getElementById('statsWithDoctor').textContent = withDoctor;
+            document.getElementById('statsComplete').textContent = complete;
+
+            const doctorGroups = {};
+            appData.queue.forEach(p => {
+                if (!doctorGroups[p.doctor]) doctorGroups[p.doctor] = [];
+                doctorGroups[p.doctor].push(p);
+            });
+
+            let html = '';
+            Object.entries(doctorGroups).forEach(([doctor, patients]) => {
+                html += `
+                    <div class="pb-3 border-b border-gray-200 last:border-b-0">
+                        <div class="font-medium text-gray-900 text-sm mb-2">${doctor}</div>
+                        <div class="text-sm text-gray-600 space-y-1">
+                            ${patients.map(p => `<div>• ${p.name} - ${p.status}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('dashboardQueueSummary').innerHTML = html;
+            document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function renderQueue() {
+            let html = '';
+            appData.queue.forEach(patient => {
+                const waitTime = Math.round((Date.now() - patient.checkInTime) / 60000);
+                const statusClass = `status-${patient.status.toLowerCase().replace(' ', '-')}`;
+                html += `
+                    <div class="queue-row">
+                        <div class="token-number">${patient.tokenNo}</div>
+                        <div class="patient-name">${patient.name}</div>
+                        <div class="patient-phone">${patient.phone}</div>
+                        <div class="doctor-name">${patient.doctor}</div>
+                        <div><span class="status-pill ${statusClass}">${patient.status}</span></div>
+                        <div class="wait-time">${waitTime} min</div>
+                        <div>
+                            <button class="btn btn-small btn-secondary" onclick="openStatusModal('${patient.name}', ${appData.queue.indexOf(patient)})">Update</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('queueList').innerHTML = html;
+        }
+
+        function filterQueue() {
+            const searchTerm = document.getElementById('queueSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filtered = appData.queue.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(searchTerm) || p.tokenNo.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || p.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            let html = '';
+            filtered.forEach(patient => {
+                const waitTime = Math.round((Date.now() - patient.checkInTime) / 60000);
+                const statusClass = `status-${patient.status.toLowerCase().replace(' ', '-')}`;
+                html += `
+                    <div class="queue-row">
+                        <div class="token-number">${patient.tokenNo}</div>
+                        <div class="patient-name">${patient.name}</div>
+                        <div class="patient-phone">${patient.phone}</div>
+                        <div class="doctor-name">${patient.doctor}</div>
+                        <div><span class="status-pill ${statusClass}">${patient.status}</span></div>
+                        <div class="wait-time">${waitTime} min</div>
+                        <div>
+                            <button class="btn btn-small btn-secondary" onclick="openStatusModal('${patient.name}', ${appData.queue.indexOf(patient)})">Update</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('queueList').innerHTML = html || '<div class="p-4 text-gray-600 text-center">No patients found</div>';
+        }
+
+        // Registration Flow
+        function searchPatient() {
+            const phone = document.getElementById('searchPhone').value.replace(/\D/g, '').slice(-10);
+            if (!phone || phone.length !== 10) {
+                showToast('Please enter a valid 10-digit phone number', 'error');
+                return;
+            }
+
+            appData.currentRegistration.phone = phone;
+
+            if (appData.registeredPatients[phone]) {
+                appData.currentRegistration.isNewPatient = false;
+                appData.currentRegistration.name = appData.registeredPatients[phone].name;
+                document.getElementById('foundPatientName').textContent = appData.registeredPatients[phone].name;
+                document.getElementById('patientFoundBox').classList.remove('hidden');
+                document.getElementById('newPatientBox').classList.add('hidden');
+            } else {
+                appData.currentRegistration.isNewPatient = true;
+                document.getElementById('patientFoundBox').classList.add('hidden');
+                document.getElementById('newPatientBox').classList.remove('hidden');
+            }
+
+            document.getElementById('searchResult').classList.remove('hidden');
+        }
+
+        function sendOTP() {
+            document.getElementById('registrationStep1').classList.add('hidden');
+            document.getElementById('registrationStep2').classList.remove('hidden');
+            showToast(`OTP sent to +91 ${appData.currentRegistration.phone}`, 'info');
+        }
+
+        function assignToDoctor() {
+            document.getElementById('registrationStep1').classList.add('hidden');
+            document.getElementById('registrationStep6').classList.remove('hidden');
+            showToast(`Patient ${appData.currentRegistration.name} found. Assigning to doctor...`, 'success');
+        }
+
+        function continueToConsent() {
+            const name = document.getElementById('patientName').value;
+            const age = document.getElementById('patientAge').value;
+            const gender = document.getElementById('patientGender').value;
+
+            if (!name || !age || !gender) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            appData.currentRegistration.name = name;
+            appData.currentRegistration.age = age;
+            appData.currentRegistration.gender = gender;
+
+            document.getElementById('registrationStep3').classList.add('hidden');
+            document.getElementById('registrationStep4').classList.remove('hidden');
+        }
+
+        function continueToDocuments() {
+            document.getElementById('registrationStep4').classList.add('hidden');
+            document.getElementById('registrationStep5').classList.remove('hidden');
+            showToast('Patient consent received', 'success');
+        }
+
+        function continueToDoctor() {
+            document.getElementById('registrationStep5').classList.add('hidden');
+            document.getElementById('registrationStep6').classList.remove('hidden');
+        }
+
+        function completeRegistration() {
+            const doctor = document.getElementById('doctorSelect').value;
+            if (!doctor) {
+                showToast('Please select a doctor', 'error');
+                return;
+            }
+
+            const newToken = `T${String(appData.queue.length + 1).padStart(3, '0')}`;
+            const newPatient = {
+                tokenNo: newToken,
+                name: appData.currentRegistration.name,
+                phone: `+91 ${appData.currentRegistration.phone}`,
+                doctor: doctor,
+                status: 'Waiting',
+                checkInTime: new Date(),
+                documents: []
+            };
+
+            appData.queue.push(newPatient);
+            appData.registeredPatients[appData.currentRegistration.phone] = {
+                name: appData.currentRegistration.name,
+                age: appData.currentRegistration.age,
+                gender: appData.currentRegistration.gender,
+                exists: true
+            };
+
+            showToast(`${newPatient.name} added to queue with token ${newToken}`, 'success');
+
+            // Reset form
+            document.getElementById('searchPhone').value = '';
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientAge').value = '';
+            document.getElementById('patientGender').value = '';
+            document.getElementById('doctorSelect').value = '';
+            document.getElementById('searchResult').classList.add('hidden');
+            document.getElementById('registrationStep2').classList.add('hidden');
+            document.getElementById('registrationStep3').classList.add('hidden');
+            document.getElementById('registrationStep4').classList.add('hidden');
+            document.getElementById('registrationStep5').classList.add('hidden');
+            document.getElementById('registrationStep6').classList.add('hidden');
+            document.getElementById('registrationStep1').classList.remove('hidden');
+            document.getElementById('otpInput').value = '';
+            document.getElementById('documentsList').innerHTML = '';
+
+            navigateToSection('queue');
+        }
+
+        function goBackToSearch() {
+            document.querySelectorAll('.registration-step').forEach(s => s.classList.add('hidden'));
+            document.getElementById('registrationStep1').classList.remove('hidden');
+            document.getElementById('searchResult').classList.add('hidden');
+            document.getElementById('searchPhone').value = '';
+        }
+
+        function simulateDocumentUpload() {
+            showToast('Document scanned successfully', 'success');
+            const docCount = (appData.currentRegistration.documents || []).length + 1;
+            const docName = `Document_${docCount}.pdf`;
+            if (!appData.currentRegistration.documents) appData.currentRegistration.documents = [];
+            appData.currentRegistration.documents.push(docName);
+
+            const docsList = document.getElementById('documentsList');
+            const newDocHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"></path>
+                        </svg>
+                        <span class="text-sm text-green-900">${docName}</span>
+                    </div>
+                    <button class="text-red-600 hover:text-red-900 text-sm font-medium" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+            `;
+            docsList.innerHTML += newDocHTML;
+        }
+
+        function simulateDocumentUploadInDocs() {
+            if (!appData.currentDocumentPatient) {
+                showToast('Please search for a patient first', 'error');
+                return;
+            }
+
+            showToast('Document uploaded successfully', 'success');
+            const docCount = (appData.documents[appData.currentDocumentPatient] || []).length + 1;
+            const docName = `Document_${docCount}.pdf`;
+
+            if (!appData.documents[appData.currentDocumentPatient]) {
+                appData.documents[appData.currentDocumentPatient] = [];
+            }
+            appData.documents[appData.currentDocumentPatient].push(docName);
+
+            const docsList = document.getElementById('uploadedDocuments');
+            const newDocHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"></path>
+                        </svg>
+                        <span class="text-sm text-green-900">${docName}</span>
+                    </div>
+                    <button class="text-red-600 hover:text-red-900 text-sm font-medium" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+            `;
+            docsList.innerHTML += newDocHTML;
+        }
+
+        function searchForDocumentUpload() {
+            const phone = document.getElementById('documentSearchPhone').value.replace(/\D/g, '').slice(-10);
+            if (!phone || phone.length !== 10) {
+                showToast('Please enter a valid phone number', 'error');
+                return;
+            }
+
+            const patient = appData.queue.find(p => p.phone.includes(phone));
+            if (!patient) {
+                showToast('Patient not found in queue', 'error');
+                return;
+            }
+
+            appData.currentDocumentPatient = phone;
+            document.getElementById('documentPatientName').textContent = patient.name;
+            document.getElementById('documentUploadSection').classList.remove('hidden');
+            document.getElementById('uploadedDocuments').innerHTML = '';
+
+            if (appData.documents[phone]) {
+                appData.documents[phone].forEach(doc => {
+                    const docHTML = `
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                                    <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"></path>
+                                </svg>
+                                <span class="text-sm text-green-900">${doc}</span>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('uploadedDocuments').innerHTML += docHTML;
+                });
+            }
+
+            showToast(`Patient ${patient.name} found`, 'success');
+        }
+
+        // Queue Management
+        function openStatusModal(patientName, index) {
+            appData.currentStatusUpdatePatient = index;
+            document.getElementById('statusUpdatePatientName').textContent = patientName;
+            document.getElementById('statusUpdateModal').classList.add('active');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('statusUpdateModal').classList.remove('active');
+        }
+
+        function updatePatientStatus(newStatus) {
+            const patient = appData.queue[appData.currentStatusUpdatePatient];
+            patient.status = newStatus;
+            showToast(`${patient.name} status updated to ${newStatus}`, 'success');
+            closeStatusModal();
+            renderQueue();
+        }
+
+        // Walk-in
+        function openAddWalkinModal() {
+            document.getElementById('addWalkinModal').classList.add('active');
+        }
+
+        function closeAddWalkinModal() {
+            document.getElementById('addWalkinModal').classList.remove('active');
+            document.getElementById('walkinName').value = '';
+            document.getElementById('walkinPhone').value = '';
+            document.getElementById('walkinAge').value = '';
+            document.getElementById('walkinGender').value = '';
+            document.getElementById('walkinDoctor').value = '';
+        }
+
+        function addWalkin() {
+            const name = document.getElementById('walkinName').value;
+            const phone = document.getElementById('walkinPhone').value;
+            const age = document.getElementById('walkinAge').value;
+            const gender = document.getElementById('walkinGender').value;
+            const doctor = document.getElementById('walkinDoctor').value;
+
+            if (!name || !phone || !age || !gender || !doctor) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+
+            const newToken = `T${String(appData.queue.length + 1).padStart(3, '0')}`;
+            appData.queue.push({
+                tokenNo: newToken,
+                name: name,
+                phone: phone,
+                doctor: doctor,
+                status: 'Waiting',
+                checkInTime: new Date(),
+                documents: []
+            });
+
+            showToast(`${name} added to queue with token ${newToken}`, 'success');
+            closeAddWalkinModal();
+            renderQueue();
+        }
+
+        // Sidebar Navigation
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const section = this.dataset.section;
+                navigateToSection(section);
+            });
+        });
+
+        // Toast Notification
+        function showToast(message, type = 'info') {
+            const icons = {
+                success: '<svg class="toast-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>',
+                error: '<svg class="toast-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>',
+                info: '<svg class="toast-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `${icons[type] || ''}<span>${message}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Update Date/Time
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('headerDate').textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('headerTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
+            renderDashboard();
+        });
+    </script>
+</body>
+</html>

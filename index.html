@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry - Know Your Patient Before They Walk In</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        /* HEADER - Sticky */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            gap: 2rem;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0066CC;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-cta {
+            background-color: #0066CC;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-cta:hover {
+            background-color: #0052A3;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            background: linear-gradient(135deg, #ffffff 0%, #EFF6FF 50%, #e8f0fe 100%);
+            padding: 2.5rem 2rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0,102,204,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0,102,204,0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Trust bar */
+        .trust-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 1.25rem 2rem;
+        }
+
+        .trust-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .trust-icon {
+            font-size: 16px;
+            color: #0066CC;
+        }
+
+        .trust-number {
+            font-weight: 700;
+            color: #0066CC;
+        }
+
+        .hero-container {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 2.5rem;
+            max-width: 1200px;
+            align-items: start;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #EFF6FF, #dbeafe);
+            border: 1px solid #bfdbfe;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0066CC;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-eyebrow-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #10B981;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hero-left {
+            padding-top: 2rem;
+        }
+
+        .hero-left h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            color: #1a1a1a;
+            line-height: 1.1;
+            margin-bottom: 1.25rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-left h1 span {
+            background: linear-gradient(135deg, #0066CC, #0052A3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-left p {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+            max-width: 480px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: #0066CC;
+            color: white;
+            padding: 0.875rem 1.75rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            background-color: #0052A3;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: #0066CC;
+            padding: 0.875rem 1.75rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 2px solid #0066CC;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-outline:hover {
+            background-color: #EFF6FF;
+        }
+
+        /* BRIEFING CARD MOCKUP */
+        .briefing-card-container {
+            perspective: 1000px;
+        }
+
+        .browser-frame {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 102, 204, 0.15), 0 8px 24px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .browser-frame:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 70px rgba(0, 102, 204, 0.2), 0 12px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .browser-bar {
+            background-color: #f5f5f5;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .browser-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red {
+            background-color: #ff5f57;
+        }
+
+        .dot-yellow {
+            background-color: #ffbd2e;
+        }
+
+        .dot-green {
+            background-color: #28c940;
+        }
+
+        .browser-address {
+            flex: 1;
+            margin-left: 1rem;
+            font-size: 12px;
+            color: #666;
+            background-color: #f0f0f0;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+        }
+
+        .briefing-card {
+            padding: 1.25rem;
+            background: white;
+            font-size: 13px;
+        }
+
+        .patient-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .patient-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .patient-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .patient-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .token-badge {
+            display: inline-block;
+            background-color: #0066CC;
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .conditions-section {
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .condition-pills {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            background-color: #f0f0f0;
+            color: #333;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .pill-hypertension {
+            background-color: #FFE8E8;
+            color: #C41C1C;
+        }
+
+        .pill-diabetes {
+            background-color: #FFF4E6;
+            color: #D97706;
+        }
+
+        .pill-lipid {
+            background-color: #E8F3FF;
+            color: #0066CC;
+        }
+
+        .medications-section {
+            margin-bottom: 1rem;
+        }
+
+        .medication-item {
+            padding: 0.5rem 0.75rem;
+            background-color: #fafafa;
+            border-left: 3px solid #0066CC;
+            margin-bottom: 0.4rem;
+            border-radius: 4px;
+        }
+
+        .medication-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .medication-dose {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .last-visit-section {
+            margin-bottom: 1rem;
+        }
+
+        .visit-card {
+            background-color: #f9f9f9;
+            padding: 0.6rem 0.75rem;
+            border-radius: 4px;
+            border-left: 3px solid #0066CC;
+        }
+
+        .hospital-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #0066CC;
+        }
+
+        .doctor-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .visit-date {
+            font-size: 11px;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+
+        .visit-note {
+            font-size: 11px;
+            color: #555;
+            margin-top: 0.4rem;
+            padding: 0.4rem 0.6rem;
+            background-color: white;
+            border-radius: 4px;
+        }
+
+        .pending-section {
+            margin-bottom: 0.75rem;
+        }
+
+        .pending-item {
+            background-color: #FFF8E1;
+            border-left: 3px solid #F59E0B;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .pending-icon {
+            font-size: 14px;
+            color: #F59E0B;
+        }
+
+        .pending-text {
+            flex: 1;
+        }
+
+        .pending-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #D97706;
+        }
+
+        .pending-detail {
+            font-size: 10px;
+            color: #92400e;
+            margin-top: 0.15rem;
+        }
+
+        .critical-flag {
+            background-color: #FEE2E2;
+            border-left: 3px solid #EF4444;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .critical-icon {
+            font-size: 14px;
+            color: #EF4444;
+        }
+
+        .critical-text {
+            flex: 1;
+        }
+
+        .critical-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #991B1B;
+        }
+
+        .critical-detail {
+            font-size: 10px;
+            color: #7F1D1D;
+            margin-top: 0.15rem;
+        }
+
+        /* PROBLEM SECTION */
+        .problem-section {
+            padding: 4rem 2rem;
+            background-color: #ffffff;
+        }
+
+        .problem-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .problem-title {
+            font-size: clamp(28px, 6vw, 42px);
+            font-weight: 700;
+            color: #1a1a1a;
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .problem-card {
+            background-color: #fafafa;
+            padding: 2rem;
+            border-left: 4px solid #0066CC;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .problem-card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .problem-card-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* BRIEFING CARD DEEP DIVE */
+        .deepdive-section {
+            padding: 4rem 2rem;
+            background-color: #f5f8fc;
+        }
+
+        .deepdive-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .deepdive-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .deepdive-subtitle {
+            font-size: 16px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .deepdive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .deepdive-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .deepdive-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0066CC;
+            margin-bottom: 1rem;
+        }
+
+        .deepdive-content {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .deepdive-full-width {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            grid-column: 1 / -1;
+        }
+
+        .deepdive-full-width-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #EF4444;
+            margin-bottom: 1rem;
+        }
+
+        .deepdive-note {
+            font-size: 13px;
+            color: #999;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #f0f0f0;
+            text-align: center;
+        }
+
+        /* HOW IT WORKS */
+        .how-it-works {
+            padding: 4rem 2rem;
+            background-color: #ffffff;
+        }
+
+        .how-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .how-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .timeline {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #0066CC;
+        }
+
+        .timeline-step {
+            position: relative;
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            padding-left: 1rem;
+        }
+
+        .timeline-dot {
+            width: 60px;
+            height: 60px;
+            background-color: #0066CC;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-content {
+            padding-top: 0.75rem;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-desc {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .step-link {
+            color: #0066CC;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .step-link:hover {
+            color: #0052A3;
+        }
+
+        .queue-mockup {
+            background-color: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border-left: 3px solid #0066CC;
+        }
+
+        .queue-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .queue-patient {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .queue-patient:last-child {
+            border-bottom: none;
+        }
+
+        .queue-patient-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .queue-token {
+            background-color: #0066CC;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .queue-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .queue-wait {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .wait-green {
+            color: #10B981;
+        }
+
+        .wait-amber {
+            color: #F59E0B;
+        }
+
+        .wait-red {
+            color: #EF4444;
+        }
+
+        /* PATIENT APP */
+        .patient-app {
+            padding: 4rem 2rem;
+            background-color: #f5f8fc;
+        }
+
+        .patient-app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .patient-app-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .patient-app-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .phone-frame {
+            width: 300px;
+            height: 600px;
+            background: #000;
+            border-radius: 40px;
+            padding: 12px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 25px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+
+        .phone-content {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 35px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            padding-top: 2.5rem;
+        }
+
+        .phone-greeting {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+        }
+
+        .phone-summary {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .phone-card {
+            background-color: #f0f5ff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .patient-app-features {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            min-width: 30px;
+            color: #0066CC;
+        }
+
+        .feature-text {
+            flex: 1;
+        }
+
+        .feature-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .patient-app-link {
+            color: #0066CC;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .patient-app-link:hover {
+            color: #0052A3;
+        }
+
+        /* WHAT IT'S NOT */
+        .what-not {
+            padding: 4rem 2rem;
+            background-color: #ffffff;
+        }
+
+        .what-not-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .what-not-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .what-not-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .what-not-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #fafafa;
+            border-radius: 6px;
+        }
+
+        .what-not-icon {
+            font-size: 24px;
+            color: #EF4444;
+            min-width: 30px;
+        }
+
+        .what-not-text {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* TESTIMONIAL */
+        .testimonial {
+            padding: 4rem 2rem;
+            background-color: #f5f8fc;
+        }
+
+        .testimonial-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .testimonial-quote {
+            font-size: 48px;
+            color: #0066CC;
+            line-height: 1;
+            margin-bottom: 2rem;
+            opacity: 0.6;
+        }
+
+        .testimonial-text {
+            font-size: 18px;
+            color: #333;
+            font-style: italic;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .testimonial-author {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .testimonial-role {
+            font-size: 14px;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        /* CTA SECTION */
+        .cta-section {
+            background: linear-gradient(135deg, #0066CC 0%, #0052A3 100%);
+            padding: 4rem 2rem;
+        }
+
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .cta-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #0066CC;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .form-submit {
+            background-color: #0066CC;
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .form-submit:hover {
+            background-color: #0052A3;
+        }
+
+        .cta-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .cta-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: opacity 0.3s ease;
+        }
+
+        .cta-link:hover {
+            opacity: 0.8;
+        }
+
+        /* FOOTER */
+        footer {
+            background-color: #1a1a2e;
+            color: white;
+            padding: 3rem 2rem;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #aaa;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .footer-link {
+            color: #ddd;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        .footer-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0099ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 2rem;
+            text-align: center;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                padding: 2rem 0;
+            }
+
+            .hero {
+                min-height: auto;
+                padding: 2rem 1rem;
+            }
+
+            .header-container {
+                padding: 1rem;
+            }
+
+            .phone-frame {
+                width: 250px;
+                height: 500px;
+            }
+
+            .patient-app-content {
+                grid-template-columns: 1fr;
+            }
+
+            .problem-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .deepdive-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .browser-frame {
+                transform: scale(0.9);
+                transform-origin: top center;
+            }
+
+            .hero-left h1 {
+                font-size: 32px;
+            }
+
+            .timeline::before {
+                left: 20px;
+            }
+
+            .timeline-step {
+                grid-template-columns: 50px 1fr;
+            }
+
+            .timeline-dot {
+                width: 50px;
+                height: 50px;
+                font-size: 18px;
+            }
+
+            .cta-links {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo">Medhistry</a>
+            <a href="doctor-portal.html" class="header-cta">Try Doctor Portal →</a>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-left">
+                <div class="hero-eyebrow">
+                    <span class="hero-eyebrow-dot"></span>
+                    Now onboarding early-access hospitals
+                </div>
+                <h1>Know your patient <span>before they walk in.</span></h1>
+                <p>You see 60-100 patients a day. Waiting rooms, old charts, incomplete histories, and memory. In those crucial seconds before the consultation room door opens, what do you actually know? Medhistry shows you everything that matters in 30 seconds.</p>
+                <div class="hero-buttons">
+                    <a href="#how-it-works" class="btn-primary">See it in action</a>
+                    <a href="doctor-portal.html" class="btn-outline">Try the Doctor Portal →</a>
+                </div>
+            </div>
+            <div class="briefing-card-container">
+                <div class="browser-frame">
+                    <div class="browser-bar">
+                        <div class="browser-dots">
+                            <div class="dot dot-red"></div>
+                            <div class="dot dot-yellow"></div>
+                            <div class="dot dot-green"></div>
+                        </div>
+                        <div class="browser-address">medhistry.app/doctor</div>
+                    </div>
+                    <div class="briefing-card">
+                        <div class="patient-header">
+                            <div class="patient-info">
+                                <div class="patient-name">Rajesh Kumar</div>
+                                <div class="patient-meta">52M | +91 98765 43210</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="token-badge">Token A03</div>
+                            </div>
+                        </div>
+
+                        <div class="conditions-section">
+                            <div class="section-title">Active Conditions</div>
+                            <div class="condition-pills">
+                                <span class="pill pill-hypertension">Hypertension</span>
+                                <span class="pill pill-diabetes">Type 2 Diabetes</span>
+                                <span class="pill pill-lipid">Hyperlipidemia</span>
+                            </div>
+                        </div>
+
+                        <div class="medications-section">
+                            <div class="section-title">Current Medications</div>
+                            <div class="medication-item">
+                                <div class="medication-name">Amlodipine 5mg</div>
+                                <div class="medication-dose">OD (Once Daily)</div>
+                            </div>
+                            <div class="medication-item">
+                                <div class="medication-name">Metformin 500mg</div>
+                                <div class="medication-dose">BD (Twice Daily)</div>
+                            </div>
+                            <div class="medication-item">
+                                <div class="medication-name">Ecosprin 75mg</div>
+                                <div class="medication-dose">OD (Once Daily)</div>
+                            </div>
+                        </div>
+
+                        <div class="last-visit-section">
+                            <div class="section-title">Last Visit</div>
+                            <div class="visit-card">
+                                <div class="hospital-name">City Care Hospital</div>
+                                <div class="doctor-name">Dr. Vivek Malhotra</div>
+                                <div class="visit-date">15 Mar 2026</div>
+                                <div class="visit-note">Routine follow-up, BP 130/80</div>
+                            </div>
+                        </div>
+
+                        <div class="pending-section">
+                            <div class="section-title">Pending Investigations</div>
+                            <div class="pending-item">
+                                <div class="pending-icon">⚠</div>
+                                <div class="pending-text">
+                                    <div class="pending-label">LFT (Liver Function Test)</div>
+                                    <div class="pending-detail">Ordered 18 days ago — no result</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="critical-flag">
+                            <div class="critical-icon">⚠</div>
+                            <div class="critical-text">
+                                <div class="critical-label">CRITICAL: Known Penicillin Allergy</div>
+                                <div class="critical-detail">Severe reaction — Document clearly</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TRUST BAR -->
+    <div class="trust-bar">
+        <div class="trust-container">
+            <div class="trust-item">
+                <span class="trust-icon">🏥</span>
+                <span>Designed for <span class="trust-number">Indian OPDs</span></span>
+            </div>
+            <div class="trust-item">
+                <span class="trust-icon">⏱</span>
+                <span><span class="trust-number">30-second</span> patient briefing</span>
+            </div>
+            <div class="trust-item">
+                <span class="trust-icon">🔒</span>
+                <span>DPDPA compliant</span>
+            </div>
+            <div class="trust-item">
+                <span class="trust-icon">📱</span>
+                <span>Works with existing HMS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROBLEM SECTION -->
+    <section class="problem-section">
+        <div class="problem-container">
+            <h2 class="problem-title">The real bottleneck isn't documentation. It's not knowing.</h2>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-card-title">Paper bags of records</div>
+                    <div class="problem-card-desc">Patients bring incomplete, unorganized documents from multiple hospitals. Finding relevant info takes precious time.</div>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-card-title">10–15 minutes to prepare</div>
+                    <div class="problem-card-desc">Even with digital records, you spend valuable time searching, scrolling, and piecing together a patient's history.</div>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-card-title">No continuity of care</div>
+                    <div class="problem-card-desc">Information stays siloed in hospital systems. You never see what other doctors have observed or prescribed.</div>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-card-title">60–100 patients a day</div>
+                    <div class="problem-card-desc">You can't afford to spend 15 minutes per patient. Every second counts, and the data you need isn't at your fingertips.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BRIEFING CARD DEEP DIVE -->
+    <section class="deepdive-section">
+        <div class="deepdive-container">
+            <h2 class="deepdive-title">30 seconds. Everything you need.</h2>
+            <p class="deepdive-subtitle">The Briefing Card puts the most critical information at the top of your screen.</p>
+            <div class="deepdive-grid">
+                <div class="deepdive-card">
+                    <div class="deepdive-card-title">Active Conditions</div>
+                    <div class="deepdive-content">
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <span class="pill pill-hypertension">Hypertension</span>
+                            <span class="pill pill-diabetes">Type 2 Diabetes</span>
+                            <span class="pill pill-lipid">Hyperlipidemia</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="deepdive-card">
+                    <div class="deepdive-card-title">Current Medications</div>
+                    <div class="deepdive-content">
+                        Amlodipine 5mg OD<br>
+                        Metformin 500mg BD<br>
+                        Ecosprin 75mg OD
+                    </div>
+                </div>
+                <div class="deepdive-card">
+                    <div class="deepdive-card-title">Last Visit Summary</div>
+                    <div class="deepdive-content">
+                        <strong>Dr. Vivek Malhotra</strong><br>
+                        City Care Hospital<br>
+                        Routine follow-up, BP 130/80
+                    </div>
+                </div>
+                <div class="deepdive-card">
+                    <div class="deepdive-card-title">Pending Investigations</div>
+                    <div class="deepdive-content">
+                        ⚠ LFT ordered 18 days ago<br>
+                        No result yet
+                    </div>
+                </div>
+                <div class="deepdive-full-width">
+                    <div class="deepdive-full-width-title">⚠ CRITICAL: Known Penicillin Allergy</div>
+                    <div class="deepdive-content">Severe allergic reaction. Must be documented and checked before prescribing.</div>
+                </div>
+            </div>
+            <div class="deepdive-note">No AI paragraphs. No summaries to read. Just structured, scannable data.</div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="how-container">
+            <h2 class="how-title">How it works</h2>
+            <div class="timeline">
+                <div class="timeline-step">
+                    <div class="timeline-dot">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Receptionist registers patient</div>
+                        <div class="step-desc">When a patient walks in, the receptionist adds them to the queue using our simple interface. No paperwork, no delays.</div>
+                        <a href="receptionist-portal.html" class="step-link">See Receptionist Portal →</a>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-dot">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Patient gives consent via OTP</div>
+                        <div class="step-desc">Patient receives an SMS with a one-time code. They approve with a single tap. We fetch their medical history from ABDM and hospitals on file.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-dot">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Patient appears in your queue</div>
+                        <div class="step-desc">The patient shows up in your queue dashboard. Their briefing card is already being prepared.</div>
+                        <div class="queue-mockup">
+                            <div class="queue-title">Your Queue</div>
+                            <div class="queue-patient">
+                                <div class="queue-patient-info">
+                                    <div class="queue-token">A01</div>
+                                    <div class="queue-name">Priya Sharma</div>
+                                </div>
+                                <div class="queue-wait wait-green">2 min</div>
+                            </div>
+                            <div class="queue-patient">
+                                <div class="queue-patient-info">
+                                    <div class="queue-token">A02</div>
+                                    <div class="queue-name">Rajesh Kumar</div>
+                                </div>
+                                <div class="queue-wait wait-amber">7 min</div>
+                            </div>
+                            <div class="queue-patient">
+                                <div class="queue-patient-info">
+                                    <div class="queue-token">A03</div>
+                                    <div class="queue-name">Amit Patel</div>
+                                </div>
+                                <div class="queue-wait wait-amber">12 min</div>
+                            </div>
+                            <div class="queue-patient">
+                                <div class="queue-patient-info">
+                                    <div class="queue-token">A04</div>
+                                    <div class="queue-name">Neha Singh</div>
+                                </div>
+                                <div class="queue-wait wait-red">20 min</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-dot">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Click their name to see the briefing card</div>
+                        <div class="step-desc">All their relevant information loads instantly. Conditions, medications, allergies, pending tests. No searching, no scrolling.</div>
+                        <a href="doctor-portal.html" class="step-link">Try it yourself →</a>
+                    </div>
+                </div>
+
+                <div class="timeline-step">
+                    <div class="timeline-dot">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Consult, prescribe, done</div>
+                        <div class="step-desc">You have the complete picture. Conduct the consultation with confidence. When you're ready, mark the patient as done. The prescription syncs to the patient app.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PATIENT APP -->
+    <section class="patient-app">
+        <div class="patient-app-container">
+            <h2 class="patient-app-title">Your patients get their own health story</h2>
+            <div class="patient-app-content">
+                <div class="phone-frame">
+                    <div class="phone-notch"></div>
+                    <div class="phone-content">
+                        <div class="phone-greeting">Hello, Rajesh 👋</div>
+                        <div class="phone-summary">Here's your health summary from your last visit.</div>
+                        <div class="phone-card">
+                            <strong>Conditions</strong><br>
+                            Hypertension, Type 2 Diabetes, Hyperlipidemia
+                        </div>
+                        <div class="phone-card">
+                            <strong>Medications</strong><br>
+                            Amlodipine, Metformin, Ecosprin
+                        </div>
+                        <div class="phone-card">
+                            <strong>Pending</strong><br>
+                            LFT results expected
+                        </div>
+                    </div>
+                </div>
+                <div class="patient-app-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-text">
+                            <div class="feature-title">See conditions, reports, prescriptions</div>
+                            <div class="feature-desc">Your full medical history in plain language, not medical jargon. Conditions, medications, lab results, and prescriptions from every visit are organized and easy to understand.</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📸</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Upload old documents, we OCR them</div>
+                            <div class="feature-desc">Don't have digital records? No problem. Upload photos of old prescriptions, test results, or referral letters. Our OCR engine extracts the data automatically.</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔐</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Consent manager: stay in control</div>
+                            <div class="feature-desc">See exactly who accessed your health data and when. Revoke access anytime. Your health story stays yours.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="patient-app.html" class="patient-app-link">Explore Patient App →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHAT IT'S NOT -->
+    <section class="what-not">
+        <div class="what-not-container">
+            <h2 class="what-not-title">Let's be clear about what this isn't</h2>
+            <div class="what-not-list">
+                <div class="what-not-item">
+                    <div class="what-not-icon">✕</div>
+                    <div class="what-not-text">Not an HMS replacement. We work with your existing hospital system.</div>
+                </div>
+                <div class="what-not-item">
+                    <div class="what-not-icon">✕</div>
+                    <div class="what-not-text">Not another app to learn. Minimal training, maximum results.</div>
+                </div>
+                <div class="what-not-item">
+                    <div class="what-not-icon">✕</div>
+                    <div class="what-not-text">Not always-on AI listening. No algorithms making decisions for you.</div>
+                </div>
+                <div class="what-not-item">
+                    <div class="what-not-icon">✕</div>
+                    <div class="what-not-text">Not dependent on patient memory. Data comes from hospitals and official ABDM records.</div>
+                </div>
+                <div class="what-not-item">
+                    <div class="what-not-icon">✕</div>
+                    <div class="what-not-text">Not ABDM-dependent. We work with your hospital network today.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIAL -->
+    <section class="testimonial">
+        <div class="testimonial-container">
+            <div class="testimonial-quote">"</div>
+            <div class="testimonial-text">Medhistry's briefing card gives me everything I need to know about a patient in 30 seconds. No searching through ten different systems, no missing information. Just clear, structured data about what matters. It's changed how I practice.</div>
+            <div class="testimonial-author">— Dr. Vivek Malhotra</div>
+            <div class="testimonial-role">Cardiologist, City Care Hospital, Mumbai</div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="cta-section">
+        <div class="cta-container">
+            <h2 class="cta-title">We're onboarding 5 hospitals</h2>
+            <form class="cta-form" onsubmit="event.preventDefault(); alert('Thank you! We will contact you soon.');">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Doctor Name</label>
+                        <input type="text" class="form-input" placeholder="Dr. Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hospital Name</label>
+                        <input type="text" class="form-input" placeholder="Your Hospital" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">City</label>
+                        <input type="text" class="form-input" placeholder="Your City" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-input" placeholder="+91 XXXXX XXXXX" required>
+                    </div>
+                </div>
+                <button type="submit" class="form-submit">Get Early Access</button>
+            </form>
+            <div class="cta-links">
+                <a href="doctor-portal.html" class="cta-link">Try Doctor Portal</a>
+                <a href="receptionist-portal.html" class="cta-link">Receptionist Portal</a>
+                <a href="patient-app.html" class="cta-link">Patient App</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-content">
+                <div>
+                    <div class="footer-logo">Medhistry</div>
+                    <div class="footer-tagline">Know your patient before they walk in. Simple, structured patient data for doctors who care.</div>
+                </div>
+                <div>
+                    <div class="footer-section-title">Portals</div>
+                    <div class="footer-section">
+                        <a href="doctor-portal.html" class="footer-link">Doctor Portal</a>
+                        <a href="receptionist-portal.html" class="footer-link">Receptionist Portal</a>
+                        <a href="patient-app.html" class="footer-link">Patient App</a>
+                    </div>
+                </div>
+                <div>
+                    <div class="footer-section-title">Company</div>
+                    <div class="footer-section">
+                        <a href="#" class="footer-link">About</a>
+                        <a href="#" class="footer-link">Blog</a>
+                        <a href="#" class="footer-link">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                © 2026 Medhistry. All rights reserved. | <a href="#" class="footer-link">Privacy Policy</a> | <a href="#" class="footer-link">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

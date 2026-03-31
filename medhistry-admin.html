@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry Admin - Hospital Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .brand-primary { color: #0066CC; }
+        .brand-dark { color: #0052A3; }
+        .bg-brand-50 { background-color: #EFF6FF; }
+        .bg-brand-600 { background-color: #0066CC; }
+        .bg-brand-700 { background-color: #0052A3; }
+        .bg-surface-50 { background-color: #F8F9FB; }
+        .bg-surface-100 { background-color: #F0F2F5; }
+        .border-surface-200 { border-color: #E3E8EF; }
+        .sidebar {
+            width: 256px;
+            background-color: #F8F9FB;
+            border-right: 1px solid #E3E8EF;
+            overflow-y: auto;
+        }
+        .nav-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4B5563;
+        }
+        .nav-item:hover {
+            background-color: #EFF6FF;
+        }
+        .nav-item.active {
+            background-color: #EFF6FF;
+            color: #0066CC;
+            border-left: 3px solid #0066CC;
+            padding-left: 13px;
+        }
+        .card {
+            background-color: white;
+            border: 1px solid #E3E8EF;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .btn-primary {
+            background-color: #0066CC;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+        .btn-primary:hover {
+            background-color: #0052A3;
+        }
+        .btn-secondary {
+            background-color: white;
+            color: #1A1F2E;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: 1px solid #E3E8EF;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+        .btn-secondary:hover {
+            background-color: #F8F9FB;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-small-primary {
+            background-color: #0066CC;
+            color: white;
+        }
+        .btn-small-primary:hover {
+            background-color: #0052A3;
+        }
+        .btn-small-secondary {
+            background-color: #E3E8EF;
+            color: #1A1F2E;
+        }
+        .btn-small-secondary:hover {
+            background-color: #D3D8DF;
+        }
+        .header-top {
+            background-color: white;
+            border-bottom: 1px solid #E3E8EF;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .medhistry-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0066CC;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background-color: #F8F9FB;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #4B5563;
+            border-bottom: 1px solid #E3E8EF;
+        }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #E3E8EF;
+            font-size: 14px;
+        }
+        tr:hover {
+            background-color: #F8F9FB;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-success {
+            background-color: #E6F9F1;
+            color: #0B7345;
+        }
+        .badge-warning {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        .badge-info {
+            background-color: #EFF6FF;
+            color: #0066CC;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1A1F2E;
+            margin-bottom: 20px;
+        }
+        .close-modal {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8B92A1;
+        }
+        .close-modal:hover {
+            color: #1A1F2E;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1A1F2E;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #E3E8EF;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #0066CC;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #E6F9F1;
+            color: #0B7345;
+        }
+        .status-inactive {
+            background-color: #FFE3E3;
+            color: #C41E3A;
+        }
+        .status-setup {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        .status-pending {
+            background-color: #E8EAED;
+            color: #4B5563;
+        }
+        input[type="file"] {
+            padding: 8px;
+        }
+        .upload-area {
+            border: 2px dashed #E3E8EF;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #F8F9FB;
+        }
+        .upload-area:hover {
+            border-color: #0066CC;
+            background-color: #EFF6FF;
+        }
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-surface-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="padding: 20px; border-bottom: 1px solid #E3E8EF;">
+                <div class="medhistry-logo">Medhistry</div>
+                <div style="font-size: 12px; color: #8B92A1; margin-top: 4px;">Admin Dashboard</div>
+            </div>
+            <nav>
+                <div class="nav-item active" onclick="switchView('hospitals')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                    </svg>
+                    Hospitals
+                </div>
+                <div class="nav-item" onclick="switchView('doctors')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path>
+                    </svg>
+                    Doctors
+                </div>
+                <div class="nav-item" onclick="switchView('receptionists')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v2h8v-2zM16 15v2h2v-2zM2 8a2 2 0 11-4 0 2 2 0 014 0zM6 15v2H4v-2z"></path>
+                    </svg>
+                    Receptionists
+                </div>
+                <div class="nav-item" onclick="switchView('activity')">
+                    <svg style="display: inline; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a1 1 0 001 1h12a1 1 0 001-1V6a2 2 0 00-2-2H4zm0 4v4h12V8H4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Activity Log
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="header-top">
+                <h1 style="font-size: 18px; font-weight: 700; color: #1A1F2E; margin: 0;">Hospital Management</h1>
+                <div style="font-size: 12px; color: #8B92A1;">Admin • March 2026</div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-24" style="background-color: #F8F9FB;">
+
+                <!-- Hospitals View -->
+                <div id="hospitals" class="view-content">
+                    <!-- Hospital List -->
+                    <div id="hospitalList">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h2 style="font-size: 18px; font-weight: 600; color: #1A1F2E; margin: 0;">Onboarded Hospitals</h2>
+                            <button class="btn-primary" onclick="openModal('hospitalModal')">+ Add Hospital</button>
+                        </div>
+
+                        <div class="card">
+                            <div style="overflow-x: auto;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Hospital Name</th>
+                                            <th>City</th>
+                                            <th>HMS Type</th>
+                                            <th>Doctors</th>
+                                            <th>Print Setup</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="font-weight: 600;">City Care Hospital</td>
+                                            <td>Mumbai</td>
+                                            <td>Integrated HMS</td>
+                                            <td>8</td>
+                                            <td><span class="badge badge-success">Configured</span></td>
+                                            <td><span class="badge badge-success">Active</span></td>
+                                            <td style="display: flex; gap: 6px;">
+                                                <button class="btn-small btn-small-secondary" onclick="openHospitalDetail('cityCare')">View</button>
+                                                <button class="btn-small btn-small-secondary" onclick="openHospitalDetail('cityCare', 'print')" title="Print Settings" style="padding: 4px 8px;">
+                                                    <svg style="width: 14px; height: 14px; vertical-align: -2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Apollo Spectra Pune</td>
+                                            <td>Pune</td>
+                                            <td>Custom Integration</td>
+                                            <td>5</td>
+                                            <td><span class="badge badge-warning">Not configured</span></td>
+                                            <td><span class="badge badge-warning">Setup</span></td>
+                                            <td style="display: flex; gap: 6px;">
+                                                <button class="btn-small btn-small-secondary" onclick="openHospitalDetail('apollo')">View</button>
+                                                <button class="btn-small btn-small-secondary" onclick="openHospitalDetail('apollo', 'print')" title="Print Settings" style="padding: 4px 8px;">
+                                                    <svg style="width: 14px; height: 14px; vertical-align: -2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Fortis Mumbai</td>
+                                            <td>Mumbai</td>
+                                            <td>Standalone</td>
+                                            <td>0</td>
+                                            <td><span class="badge" style="background-color: #E8EAED; color: #4B5563;">Pending</span></td>
+                                            <td><span class="badge" style="background-color: #E8EAED; color: #4B5563;">Pending</span></td>
+                                            <td>
+                                                <button class="btn-small btn-small-primary" onclick="alert('Initiate onboarding first')">Start</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hospital Detail View (hidden by default) -->
+                    <div id="hospitalDetail" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                            <button onclick="backToHospitalList()" style="background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center;" onmouseover="this.style.background='#F0F2F5'" onmouseout="this.style.background='none'">
+                                <svg style="width: 20px; height: 20px; color: #4B5563;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <h2 id="hospitalDetailName" style="font-size: 18px; font-weight: 600; color: #1A1F2E; margin: 0;"></h2>
+                            <span id="hospitalDetailStatus" class="badge badge-success"></span>
+                        </div>
+
+                        <!-- Hospital Detail Tabs -->
+                        <div style="display: flex; gap: 0; border-bottom: 2px solid #E3E8EF; margin-bottom: 24px;">
+                            <button class="hospital-tab active" onclick="switchHospitalTab('overview')" data-tab="overview" style="padding: 10px 20px; font-size: 13px; font-weight: 600; color: #6B7280; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer;">Overview</button>
+                            <button class="hospital-tab" onclick="switchHospitalTab('print')" data-tab="print" style="padding: 10px 20px; font-size: 13px; font-weight: 600; color: #6B7280; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer;">
+                                <svg style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                Print Settings
+                            </button>
+                        </div>
+
+                        <!-- Overview Tab Content -->
+                        <div id="hospitalTabOverview">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                                <div class="card">
+                                    <h4 style="font-size: 13px; font-weight: 600; color: #8B92A1; margin: 0 0 4px 0;">Address</h4>
+                                    <div id="detailAddress" style="font-size: 14px; color: #1A1F2E;"></div>
+                                </div>
+                                <div class="card">
+                                    <h4 style="font-size: 13px; font-weight: 600; color: #8B92A1; margin: 0 0 4px 0;">HMS Type</h4>
+                                    <div id="detailHMS" style="font-size: 14px; color: #1A1F2E;"></div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                                <div class="card" style="text-align: center;">
+                                    <div id="detailDoctors" style="font-size: 28px; font-weight: 700; color: #0066CC;"></div>
+                                    <div style="font-size: 12px; color: #8B92A1; margin-top: 2px;">Doctors</div>
+                                </div>
+                                <div class="card" style="text-align: center;">
+                                    <div id="detailReceptionists" style="font-size: 28px; font-weight: 700; color: #0066CC;"></div>
+                                    <div style="font-size: 12px; color: #8B92A1; margin-top: 2px;">Receptionists</div>
+                                </div>
+                                <div class="card" style="text-align: center;">
+                                    <div id="detailOnboarded" style="font-size: 14px; font-weight: 600; color: #1A1F2E;"></div>
+                                    <div style="font-size: 12px; color: #8B92A1; margin-top: 2px;">Onboarded</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Print Settings Tab Content -->
+                        <div id="hospitalTabPrint" style="display: none;">
+                            <p style="color: #6B7280; font-size: 13px; margin-bottom: 20px;">This hospital uses pre-printed letterhead paper. Configure margins so prescriptions print below the letterhead area.</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                                <div>
+                                    <div class="card">
+                                        <h3 style="font-size: 14px; font-weight: 600; color: #1A1F2E; margin: 0 0 16px 0;">Margin Configuration</h3>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Top Margin (mm)</label>
+                                            <input type="number" id="printTopMargin" class="form-input" value="65" min="0" max="150">
+                                            <div style="color: #8B92A1; font-size: 11px; margin-top: 4px;">Distance from top of page to start printing. Adjust to clear the pre-printed letterhead.</div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Left Margin (mm)</label>
+                                            <input type="number" id="printLeftMargin" class="form-input" value="20" min="0" max="50">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Right Margin (mm)</label>
+                                            <input type="number" id="printRightMargin" class="form-input" value="15" min="0" max="50">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Doctor Name Position</label>
+                                            <select id="printDoctorPos" class="form-input">
+                                                <option selected>Below top margin (auto)</option>
+                                                <option>Skip — already on letterhead</option>
+                                            </select>
+                                            <div style="color: #8B92A1; font-size: 11px; margin-top: 4px;">If the letterhead already includes the doctor's name, select "Skip".</div>
+                                        </div>
+
+                                        <button class="btn-primary" style="width: 100%; margin-top: 8px;" onclick="savePrintSettings()">Save Print Settings</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="card">
+                                        <h3 style="font-size: 14px; font-weight: 600; color: #1A1F2E; margin: 0 0 16px 0;">Print Preview</h3>
+                                        <div id="printPreviewBox" style="border: 1px solid #E3E8EF; border-radius: 6px; background-color: #F8F9FB; font-size: 11px; line-height: 1.6; overflow: hidden; height: 320px;">
+                                            <div id="printPreviewLetterhead" style="height: 65px; background: repeating-linear-gradient(45deg, #f0f4f8, #f0f4f8 4px, #e8edf3 4px, #e8edf3 8px); display: flex; align-items: center; justify-content: center; border-bottom: 1px dashed #0066CC;">
+                                                <span style="color: #0066CC; font-size: 10px; font-weight: 600; background: white; padding: 2px 8px; border-radius: 3px;">Pre-printed letterhead area</span>
+                                            </div>
+                                            <div style="padding: 12px 16px;">
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                                    <span style="font-weight: 600; font-size: 12px;">Dr. Vivek Malhotra</span>
+                                                    <span style="color: #8B92A1; font-size: 10px;">31 Mar 2026</span>
+                                                </div>
+                                                <div style="color: #8B92A1; font-size: 10px; margin-bottom: 10px;">Patient: Rajesh Kumar, 52M</div>
+                                                <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">Rx</div>
+                                                <div style="color: #4B5563; font-size: 11px; line-height: 2;">
+                                                    1. Amlodipine 10mg — OD — 30 days<br>
+                                                    2. Ecosprin 75mg — OD — 30 days<br>
+                                                    3. Metformin 500mg — BD — 30 days<br>
+                                                    4. Atorvastatin 20mg — OD — 30 days
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 12px; color: #8B92A1; font-size: 11px; text-align: center;">
+                                            Hatched area = pre-printed letterhead. Content prints below it.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Doctors View -->
+                <div id="doctors" class="view-content" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; color: #1A1F2E; margin: 0;">Doctor Roster</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-secondary" onclick="openModal('importModal')">
+                                <svg style="display: inline; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"></path>
+                                </svg>
+                                CSV Import
+                            </button>
+                            <button class="btn-primary" onclick="openModal('doctorModal')">+ Add Doctor</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Doctor Name</th>
+                                        <th>Hospital</th>
+                                        <th>Specialization</th>
+                                        <th>MCI Number</th>
+                                        <th>OPD Days</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Vivek Malhotra</td>
+                                        <td>City Care Hospital</td>
+                                        <td>Cardiology</td>
+                                        <td>MCI-245891</td>
+                                        <td>Mon-Wed, Fri</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Sneha Reddy</td>
+                                        <td>City Care Hospital</td>
+                                        <td>General Medicine</td>
+                                        <td>MCI-356902</td>
+                                        <td>Tue-Thu, Sat</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Amit Joshi</td>
+                                        <td>City Care Hospital</td>
+                                        <td>Orthopedics</td>
+                                        <td>MCI-134567</td>
+                                        <td>Mon-Thu</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Pooja Nair</td>
+                                        <td>City Care Hospital</td>
+                                        <td>Dermatology</td>
+                                        <td>MCI-478923</td>
+                                        <td>Wed-Fri, Sun</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Ravi Menon</td>
+                                        <td>City Care Hospital</td>
+                                        <td>ENT</td>
+                                        <td>MCI-567890</td>
+                                        <td>Mon, Wed, Fri</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Priya Sharma</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td>Pediatrics</td>
+                                        <td>MCI-789456</td>
+                                        <td>Tue-Sat</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Rajesh Kumar</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td>Neurology</td>
+                                        <td>MCI-823456</td>
+                                        <td>Mon-Fri</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Dr. Isha Verma</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td>Gynecology</td>
+                                        <td>MCI-923567</td>
+                                        <td>Wed-Sun</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Receptionists View -->
+                <div id="receptionists" class="view-content" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; color: #1A1F2E; margin: 0;">Receptionists</h2>
+                        <button class="btn-primary" onclick="openModal('receptionistModal')">+ Create Login</button>
+                    </div>
+
+                    <div class="card">
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Hospital</th>
+                                        <th>Phone Number</th>
+                                        <th>Created</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="font-weight: 600;">Priya Kumar</td>
+                                        <td>City Care Hospital</td>
+                                        <td>+91 98765 43210</td>
+                                        <td>Jan 15, 2026</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                        <td>
+                                            <button class="btn-small btn-small-secondary" onclick="alert('Resend credentials via SMS')">Resend SMS</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Arjun Singh</td>
+                                        <td>City Care Hospital</td>
+                                        <td>+91 87654 32109</td>
+                                        <td>Feb 3, 2026</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                        <td>
+                                            <button class="btn-small btn-small-secondary" onclick="alert('Resend credentials via SMS')">Resend SMS</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Rajeshwari Patel</td>
+                                        <td>City Care Hospital</td>
+                                        <td>+91 76543 21098</td>
+                                        <td>Feb 20, 2026</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                        <td>
+                                            <button class="btn-small btn-small-secondary" onclick="alert('Resend credentials via SMS')">Resend SMS</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Vikram Reddy</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td>+91 65432 10987</td>
+                                        <td>Mar 1, 2026</td>
+                                        <td><span class="status-badge status-active">Active</span></td>
+                                        <td>
+                                            <button class="btn-small btn-small-secondary" onclick="alert('Resend credentials via SMS')">Resend SMS</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Neha Joshi</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td>+91 54321 09876</td>
+                                        <td>Mar 10, 2026</td>
+                                        <td><span class="status-badge status-inactive">Inactive</span></td>
+                                        <td>
+                                            <button class="btn-small btn-small-secondary" onclick="alert('Resend credentials via SMS')">Resend SMS</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log View -->
+                <div id="activity" class="view-content" style="display: none;">
+                    <h2 style="font-size: 18px; font-weight: 600; color: #1A1F2E; margin-bottom: 24px;">Recent Activity</h2>
+
+                    <div class="card">
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Hospital</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Mar 31, 2026 15:42</td>
+                                        <td>City Care Hospital</td>
+                                        <td><span class="badge badge-info">Doctor Added</span></td>
+                                        <td>Dr. Ravi Menon (ENT) onboarded</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 31, 2026 14:15</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td><span class="badge badge-info">Receptionist Created</span></td>
+                                        <td>Neha Joshi account created</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 30, 2026 11:28</td>
+                                        <td>City Care Hospital</td>
+                                        <td><span class="badge badge-success">Status Updated</span></td>
+                                        <td>Hospital status changed to Active</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 29, 2026 09:45</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td><span class="badge badge-info">Print Configured</span></td>
+                                        <td>Top margin set to 65mm for pre-printed letterhead</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 28, 2026 16:20</td>
+                                        <td>Fortis Mumbai</td>
+                                        <td><span class="badge badge-warning">Onboarding Started</span></td>
+                                        <td>Hospital registration initiated</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 27, 2026 13:05</td>
+                                        <td>City Care Hospital</td>
+                                        <td><span class="badge badge-info">Doctor Added</span></td>
+                                        <td>Dr. Pooja Nair (Dermatology) onboarded</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 26, 2026 10:30</td>
+                                        <td>City Care Hospital</td>
+                                        <td><span class="badge badge-success">CSV Import</span></td>
+                                        <td>3 doctors imported successfully</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mar 25, 2026 08:15</td>
+                                        <td>Apollo Spectra Pune</td>
+                                        <td><span class="badge badge-info">Hospital Onboarded</span></td>
+                                        <td>Hospital registration completed</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hospital Modal -->
+    <div id="hospitalModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('hospitalModal')">&times;</span>
+            <div class="modal-header">Add Hospital</div>
+
+            <div class="form-group">
+                <label class="form-label">Hospital Name</label>
+                <input type="text" class="form-input" placeholder="Enter hospital name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Address</label>
+                <input type="text" class="form-input" placeholder="Enter hospital address">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">City</label>
+                <input type="text" class="form-input" placeholder="Enter city">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">HMS Type</label>
+                <select class="form-select">
+                    <option>Select HMS type</option>
+                    <option>Integrated HMS</option>
+                    <option>Custom Integration</option>
+                    <option>Standalone</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+                <button onclick="closeModal('hospitalModal')" class="btn-secondary">Cancel</button>
+                <button onclick="submitHospital()" class="btn-primary">Add Hospital</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Modal -->
+    <div id="doctorModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('doctorModal')">&times;</span>
+            <div class="modal-header">Add Doctor</div>
+
+            <div class="form-group">
+                <label class="form-label">Doctor Name</label>
+                <input type="text" class="form-input" placeholder="Enter doctor name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Hospital</label>
+                <select class="form-select">
+                    <option>Select hospital</option>
+                    <option>City Care Hospital</option>
+                    <option>Apollo Spectra Pune</option>
+                    <option>Fortis Mumbai</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Specialization</label>
+                <input type="text" class="form-input" placeholder="e.g., Cardiology">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">MCI Number</label>
+                <input type="text" class="form-input" placeholder="e.g., MCI-123456">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">OPD Days</label>
+                <input type="text" class="form-input" placeholder="e.g., Mon-Wed, Fri">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+                <button onclick="closeModal('doctorModal')" class="btn-secondary">Cancel</button>
+                <button onclick="submitDoctor()" class="btn-primary">Add Doctor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receptionist Modal -->
+    <div id="receptionistModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('receptionistModal')">&times;</span>
+            <div class="modal-header">Create Receptionist Login</div>
+
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" placeholder="Enter receptionist name">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Hospital</label>
+                <select class="form-select">
+                    <option>Select hospital</option>
+                    <option>City Care Hospital</option>
+                    <option>Apollo Spectra Pune</option>
+                    <option>Fortis Mumbai</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="tel" class="form-input" placeholder="e.g., +91 98765 43210">
+            </div>
+
+            <div style="background-color: #F8F9FB; border-radius: 6px; padding: 12px; margin-top: 16px; font-size: 12px; color: #4B5563;">
+                <strong>Note:</strong> Login credentials will be sent via SMS to the provided phone number.
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+                <button onclick="closeModal('receptionistModal')" class="btn-secondary">Cancel</button>
+                <button onclick="submitReceptionist()" class="btn-primary">Create Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('importModal')">&times;</span>
+            <div class="modal-header">Import Doctors via CSV</div>
+
+            <div class="form-group">
+                <label class="form-label">Select Hospital</label>
+                <select class="form-select">
+                    <option>Select hospital</option>
+                    <option>City Care Hospital</option>
+                    <option>Apollo Spectra Pune</option>
+                    <option>Fortis Mumbai</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">CSV File</label>
+                <div class="upload-area" onclick="document.getElementById('csvInput').click()">
+                    <svg style="width: 32px; height: 32px; margin: 0 auto 8px; display: block; color: #8B92A1;" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"></path>
+                    </svg>
+                    <div style="color: #4B5563; font-size: 13px; font-weight: 600;">Click to upload CSV</div>
+                    <div style="color: #8B92A1; font-size: 12px; margin-top: 4px;">Expected columns: Name, Specialization, MCI Number, OPD Days</div>
+                    <input id="csvInput" type="file" class="file-input" accept=".csv">
+                </div>
+            </div>
+
+            <div style="background-color: #F8F9FB; border-radius: 6px; padding: 12px; margin-top: 16px; font-size: 12px; color: #4B5563;">
+                <strong>CSV Format Example:</strong>
+                <div style="margin-top: 8px; font-family: monospace; font-size: 11px;">
+                    Dr. Vivek Malhotra,Cardiology,MCI-245891,Mon-Wed,Fri
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+                <button onclick="closeModal('importModal')" class="btn-secondary">Cancel</button>
+                <button onclick="submitImport()" class="btn-primary">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hospitalData = {
+            cityCare: {
+                name: 'City Care Hospital', status: 'Active', statusClass: 'badge-success',
+                address: '123 Medical Plaza, Andheri West, Mumbai, MH 400001',
+                hms: 'Integrated HMS', doctors: 8, receptionists: 3, onboarded: 'Jan 15, 2026',
+                topMargin: 65, leftMargin: 20, rightMargin: 15, doctorPos: 'Below top margin (auto)',
+                printConfigured: true
+            },
+            apollo: {
+                name: 'Apollo Spectra Pune', status: 'Setup', statusClass: 'badge-warning',
+                address: '456 Healthcare Center, Koregaon Park, Pune, MH 411001',
+                hms: 'Custom Integration', doctors: 5, receptionists: 2, onboarded: 'Mar 1, 2026',
+                topMargin: 50, leftMargin: 20, rightMargin: 15, doctorPos: 'Below top margin (auto)',
+                printConfigured: false
+            }
+        };
+
+        let currentHospitalId = null;
+
+        function openHospitalDetail(hospitalId, tab) {
+            currentHospitalId = hospitalId;
+            const h = hospitalData[hospitalId];
+            document.getElementById('hospitalList').style.display = 'none';
+            document.getElementById('hospitalDetail').style.display = 'block';
+            document.getElementById('hospitalDetailName').textContent = h.name;
+            document.getElementById('hospitalDetailStatus').textContent = h.status;
+            document.getElementById('hospitalDetailStatus').className = 'badge ' + h.statusClass;
+            document.getElementById('detailAddress').textContent = h.address;
+            document.getElementById('detailHMS').textContent = h.hms;
+            document.getElementById('detailDoctors').textContent = h.doctors;
+            document.getElementById('detailReceptionists').textContent = h.receptionists;
+            document.getElementById('detailOnboarded').textContent = h.onboarded;
+            document.getElementById('printTopMargin').value = h.topMargin;
+            document.getElementById('printLeftMargin').value = h.leftMargin;
+            document.getElementById('printRightMargin').value = h.rightMargin;
+            document.getElementById('printPreviewLetterhead').style.height = h.topMargin + 'px';
+            switchHospitalTab(tab || 'overview');
+        }
+
+        function backToHospitalList() {
+            document.getElementById('hospitalDetail').style.display = 'none';
+            document.getElementById('hospitalList').style.display = 'block';
+            currentHospitalId = null;
+        }
+
+        function switchHospitalTab(tabName) {
+            document.getElementById('hospitalTabOverview').style.display = tabName === 'overview' ? 'block' : 'none';
+            document.getElementById('hospitalTabPrint').style.display = tabName === 'print' ? 'block' : 'none';
+            document.querySelectorAll('.hospital-tab').forEach(btn => {
+                const isActive = btn.dataset.tab === tabName;
+                btn.style.color = isActive ? '#0066CC' : '#6B7280';
+                btn.style.borderBottomColor = isActive ? '#0066CC' : 'transparent';
+            });
+        }
+
+        function savePrintSettings() {
+            if (currentHospitalId) {
+                const h = hospitalData[currentHospitalId];
+                h.topMargin = parseInt(document.getElementById('printTopMargin').value);
+                h.leftMargin = parseInt(document.getElementById('printLeftMargin').value);
+                h.rightMargin = parseInt(document.getElementById('printRightMargin').value);
+                h.printConfigured = true;
+                document.getElementById('printPreviewLetterhead').style.height = h.topMargin + 'px';
+                alert('Print settings saved for ' + h.name);
+            }
+        }
+
+        function switchView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.style.display = 'none';
+            });
+
+            // Remove active class from nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected view
+            document.getElementById(viewName).style.display = 'block';
+
+            // Reset hospital detail if navigating away
+            if (viewName === 'hospitals') {
+                backToHospitalList();
+            }
+
+            // Add active class to clicked nav item
+            event.target.closest('.nav-item').classList.add('active');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function submitHospital() {
+            alert('Hospital added successfully! In production, this would be saved to the database.');
+            closeModal('hospitalModal');
+        }
+
+        function submitDoctor() {
+            alert('Doctor added successfully! In production, this would be saved to the database.');
+            closeModal('doctorModal');
+        }
+
+        function submitReceptionist() {
+            alert('Receptionist account created! Credentials will be sent via SMS.');
+            closeModal('receptionistModal');
+        }
+
+        function submitImport() {
+            alert('CSV import initiated! This would process the file and add doctors to the selected hospital.');
+            closeModal('importModal');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+
+        // Handle file uploads
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'file') {
+                console.log('File selected:', e.target.files[0]?.name);
+            }
+        });
+    </script>
+</body>
+</html>

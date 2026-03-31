@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medhistry Patient App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e0e7f1 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .phone-frame {
+            width: 430px;
+            height: 932px;
+            background: #000;
+            border-radius: 44px;
+            border: 12px solid #1a1a1a;
+            box-shadow:
+                0 40px 80px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            overflow: hidden;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        /* Dynamic Island */
+        .phone-frame::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 28px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-content {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 40px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 44px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 12px;
+            color: #0f172a;
+            padding-top: 8px;
+            font-weight: 600;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.3px;
+        }
+
+        .header-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .notification-bell {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            color: #0066CC;
+            font-size: 22px;
+        }
+
+        .notification-bell:active {
+            background-color: #eff6ff;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            border: 2px solid #ffffff;
+        }
+
+        /* Notification Panel */
+        .notification-panel {
+            position: absolute;
+            top: 60px;
+            right: 12px;
+            width: 340px;
+            max-height: 400px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .notification-panel.show {
+            display: block;
+        }
+
+        .notification-panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+
+        .notification-item.unread {
+            background: #eff6ff;
+            border-left: 3px solid #0066CC;
+            padding-left: 13px;
+        }
+
+        .notification-icon {
+            font-size: 20px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .notification-description {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        /* Screen Content */
+        .screen-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .screen-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            height: 88px;
+            align-items: flex-start;
+            padding-top: 8px;
+            padding-bottom: 12px;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            cursor: pointer;
+            padding: 8px 8px;
+            transition: all 0.2s ease;
+            min-height: 68px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .tab.active {
+            background: linear-gradient(180deg, #eff6ff 0%, #f0f7ff 100%);
+        }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-label {
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab.active .tab-label {
+            color: #0066CC;
+            font-weight: 600;
+        }
+
+        .tab.active .tab-icon {
+            color: #0066CC;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            width: 6px;
+            height: 6px;
+            background: #0066CC;
+            border-radius: 50%;
+        }
+
+        /* Section */
+        .section {
+            padding: 16px;
+        }
+
+        /* Greeting Card */
+        .greeting-card {
+            background: linear-gradient(135deg, #0066CC 0%, #0052A3 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(0, 102, 204, 0.2);
+        }
+
+        .greeting-name {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .greeting-date {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        /* Health Summary Card */
+        .health-summary-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .health-summary-title {
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+            font-size: 15px;
+            letter-spacing: -0.2px;
+        }
+
+        .health-summary-text {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .health-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .health-badge {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #0066CC;
+            font-weight: 600;
+        }
+
+        .health-badge-label {
+            color: #64748b;
+            font-weight: 500;
+            font-size: 11px;
+        }
+
+        /* Action Cards */
+        .action-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 48px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .action-card:active {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            transform: scale(0.98);
+        }
+
+        .action-card-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-card-icon {
+            font-size: 24px;
+        }
+
+        .action-card-text {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .action-card-chevron {
+            font-size: 18px;
+            color: #cbd5e1;
+            transition: transform 0.2s ease;
+        }
+
+        .action-card:active .action-card-chevron {
+            transform: translateX(2px);
+        }
+
+        /* Condition Card */
+        .condition-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .condition-card:active {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .condition-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .condition-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .condition-stripe {
+            width: 5px;
+            height: 24px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .condition-stripe.hypertension {
+            background: #0066CC;
+        }
+
+        .condition-stripe.diabetes {
+            background: #a855f7;
+        }
+
+        .condition-name {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 15px;
+            letter-spacing: -0.2px;
+            margin-bottom: 4px;
+        }
+
+        .condition-since {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .condition-status-pill {
+            display: inline-block;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #059669;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .condition-chevron {
+            font-size: 20px;
+            color: #cbd5e1;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .condition-card.expanded .condition-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Condition History */
+        .condition-history-container {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .condition-card.expanded .condition-history-container {
+            display: block;
+        }
+
+        .condition-history-title {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 13px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+
+        .visit-entry {
+            position: relative;
+            padding-left: 16px;
+            margin-bottom: 12px;
+        }
+
+        .visit-entry::before {
+            content: '';
+            position: absolute;
+            left: 2px;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            background: #0066CC;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 1px #e2e8f0;
+        }
+
+        .visit-entry:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% + 4px);
+            background: #e2e8f0;
+        }
+
+        .visit-date {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .visit-location {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+
+        .visit-doctor {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* Report Card */
+        .report-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .report-card:active {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .report-thumbnail {
+            width: 64px;
+            height: 84px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #6366f1;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
+        }
+
+        .report-details {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .report-title {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+            margin-bottom: 4px;
+            word-break: break-word;
+            letter-spacing: -0.2px;
+        }
+
+        .report-meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .report-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .report-status.abnormal {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #dc2626;
+        }
+
+        .report-status.normal {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #059669;
+        }
+
+        .report-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 0 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-tab {
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: #64748b;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-tab.active {
+            background: #0066CC;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
+        }
+
+        /* Consent Card */
+        .consent-section-title {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+            margin-bottom: 12px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.2px;
+        }
+
+        .consent-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        .consent-section-icon {
+            font-size: 16px;
+            color: #0066CC;
+        }
+
+        .consent-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .consent-header {
+            margin-bottom: 12px;
+        }
+
+        .consent-doctor {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+            letter-spacing: -0.2px;
+            margin-bottom: 2px;
+        }
+
+        .consent-hospital {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .consent-details {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .consent-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .consent-status.active {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #059669;
+        }
+
+        .consent-status.expired {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .revoke-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: -0.2px;
+        }
+
+        .revoke-button:active {
+            background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
+            transform: scale(0.98);
+        }
+
+        .revoke-button.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            background: linear-gradient(135deg, #eff6ff 0%, #e0efff 100%);
+            border: 2px dashed #0066CC;
+            border-radius: 16px;
+            padding: 36px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upload-area:active {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #0052A3;
+            transform: scale(0.98);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            color: #0066CC;
+        }
+
+        .upload-title {
+            font-weight: 700;
+            color: #0066CC;
+            font-size: 15px;
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
+        }
+
+        .upload-subtitle {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .upload-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .upload-button {
+            flex: 1;
+            padding: 12px 16px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 6px;
+            color: #0066CC;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .upload-button:active {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            transform: scale(0.98);
+        }
+
+        .upload-button-icon {
+            font-size: 24px;
+        }
+
+        .uploaded-list-title {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+            margin-bottom: 12px;
+            margin-top: 20px;
+            letter-spacing: -0.2px;
+        }
+
+        .uploaded-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .uploaded-item:active {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .uploaded-item-text {
+            font-size: 13px;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .uploaded-item-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-processing {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #b45309;
+        }
+
+        .status-ready {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #059669;
+        }
+
+        .status-failed {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #dc2626;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 320px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 16px;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .modal-description {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-button.cancel {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .modal-button.cancel:active {
+            background: #e2e8f0;
+        }
+
+        .modal-button.confirm {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #dc2626;
+        }
+
+        .modal-button.confirm:active {
+            background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="phone-content">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span>9:41</span>
+                </div>
+                <div class="status-right">
+                    <span>📶</span>
+                    <span>🔋</span>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <div class="header-title">Health</div>
+                    <div class="header-subtitle" id="currentDate">Today</div>
+                </div>
+                <div style="position: relative;">
+                    <div class="notification-bell" id="notificationBell">🔔</div>
+                    <div class="notification-badge" id="notificationBadge">3</div>
+                    <div class="notification-panel" id="notificationPanel">
+                        <div class="notification-panel-header">Notifications</div>
+                        <div id="notificationList">
+                            <div class="notification-item unread">
+                                <div class="notification-icon">📄</div>
+                                <div class="notification-content">
+                                    <div class="notification-title">New Lab Report</div>
+                                    <div class="notification-description">Your recent blood work is ready to review</div>
+                                    <div class="notification-time">2 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="notification-item unread">
+                                <div class="notification-icon">🔐</div>
+                                <div class="notification-content">
+                                    <div class="notification-title">Access Request</div>
+                                    <div class="notification-description">Dr. Sarah requested access to your records</div>
+                                    <div class="notification-time">5 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="notification-item unread">
+                                <div class="notification-icon">💊</div>
+                                <div class="notification-content">
+                                    <div class="notification-title">Prescription Ready</div>
+                                    <div class="notification-description">Your hypertension medication is ready for pickup</div>
+                                    <div class="notification-time">1 day ago</div>
+                                </div>
+                            </div>
+                            <div class="notification-item">
+                                <div class="notification-icon">⏰</div>
+                                <div class="notification-content">
+                                    <div class="notification-title">Appointment Reminder</div>
+                                    <div class="notification-description">Checkup with Dr. Patel in 3 days</div>
+                                    <div class="notification-time">3 days ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen Content -->
+            <div class="screen-content">
+                <!-- HOME Screen -->
+                <div class="screen active" id="homeScreen">
+                    <div class="section">
+                        <div class="greeting-card">
+                            <div class="greeting-name">Hello, Rajesh</div>
+                            <div class="greeting-date" id="greetingDate">Monday, March 31, 2026</div>
+                        </div>
+
+                        <div class="health-summary-card">
+                            <div class="health-summary-title">Your Health Summary</div>
+                            <div class="health-summary-text">
+                                Your blood pressure readings have been well-controlled this month, averaging 128/79 mmHg. Continue your current medication routine and maintain regular exercise. Your diabetes management is stable with consistent glucose levels.
+                            </div>
+                            <div class="health-badges">
+                                <div class="health-badge">
+                                    <span class="health-badge-label">BP:</span>
+                                    <span>130/80</span>
+                                </div>
+                                <div class="health-badge">
+                                    <span class="health-badge-label">Glucose:</span>
+                                    <span>115</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-card" onclick="switchTab('upload')">
+                            <div class="action-card-left">
+                                <div class="action-card-icon">📤</div>
+                                <div class="action-card-text">Upload a Document</div>
+                            </div>
+                            <div class="action-card-chevron">›</div>
+                        </div>
+
+                        <div class="action-card" onclick="switchTab('reports')">
+                            <div class="action-card-left">
+                                <div class="action-card-icon">📊</div>
+                                <div class="action-card-text">View Your Reports</div>
+                            </div>
+                            <div class="action-card-chevron">›</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONDITIONS Screen -->
+                <div class="screen" id="conditionsScreen">
+                    <div class="section">
+                        <!-- Hypertension -->
+                        <div class="condition-card" onclick="expandCondition(this)">
+                            <div class="condition-header">
+                                <div class="condition-info">
+                                    <div class="condition-stripe hypertension"></div>
+                                    <div style="flex: 1;">
+                                        <div class="condition-name">Hypertension</div>
+                                        <div class="condition-since">Since 2019</div>
+                                        <div class="condition-status-pill">Controlled</div>
+                                    </div>
+                                </div>
+                                <div class="condition-chevron">›</div>
+                            </div>
+                            <div class="condition-history-container">
+                                <div class="condition-history-title">Visit History</div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">March 20, 2026</div>
+                                    <div class="visit-location">City Medical Center</div>
+                                    <div class="visit-doctor">Dr. Patel • Follow-up</div>
+                                </div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">January 15, 2026</div>
+                                    <div class="visit-location">Regional Hospital</div>
+                                    <div class="visit-doctor">Dr. Kumar • Routine Check</div>
+                                </div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">October 8, 2025</div>
+                                    <div class="visit-location">City Medical Center</div>
+                                    <div class="visit-doctor">Dr. Patel • Medication Adjustment</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diabetes -->
+                        <div class="condition-card" onclick="expandCondition(this)">
+                            <div class="condition-header">
+                                <div class="condition-info">
+                                    <div class="condition-stripe diabetes"></div>
+                                    <div style="flex: 1;">
+                                        <div class="condition-name">Type 2 Diabetes</div>
+                                        <div class="condition-since">Since 2018</div>
+                                        <div class="condition-status-pill">Controlled</div>
+                                    </div>
+                                </div>
+                                <div class="condition-chevron">›</div>
+                            </div>
+                            <div class="condition-history-container">
+                                <div class="condition-history-title">Visit History</div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">March 18, 2026</div>
+                                    <div class="visit-location">City Medical Center</div>
+                                    <div class="visit-doctor">Dr. Sharma • Diabetes Review</div>
+                                </div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">December 10, 2025</div>
+                                    <div class="visit-location">Regional Hospital</div>
+                                    <div class="visit-doctor">Dr. Kumar • HbA1c Check</div>
+                                </div>
+                                <div class="visit-entry">
+                                    <div class="visit-date">September 5, 2025</div>
+                                    <div class="visit-location">City Medical Center</div>
+                                    <div class="visit-doctor">Dr. Sharma • Routine Visit</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTS Screen -->
+                <div class="screen" id="reportsScreen">
+                    <div class="filter-tabs">
+                        <div class="filter-tab active" data-filter="all">All Reports</div>
+                        <div class="filter-tab" data-filter="lab">Lab Reports</div>
+                        <div class="filter-tab" data-filter="prescription">Prescriptions</div>
+                        <div class="filter-tab" data-filter="scan">Scans</div>
+                    </div>
+                    <div class="section" style="padding-top: 0;">
+                        <!-- Lab Report 1 -->
+                        <div class="report-card" data-type="lab">
+                            <div class="report-thumbnail">🧬</div>
+                            <div class="report-details">
+                                <div class="report-title">Complete Blood Work</div>
+                                <div class="report-meta">March 25, 2026 • City Lab Center</div>
+                                <div class="report-meta">Dr. Patel</div>
+                                <div class="report-status normal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Normal</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prescription 1 -->
+                        <div class="report-card" data-type="prescription">
+                            <div class="report-thumbnail">💊</div>
+                            <div class="report-details">
+                                <div class="report-title">Lisinopril 10mg</div>
+                                <div class="report-meta">March 20, 2026 • City Medical Center</div>
+                                <div class="report-meta">Dr. Patel</div>
+                                <div class="report-status normal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lab Report 2 -->
+                        <div class="report-card" data-type="lab">
+                            <div class="report-thumbnail">📋</div>
+                            <div class="report-details">
+                                <div class="report-title">Blood Glucose Test</div>
+                                <div class="report-meta">March 15, 2026 • City Lab Center</div>
+                                <div class="report-meta">Dr. Sharma</div>
+                                <div class="report-status normal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Normal</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scan 1 -->
+                        <div class="report-card" data-type="scan">
+                            <div class="report-thumbnail">🔍</div>
+                            <div class="report-details">
+                                <div class="report-title">Cardiac Ultrasound</div>
+                                <div class="report-meta">February 28, 2026 • Imaging Center</div>
+                                <div class="report-meta">Dr. Kumar</div>
+                                <div class="report-status normal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Normal</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prescription 2 -->
+                        <div class="report-card" data-type="prescription">
+                            <div class="report-thumbnail">💊</div>
+                            <div class="report-details">
+                                <div class="report-title">Metformin 500mg</div>
+                                <div class="report-meta">March 1, 2026 • Regional Hospital</div>
+                                <div class="report-meta">Dr. Sharma</div>
+                                <div class="report-status normal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lab Report 3 - Abnormal -->
+                        <div class="report-card" data-type="lab">
+                            <div class="report-thumbnail">🧬</div>
+                            <div class="report-details">
+                                <div class="report-title">Lipid Panel</div>
+                                <div class="report-meta">January 20, 2026 • City Lab Center</div>
+                                <div class="report-meta">Dr. Patel</div>
+                                <div class="report-status abnormal">
+                                    <span class="report-status-dot"></span>
+                                    <span>Abnormal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONSENT Screen -->
+                <div class="screen" id="consentScreen">
+                    <div class="section">
+                        <div class="consent-section-title">
+                            <span class="consent-section-icon">🔓</span>
+                            Active Access
+                        </div>
+
+                        <!-- Consent 1 -->
+                        <div class="consent-card">
+                            <div class="consent-header">
+                                <div>
+                                    <div class="consent-doctor">Dr. Patel</div>
+                                    <div class="consent-hospital">City Medical Center</div>
+                                </div>
+                            </div>
+                            <div class="consent-details">
+                                Access to medical records for ongoing hypertension management
+                            </div>
+                            <div class="consent-status active">✓ Active until 22 Mar 2026</div>
+                            <button class="revoke-button" onclick="showRevokeConfirm('Dr. Patel', 'City Medical Center')">
+                                Revoke Access
+                            </button>
+                        </div>
+
+                        <!-- Consent 2 -->
+                        <div class="consent-card">
+                            <div class="consent-header">
+                                <div>
+                                    <div class="consent-doctor">Dr. Sharma</div>
+                                    <div class="consent-hospital">Regional Hospital</div>
+                                </div>
+                            </div>
+                            <div class="consent-details">
+                                Access to medical records for diabetes management and monitoring
+                            </div>
+                            <div class="consent-status active">✓ Active until 15 Apr 2026</div>
+                            <button class="revoke-button" onclick="showRevokeConfirm('Dr. Sharma', 'Regional Hospital')">
+                                Revoke Access
+                            </button>
+                        </div>
+
+                        <div class="consent-section-title" style="margin-top: 24px;">
+                            <span class="consent-section-icon">🔒</span>
+                            Expired Access
+                        </div>
+
+                        <!-- Consent 3 - Expired -->
+                        <div class="consent-card">
+                            <div class="consent-header">
+                                <div>
+                                    <div class="consent-doctor">Dr. Kumar</div>
+                                    <div class="consent-hospital">City Medical Center</div>
+                                </div>
+                            </div>
+                            <div class="consent-details">
+                                Access to medical records for routine checkup
+                            </div>
+                            <div class="consent-status expired">✗ Expired 5 Mar 2026</div>
+                            <button class="revoke-button disabled">Expired</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UPLOAD Screen -->
+                <div class="screen" id="uploadScreen">
+                    <div class="section">
+                        <div class="upload-area" onclick="simulateUploadClick()">
+                            <div class="upload-icon">📸</div>
+                            <div class="upload-title">Add Medical Documents</div>
+                            <div class="upload-subtitle">Tap to upload or take a photo</div>
+                        </div>
+
+                        <div class="upload-buttons">
+                            <button class="upload-button" onclick="simulatePhotoCapture()">
+                                <div class="upload-button-icon">📷</div>
+                                <span>Take Photo</span>
+                            </button>
+                            <button class="upload-button" onclick="simulateGallerySelect()">
+                                <div class="upload-button-icon">🖼️</div>
+                                <span>Choose File</span>
+                            </button>
+                        </div>
+
+                        <div class="uploaded-list-title">Recently Uploaded</div>
+                        <div id="uploadedList">
+                            <div class="uploaded-item">
+                                <span class="uploaded-item-text">Blood_Work_March2026.pdf</span>
+                                <div class="uploaded-item-status status-ready">
+                                    <span class="status-dot"></span>
+                                    <span>Ready</span>
+                                </div>
+                            </div>
+
+                            <div class="uploaded-item">
+                                <span class="uploaded-item-text">ECG_Report_March20.pdf</span>
+                                <div class="uploaded-item-status status-ready">
+                                    <span class="status-dot"></span>
+                                    <span>Ready</span>
+                                </div>
+                            </div>
+
+                            <div class="uploaded-item">
+                                <span class="uploaded-item-text">Lab_Results_Scan.jpg</span>
+                                <div class="uploaded-item-status status-processing">
+                                    <span class="status-dot"></span>
+                                    <span>Processing</span>
+                                </div>
+                            </div>
+
+                            <div class="uploaded-item">
+                                <span class="uploaded-item-text">Prescription_Image.jpg</span>
+                                <div class="uploaded-item-status status-failed">
+                                    <span class="status-dot"></span>
+                                    <span>Failed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+                <div class="tab active" onclick="switchTab('home')">
+                    <div class="tab-icon">🏠</div>
+                    <div class="tab-label">Home</div>
+                </div>
+                <div class="tab" onclick="switchTab('conditions')">
+                    <div class="tab-icon">❤️</div>
+                    <div class="tab-label">Conditions</div>
+                </div>
+                <div class="tab" onclick="switchTab('reports')">
+                    <div class="tab-icon">📊</div>
+                    <div class="tab-label">Reports</div>
+                </div>
+                <div class="tab" onclick="switchTab('consent')">
+                    <div class="tab-icon">🔐</div>
+                    <div class="tab-label">Consent</div>
+                </div>
+                <div class="tab" onclick="switchTab('upload')">
+                    <div class="tab-icon">📤</div>
+                    <div class="tab-label">Upload</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-title">Revoke Access?</div>
+            <div class="modal-description" id="modalDescription">
+                This will revoke access for the doctor to your medical records.
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button cancel" id="cancelButton">Cancel</button>
+                <button class="modal-button confirm" id="confirmButton">Revoke</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize date
+        function initializeDate() {
+            const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+            const today = new Date('2026-03-31').toLocaleDateString('en-US', options);
+            document.getElementById('currentDate').textContent = 'Today';
+            document.getElementById('greetingDate').textContent = today;
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all screens
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => screen.classList.remove('active'));
+
+            // Remove active class from tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show the selected screen
+            document.getElementById(tabName + 'Screen').classList.add('active');
+
+            // Add active class to the selected tab
+            const tabIndex = ['home', 'conditions', 'reports', 'consent', 'upload'].indexOf(tabName);
+            tabs[tabIndex].classList.add('active');
+
+            // Close notification panel when switching tabs
+            closeNotificationPanel();
+        }
+
+        // Condition expansion
+        function expandCondition(card) {
+            card.classList.toggle('expanded');
+        }
+
+        // Report filtering
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterTabs = document.querySelectorAll('.filter-tab');
+            const reportCards = document.querySelectorAll('.report-card');
+
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const filter = this.getAttribute('data-filter');
+
+                    // Update active tab
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Filter reports
+                    reportCards.forEach(card => {
+                        if (filter === 'all' || card.getAttribute('data-type') === filter) {
+                            card.style.display = 'flex';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            initializeDate();
+        });
+
+        // Notification handling
+        document.getElementById('notificationBell').addEventListener('click', function() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('show');
+        });
+
+        function closeNotificationPanel() {
+            document.getElementById('notificationPanel').classList.remove('show');
+        }
+
+        const notificationItems = document.querySelectorAll('.notification-item');
+        notificationItems.forEach((item, index) => {
+            item.addEventListener('click', function() {
+                this.classList.remove('unread');
+                updateNotificationBadge();
+            });
+        });
+
+        function updateNotificationBadge() {
+            const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+            const badge = document.getElementById('notificationBadge');
+            badge.textContent = unreadCount;
+            if (unreadCount === 0) {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Consent modal
+        let currentDoctor = '';
+        let currentHospital = '';
+
+        function showRevokeConfirm(doctorName, hospital) {
+            currentDoctor = doctorName;
+            currentHospital = hospital;
+            document.getElementById('modalDescription').textContent = `Revoke ${doctorName}'s access to your medical records from ${hospital}?`;
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        document.getElementById('cancelButton').addEventListener('click', function() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        });
+
+        document.getElementById('confirmButton').addEventListener('click', function() {
+            const cards = document.querySelectorAll('.consent-card');
+
+            cards.forEach(card => {
+                const doctorEl = card.querySelector('.consent-doctor');
+                const hospitalEl = card.querySelector('.consent-hospital');
+                if (doctorEl && doctorEl.textContent === currentDoctor &&
+                    hospitalEl && hospitalEl.textContent === currentHospital) {
+                    card.remove();
+                }
+            });
+
+            document.getElementById('modalOverlay').classList.remove('show');
+        });
+
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
+
+        // Upload functions
+        function simulateUploadClick() {
+            alert('Document upload functionality');
+        }
+
+        function simulatePhotoCapture() {
+            addNewUploadedItem('Photo_Capture_' + new Date().getTime() + '.jpg');
+        }
+
+        function simulateGallerySelect() {
+            addNewUploadedItem('Gallery_Select_' + new Date().getTime() + '.jpg');
+        }
+
+        function addNewUploadedItem(itemName) {
+            const uploadedList = document.getElementById('uploadedList');
+            const newItem = document.createElement('div');
+            newItem.className = 'uploaded-item';
+            newItem.innerHTML = `
+                <span class="uploaded-item-text">${itemName}</span>
+                <div class="uploaded-item-status status-processing">
+                    <span class="status-dot"></span>
+                    <span>Processing</span>
+                </div>
+            `;
+            uploadedList.insertBefore(newItem, uploadedList.firstChild);
+
+            setTimeout(() => {
+                const status = newItem.querySelector('.uploaded-item-status');
+                status.classList.remove('status-processing');
+                status.classList.add('status-ready');
+                status.innerHTML = '<span class="status-dot"></span><span>Ready</span>';
+            }, 2000);
+        }
+
+        // Close notification panel when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            const bell = document.getElementById('notificationBell');
+            const panel = document.getElementById('notificationPanel');
+            if (!bell.contains(e.target) && !panel.contains(e.target)) {
+                closeNotificationPanel();
+            }
+        });
+    </script>
+</body>
+</html>
