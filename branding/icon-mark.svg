@@ -60,7 +60,7 @@
   <line x1="256" y1="42" x2="92" y2="120" stroke="#2EC4B6" stroke-width="2" opacity="0.3"/>
 
   <!-- ═══ MEDICAL CROSS (bolder, more visible) ═══ -->
-  <g transform="translate(256, 252)" filter="url(#crossGlow)">
+  <g transform="translate(256, 252) scale(1.35)" filter="url(#crossGlow)">
     <!-- Vertical bar of cross -->
     <rect x="-24" y="-80" width="48" height="160" rx="9" fill="url(#crossGrad)" opacity="0.45"/>
     <!-- Horizontal bar of cross -->
@@ -71,7 +71,7 @@
   </g>
 
   <!-- ═══ BRAIN + NEURAL NETWORK (on top of cross) ═══ -->
-  <g transform="translate(256, 248) scale(1.1)" filter="url(#softGlow)">
+  <g transform="translate(256, 248) scale(1.45)" filter="url(#softGlow)">
 
     <!-- Brain fill (dark backdrop so cross doesn't bleed through) -->
     <path d="M0 -58 C-42 -56 -62 -36 -64 -10 C-68 16 -54 32 -40 40 C-44 46 -42 54 -32 58 C-22 62 -12 58 -4 50 C-4 58 4 58 4 50 C12 58 22 62 32 58 C42 54 44 46 40 40 C54 32 68 16 64 -10 C62 -36 42 -56 0 -58Z"
