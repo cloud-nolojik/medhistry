@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MedHistry — Doctor App Prototype</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--p:#2C3E50;--pd:#1A2530;--pl:#EBF0F5;--acc:#4A90D9;--accd:#3A7BC8;--accl:#E8F1FB;--dng:#E74C3C;--dng-lt:#FEF2F2;--wrn:#F39C12;--wrn-lt:#FEF3C7;--suc:#27AE60;--suc-lt:#F0FDF4;--t:#1A1A2E;--ts:#6B7280;--tl:#9CA3AF;--bg:#F8FAFC;--w:#FFF;--brd:#E5E7EB;--sh:0 1px 3px rgba(0,0,0,.08);--r:16px;--rs:12px;--rx:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1A1A2E;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.pf{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3);border:8px solid #2A2A3E}
+.s{display:none;flex-direction:column;height:100%;width:100%;position:absolute;top:0;left:0;background:var(--bg);animation:fi .25s ease}
+.s.a{display:flex}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 8px;font-size:14px;font-weight:600;color:var(--t);flex-shrink:0}
+.sb .r{display:flex;gap:6px;align-items:center;font-size:12px}
+.ct{flex:1;overflow-y:auto;padding:0 24px 20px}.ct::-webkit-scrollbar{display:none}
+.cen{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 32px;text-align:center}
+.bp{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--p);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.bp:active{background:var(--pd)}
+.bp.acc{background:var(--acc)}.bp.acc:active{background:var(--accd)}
+.bp.out{background:transparent;color:var(--p);border:2px solid var(--brd)}.bp.out:active{background:var(--pl)}
+.phone-input{display:flex;align-items:center;gap:12px;padding:16px;background:var(--w);border:2px solid var(--brd);border-radius:var(--rs);font-size:18px;font-weight:600;color:var(--t)}
+.phone-input:focus-within{border-color:var(--acc)}
+.phone-input .prefix{color:var(--ts);font-weight:500}
+.phone-input input{border:none;outline:none;font-size:18px;font-weight:600;color:var(--t);font-family:inherit;flex:1;background:transparent}
+.text-input{width:100%;padding:16px;background:var(--w);border:2px solid var(--brd);border-radius:var(--rs);font-size:16px;font-weight:500;color:var(--t);font-family:inherit;outline:none}
+.text-input:focus{border-color:var(--acc)}
+.text-input::placeholder{color:var(--tl)}
+.otp-wrap{display:flex;gap:12px;justify-content:center;margin:32px 0}
+.otp-box{width:48px;height:56px;border:2px solid var(--brd);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;font-family:'SF Mono',Menlo,Consolas,monospace;color:var(--t);background:var(--w)}
+.otp-box.f{border-color:var(--acc);background:var(--accl)}
+.np{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:300px;margin-top:16px}
+.nk{height:52px;border:none;border-radius:var(--rs);font-size:22px;font-weight:600;color:var(--t);background:var(--w);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh)}
+.nk:active{background:var(--pl)}.nk.e{background:transparent;box-shadow:none;cursor:default}.nk.bs{font-size:18px;background:var(--bg);box-shadow:none}
+
+/* Code Entry */
+.code-input-group{display:flex;gap:10px;margin-bottom:32px}
+.code-input{width:48px;height:60px;border:2px solid var(--brd);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;font-family:'SF Mono',Menlo,Consolas,monospace;color:var(--t);background:var(--w)}
+.code-input.filled{border-color:var(--acc);background:var(--accl)}
+.code-status{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:var(--rx);font-size:14px;font-weight:500}
+.code-status.searching{background:var(--accl);color:var(--acc)}
+
+/* Loading */
+.loading-spinner{width:56px;height:56px;border-radius:50%;border:4px solid var(--brd);border-top-color:var(--acc);animation:spin .8s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Briefing Card */
+.briefing-header{padding:20px 24px;background:var(--w);border-bottom:1px solid var(--brd);flex-shrink:0}
+.patient-row{display:flex;justify-content:space-between;align-items:center}
+.patient-name{font-size:22px;font-weight:700;color:var(--t)}
+.patient-meta{font-size:14px;color:var(--ts);margin-top:4px}
+.session-badge{padding:6px 14px;background:var(--suc-lt);color:var(--suc);border-radius:20px;font-size:12px;font-weight:600}
+.critical-banner{background:var(--dng);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.critical-banner .icon{font-size:22px;flex-shrink:0}
+.critical-banner .text{font-size:14px;font-weight:600;line-height:1.4}
+.critical-banner .sub{font-size:12px;font-weight:400;opacity:.85}
+.section{margin-bottom:4px;background:var(--w);border-bottom:1px solid var(--brd)}
+.section-head{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;cursor:pointer}
+.section-label{font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.8px}
+.section-count{font-size:12px;font-weight:600;color:var(--acc);background:var(--accl);padding:2px 10px;border-radius:10px}
+.section-body{padding:0 24px 16px}
+.condition-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 16px;border-radius:24px;font-size:14px;font-weight:600}
+.chip.active{background:#EBF5FF;color:#1E40AF}.chip.monitoring{background:#FEF3C7;color:#92400E}
+.med-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #F3F4F6}.med-row:last-child{border-bottom:none}
+.med-dot{width:8px;height:8px;border-radius:50%;background:var(--acc);flex-shrink:0}
+.med-detail{flex:1}.med-drug{font-size:15px;font-weight:600;color:var(--t)}.med-dosage{font-size:13px;color:var(--ts);margin-top:2px}
+.med-freq{font-size:12px;font-weight:600;color:var(--tl);background:var(--bg);padding:4px 10px;border-radius:8px;white-space:nowrap}
+.lab-brief{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6}.lab-brief:last-child{border-bottom:none}
+.lab-brief-name{font-size:14px;color:var(--t);font-weight:500}
+.lab-brief-val{font-size:14px;font-weight:700}
+.lab-brief-val.normal{color:var(--suc)}.lab-brief-val.high{color:var(--dng)}.lab-brief-val.low{color:var(--wrn)}
+.lab-brief-range{font-size:11px;color:var(--tl)}
+.visit-card{padding:16px;background:var(--bg);border-radius:var(--rs);border-left:4px solid var(--acc)}
+.visit-doctor{font-size:15px;font-weight:600;color:var(--t)}.visit-hospital{font-size:13px;color:var(--ts);margin-top:2px}
+.visit-date{font-size:12px;color:var(--tl);margin-top:8px}.visit-note{font-size:14px;color:var(--ts);margin-top:10px;line-height:1.5}
+.pending-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:var(--wrn-lt);border-radius:var(--rx);margin-bottom:10px;border-left:4px solid var(--wrn)}.pending-item:last-child{margin-bottom:0}
+.pending-icon{font-size:18px;flex-shrink:0;margin-top:1px}.pending-text{font-size:14px;color:#92400E;font-weight:500;line-height:1.4}.pending-age{font-size:12px;color:#B45309;margin-top:4px}
+.done-bar{padding:16px 24px 32px;background:var(--w);border-top:1px solid var(--brd);flex-shrink:0}
+.btn-done{width:100%;padding:16px;background:var(--p);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-done:active{background:var(--pd)}
+
+/* Ended */
+.ended-icon{width:80px;height:80px;border-radius:50%;background:var(--suc-lt);display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:24px}
+
+/* Dashboard */
+.dash-card{background:var(--w);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:var(--sh);border:1px solid var(--brd)}
+.dash-cta{background:linear-gradient(135deg,var(--p),var(--pd));border-radius:var(--r);padding:28px 24px;margin-bottom:20px;color:#fff;cursor:pointer;text-align:center;border:none;width:100%;font-family:inherit;box-shadow:0 4px 16px rgba(44,62,80,.3)}
+.dash-cta:active{opacity:.9}
+.dash-cta .cta-icon{font-size:36px;margin-bottom:12px}
+.dash-cta h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.dash-cta p{font-size:14px;opacity:.75}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;margin-top:8px}
+.sh h2{font-size:18px;font-weight:700;color:var(--t)}.sh span{font-size:13px;color:var(--tl);font-weight:500}
+.tp-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--brd)}.tp-item:last-child{border-bottom:none}
+.tp-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.tp-info{flex:1}.tp-nm{font-size:15px;font-weight:600;color:var(--t)}.tp-meta{font-size:12px;color:var(--ts);margin-top:2px}
+.tp-time{font-size:12px;color:var(--tl);font-weight:500}
+
+/* Bottom Nav */
+.bn{display:flex;justify-content:space-around;align-items:center;padding:12px 16px 28px;background:var(--w);border-top:1px solid var(--brd);flex-shrink:0}
+.ni{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 12px;border:none;background:none;font-family:inherit}
+.ni svg{width:24px;height:24px;color:var(--tl)}.ni span{font-size:11px;color:var(--tl);font-weight:500}
+.ni.ac svg{color:var(--acc)}.ni.ac span{color:var(--acc);font-weight:600}
+
+/* Profile */
+.prof-av{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--acc));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#fff;margin:0 auto 16px}
+.prof-nm{font-size:22px;font-weight:700;color:var(--t);text-align:center}
+.prof-spec{font-size:14px;color:var(--ts);text-align:center;margin-top:4px}
+.prof-hosp{font-size:13px;color:var(--acc);text-align:center;margin-top:4px;font-weight:500}
+.stat-row{display:flex;gap:12px;margin:24px 0}
+.stat-box{flex:1;background:var(--w);border-radius:var(--rs);padding:16px;text-align:center;border:1px solid var(--brd)}
+.stat-val{font-size:24px;font-weight:700;color:var(--t)}.stat-lbl{font-size:12px;color:var(--ts);margin-top:4px}
+.set-item{display:flex;align-items:center;gap:14px;padding:16px;background:var(--w);border-radius:var(--rs);margin-bottom:10px;border:1px solid var(--brd);cursor:pointer}
+.set-item:active{background:var(--bg)}
+.set-ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.set-info{flex:1}.set-nm{font-size:15px;font-weight:600;color:var(--t)}.set-desc{font-size:12px;color:var(--ts);margin-top:2px}
+.set-arrow{color:var(--tl);font-size:18px}
+
+/* Invite Code */
+.invite-input{display:flex;gap:10px;justify-content:center;margin:32px 0}
+.inv-box{width:44px;height:56px;border:2px solid var(--brd);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;font-family:'SF Mono',Menlo,Consolas,monospace;color:var(--t);background:var(--w);text-transform:uppercase}
+.inv-box.f{border-color:var(--acc);background:var(--accl)}
+
+/* Onboarding dots */
+.dots{display:flex;gap:8px;justify-content:center;margin-top:32px}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)}.dot.ac{background:#fff;width:24px;border-radius:4px}
+
+/* Back button */
+.back-btn{display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;border:none;background:none;font-family:inherit;font-size:14px;color:var(--acc);font-weight:600;margin-bottom:16px}
+.back-btn:active{opacity:.7}
+</style>
+</head>
+<body>
+<div class="pf">
+
+<!-- ===================== SPLASH ===================== -->
+<div class="s a" id="s-splash">
+<div class="cen" style="background:linear-gradient(135deg,var(--p),#1A252F)">
+  <div style="width:88px;height:88px;border-radius:24px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:24px;backdrop-filter:blur(8px)">
+    <span style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
+  </div>
+  <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:8px">MedHistry</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.6);margin-bottom:4px">For Doctors</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:8px">Know your patient before they walk in.</div>
+  <div style="margin-top:60px;width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.6);animation:spin .8s linear infinite"></div>
+  <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:12px;cursor:pointer" onclick="goTo('s-onboard1')">Tap to continue</div>
+</div>
+</div>
+
+<!-- ===================== ONBOARDING 1 ===================== -->
+<div class="s" id="s-onboard1">
+<div class="cen" style="background:linear-gradient(135deg,#2C3E50,#34495E)">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="goTo('s-splash')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:48px">🩺</div>
+  <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.3">30-Second<br>Patient Briefing</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">Get a structured summary of any patient's medical history — conditions, medications, lab results, and alerts — in under 30 seconds.</div>
+  <div class="dots"><div class="dot ac"></div><div class="dot"></div><div class="dot"></div></div>
+  <button class="bp" style="margin-top:40px;max-width:280px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px)" onclick="goTo('s-onboard2')">Next</button>
+</div>
+</div>
+
+<!-- ===================== ONBOARDING 2 ===================== -->
+<div class="s" id="s-onboard2">
+<div class="cen" style="background:linear-gradient(135deg,#2C3E50,#34495E)">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="goTo('s-onboard1')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:48px">🔐</div>
+  <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.3">Patient-Consented<br>Access Only</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">Patients share a temporary 6-digit code from their app. Enter the code to view their history. Access auto-expires — no data is stored on your device.</div>
+  <div class="dots"><div class="dot"></div><div class="dot ac"></div><div class="dot"></div></div>
+  <button class="bp" style="margin-top:40px;max-width:280px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px)" onclick="goTo('s-onboard3')">Next</button>
+</div>
+</div>
+
+<!-- ===================== ONBOARDING 3 ===================== -->
+<div class="s" id="s-onboard3">
+<div class="cen" style="background:linear-gradient(135deg,#2C3E50,#34495E)">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="goTo('s-onboard2')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:48px">🏥</div>
+  <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.3">Works With Your<br>Existing Setup</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">MedHistry complements your HMS — not replaces it. No queues, no booking, no admin. Just open the app, enter the code, and see the patient's history.</div>
+  <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot ac"></div></div>
+  <button class="bp" style="margin-top:40px;max-width:280px;background:#fff;color:var(--p)" onclick="goTo('s-invite')">Get Started</button>
+</div>
+</div>
+
+<!-- ===================== HOSPITAL INVITE CODE ===================== -->
+<div class="s" id="s-invite">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="padding:0 24px 4px"><div style="cursor:pointer;padding:4px 0" onclick="goTo('s-onboard3')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div></div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+  <div style="width:72px;height:72px;border-radius:20px;background:var(--accl);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:32px">🏥</div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);margin-bottom:8px">Hospital Invite Code</div>
+  <div style="font-size:14px;color:var(--ts);line-height:1.6;margin-bottom:8px;max-width:300px">Enter the 8-character invite code provided by your hospital administrator to verify your account.</div>
+  <div style="font-size:13px;color:var(--acc);font-weight:500;margin-bottom:20px;cursor:pointer">Don't have a code? Contact your hospital admin</div>
+
+  <div class="invite-input">
+    <div class="inv-box f" id="inv1">J</div>
+    <div class="inv-box f" id="inv2">D</div>
+    <div class="inv-box f" id="inv3">V</div>
+    <div class="inv-box f" id="inv4">A</div>
+    <div class="inv-box" id="inv5"></div>
+    <div class="inv-box" id="inv6"></div>
+    <div class="inv-box" id="inv7"></div>
+    <div class="inv-box" id="inv8"></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--accl);border-radius:var(--rx);margin-bottom:24px;width:100%;text-align:left">
+    <span style="font-size:18px;flex-shrink:0">ℹ️</span>
+    <span style="font-size:13px;color:var(--accd);line-height:1.4">This code links your account to your hospital and verifies you as a registered doctor.</span>
+  </div>
+
+  <button class="bp acc" onclick="goTo('s-signup')" style="width:100%">Verify & Continue</button>
+  <div style="margin-top:20px;margin-bottom:20px;font-size:13px;color:var(--ts)">Already registered? <span style="color:var(--acc);font-weight:600;cursor:pointer" onclick="goTo('s-login')">Log in</span></div>
+</div>
+</div>
+
+<!-- ===================== SIGNUP ===================== -->
+<div class="s" id="s-signup">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="ct" style="padding:0 24px 20px">
+  <button class="back-btn" onclick="goTo('s-invite')">← Back</button>
+
+  <div style="font-size:26px;font-weight:700;color:var(--t);margin-bottom:4px">Create Your Account</div>
+  <div style="font-size:14px;color:var(--ts);margin-bottom:28px;line-height:1.5">Set up your doctor profile to start using MedHistry.</div>
+
+  <div style="margin-bottom:20px">
+    <label style="font-size:13px;font-weight:600;color:var(--ts);display:block;margin-bottom:8px">Full Name</label>
+    <input class="text-input" placeholder="Dr. Priya Sharma" value="Dr. Priya Sharma">
+  </div>
+
+  <div style="margin-bottom:20px">
+    <label style="font-size:13px;font-weight:600;color:var(--ts);display:block;margin-bottom:8px">Specialization</label>
+    <input class="text-input" placeholder="e.g. General Medicine" value="General Medicine">
+  </div>
+
+  <div style="margin-bottom:20px">
+    <label style="font-size:13px;font-weight:600;color:var(--ts);display:block;margin-bottom:8px">Registration Number</label>
+    <input class="text-input" placeholder="MCI / State council number" value="KMC-28451">
+  </div>
+
+  <div style="margin-bottom:24px">
+    <label style="font-size:13px;font-weight:600;color:var(--ts);display:block;margin-bottom:8px">Phone Number</label>
+    <div class="phone-input">
+      <span class="prefix">+91</span>
+      <input placeholder="98765 43210" value="98765 43210">
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;background:var(--suc-lt);border-radius:var(--rx);margin-bottom:24px;border-left:4px solid var(--suc)">
+    <span style="font-size:16px;flex-shrink:0">✓</span>
+    <div>
+      <div style="font-size:13px;color:#166534;font-weight:600">Hospital Verified</div>
+      <div style="font-size:12px;color:#15803D;margin-top:2px">Jadeva Hospital, Bangalore</div>
+    </div>
+  </div>
+
+  <button class="bp acc" onclick="goTo('s-otp')" style="width:100%">Send OTP to Verify Phone</button>
+</div>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<div class="s" id="s-login">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="padding:0 24px 4px"><div style="cursor:pointer;padding:4px 0" onclick="goTo('s-invite')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div></div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:40px">
+  <div style="width:64px;height:64px;border-radius:18px;background:var(--p);display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+    <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
+  </div>
+  <div style="font-size:26px;font-weight:700;color:var(--t);margin-bottom:8px">Welcome Back</div>
+  <div style="font-size:14px;color:var(--ts);margin-bottom:32px">Log in with your registered phone number</div>
+
+  <div style="width:100%;margin-bottom:24px">
+    <div class="phone-input">
+      <span class="prefix">+91</span>
+      <input placeholder="Your phone number" value="98765 43210">
+    </div>
+  </div>
+
+  <button class="bp acc" onclick="goTo('s-otp')" style="width:100%">Send OTP</button>
+
+  <div style="margin-top:24px;font-size:13px;color:var(--ts)">New to MedHistry? <span style="color:var(--acc);font-weight:600;cursor:pointer" onclick="goTo('s-invite')">Register with invite code</span></div>
+</div>
+</div>
+
+<!-- ===================== OTP VERIFICATION ===================== -->
+<div class="s" id="s-otp">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="padding:0 24px 4px"><div style="cursor:pointer;padding:4px 0" onclick="goTo('s-signup')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div></div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:20px">
+  <div style="font-size:26px;font-weight:700;color:var(--t);margin-bottom:8px">Verify Your Number</div>
+  <div style="font-size:14px;color:var(--ts);margin-bottom:8px">We sent a 6-digit code to</div>
+  <div style="font-size:16px;font-weight:600;color:var(--t);margin-bottom:24px">+91 98765 43210</div>
+
+  <div class="otp-wrap">
+    <div class="otp-box f">4</div>
+    <div class="otp-box f">7</div>
+    <div class="otp-box f">2</div>
+    <div class="otp-box f">9</div>
+    <div class="otp-box">_</div>
+    <div class="otp-box">_</div>
+  </div>
+
+  <div class="np">
+    <button class="nk" onclick="completeOtp()">1</button>
+    <button class="nk" onclick="completeOtp()">2</button>
+    <button class="nk" onclick="completeOtp()">3</button>
+    <button class="nk" onclick="completeOtp()">4</button>
+    <button class="nk" onclick="completeOtp()">5</button>
+    <button class="nk" onclick="completeOtp()">6</button>
+    <button class="nk" onclick="completeOtp()">7</button>
+    <button class="nk" onclick="completeOtp()">8</button>
+    <button class="nk" onclick="completeOtp()">9</button>
+    <button class="nk e"></button>
+    <button class="nk" onclick="completeOtp()">0</button>
+    <button class="nk bs">⌫</button>
+  </div>
+
+  <div style="margin-top:24px;margin-bottom:20px;font-size:13px;color:var(--ts)">Didn't receive code? <span style="color:var(--acc);font-weight:600;cursor:pointer">Resend in 28s</span></div>
+</div>
+</div>
+
+<!-- ===================== DASHBOARD ===================== -->
+<div class="s" id="s-dash">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div style="padding:4px 24px 16px;flex-shrink:0">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:14px;color:var(--ts)">Good morning,</div>
+      <div style="font-size:24px;font-weight:700;color:var(--t)">Dr. Priya</div>
+    </div>
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--acc));display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="goTo('s-profile')">
+      <span style="font-size:16px;font-weight:700;color:#fff">PS</span>
+    </div>
+  </div>
+</div>
+
+<div class="ct">
+  <!-- Main CTA -->
+  <button class="dash-cta" onclick="goTo('s-entry')">
+    <div class="cta-icon">🔢</div>
+    <h2>Enter Patient Code</h2>
+    <p>Ask patient for their 6-digit MedHistry code</p>
+  </button>
+
+  <!-- Today's Patients -->
+  <div class="sh">
+    <h2>Today's Patients</h2>
+    <span>3 viewed</span>
+  </div>
+  <div class="dash-card" style="padding:4px 20px">
+    <div class="tp-item">
+      <div class="tp-av" style="background:#5B8DEF">RK</div>
+      <div class="tp-info">
+        <div class="tp-nm">Rajesh Kumar</div>
+        <div class="tp-meta">52y · Hypertension, Diabetes</div>
+      </div>
+      <div class="tp-time">9:15 AM</div>
+    </div>
+    <div class="tp-item">
+      <div class="tp-av" style="background:#E67E22">AM</div>
+      <div class="tp-info">
+        <div class="tp-nm">Anita Menon</div>
+        <div class="tp-meta">38y · Thyroid, Asthma</div>
+      </div>
+      <div class="tp-time">9:42 AM</div>
+    </div>
+    <div class="tp-item">
+      <div class="tp-av" style="background:#2ECC71">SG</div>
+      <div class="tp-info">
+        <div class="tp-nm">Suresh Gupta</div>
+        <div class="tp-meta">67y · Post-cardiac stent</div>
+      </div>
+      <div class="tp-time">10:08 AM</div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="sh" style="margin-top:4px">
+    <h2>This Week</h2>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:20px">
+    <div style="flex:1;background:var(--w);border-radius:var(--rs);padding:16px;text-align:center;border:1px solid var(--brd)">
+      <div style="font-size:28px;font-weight:700;color:var(--t)">18</div>
+      <div style="font-size:12px;color:var(--ts);margin-top:4px">Patients Viewed</div>
+    </div>
+    <div style="flex:1;background:var(--w);border-radius:var(--rs);padding:16px;text-align:center;border:1px solid var(--brd)">
+      <div style="font-size:28px;font-weight:700;color:var(--acc)">24s</div>
+      <div style="font-size:12px;color:var(--ts);margin-top:4px">Avg. Review Time</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bn">
+  <button class="ni ac" onclick="goTo('s-dash')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="ni" onclick="goTo('s-entry')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Enter Code</span>
+  </button>
+  <button class="ni" onclick="goTo('s-profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </button>
+</div>
+</div>
+
+<!-- ===================== CODE ENTRY ===================== -->
+<div class="s" id="s-entry">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 24px">
+  <div style="width:64px;height:64px;border-radius:16px;background:var(--p);display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+    <span style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
+  </div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);text-align:center;margin-bottom:8px">Enter Patient Code</div>
+  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:40px;line-height:1.5">Ask your patient to show the<br>6-digit code from their MedHistry app</div>
+
+  <div class="code-input-group">
+    <div class="code-input" id="d1"></div>
+    <div class="code-input" id="d2"></div>
+    <div class="code-input" id="d3"></div>
+    <div class="code-input" id="d4"></div>
+    <div class="code-input" id="d5"></div>
+    <div class="code-input" id="d6"></div>
+  </div>
+
+  <div id="code-feedback"></div>
+
+  <div class="np" style="max-width:300px">
+    <button class="nk" onclick="typeDigit('1')">1</button>
+    <button class="nk" onclick="typeDigit('2')">2</button>
+    <button class="nk" onclick="typeDigit('3')">3</button>
+    <button class="nk" onclick="typeDigit('4')">4</button>
+    <button class="nk" onclick="typeDigit('5')">5</button>
+    <button class="nk" onclick="typeDigit('6')">6</button>
+    <button class="nk" onclick="typeDigit('7')">7</button>
+    <button class="nk" onclick="typeDigit('8')">8</button>
+    <button class="nk" onclick="typeDigit('9')">9</button>
+    <button class="nk e"></button>
+    <button class="nk" onclick="typeDigit('0')">0</button>
+    <button class="nk bs" onclick="backspace()">⌫</button>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bn">
+  <button class="ni" onclick="goTo('s-dash')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="ni ac" onclick="goTo('s-entry')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Enter Code</span>
+  </button>
+  <button class="ni" onclick="goTo('s-profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </button>
+</div>
+</div>
+
+<!-- ===================== LOADING ===================== -->
+<div class="s" id="s-loading">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="cen">
+  <div class="loading-spinner"></div>
+  <div style="font-size:16px;font-weight:600;color:var(--t)">Loading patient briefing...</div>
+  <div style="font-size:14px;color:var(--ts);margin-top:6px">Preparing health summary</div>
+</div>
+</div>
+
+<!-- ===================== BRIEFING CARD ===================== -->
+<div class="s" id="s-briefing">
+<div class="sb" style="background:var(--w)"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div class="briefing-header">
+  <div class="patient-row">
+    <div>
+      <div class="patient-name">Rajesh Kumar</div>
+      <div class="patient-meta">52 years · Male · +91 98765 43210</div>
+    </div>
+    <div class="session-badge">Active</div>
+  </div>
+</div>
+
+<div class="critical-banner">
+  <span class="icon">⚠️</span>
+  <div>
+    <div class="text">CRITICAL: Known Penicillin Allergy</div>
+    <div class="sub">Severe reaction — Document clearly before prescribing</div>
+  </div>
+</div>
+
+<div class="ct" style="padding:0">
+  <!-- Active Conditions -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-label">Active Conditions</span>
+      <span class="section-count">3</span>
+    </div>
+    <div class="section-body">
+      <div class="condition-chips">
+        <span class="chip active">Hypertension</span>
+        <span class="chip active">Type 2 Diabetes</span>
+        <span class="chip monitoring">Hyperlipidemia</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Current Medications -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-label">Current Medications</span>
+      <span class="section-count">3</span>
+    </div>
+    <div class="section-body">
+      <div class="med-row"><div class="med-dot"></div><div class="med-detail"><div class="med-drug">Amlodipine 5mg</div><div class="med-dosage">For hypertension · Since Jan 2024</div></div><div class="med-freq">OD</div></div>
+      <div class="med-row"><div class="med-dot"></div><div class="med-detail"><div class="med-drug">Metformin 500mg</div><div class="med-dosage">For diabetes · Increased Feb 2026</div></div><div class="med-freq">BD</div></div>
+      <div class="med-row"><div class="med-dot"></div><div class="med-detail"><div class="med-drug">Ecosprin 75mg</div><div class="med-dosage">Blood thinner · Since Mar 2025</div></div><div class="med-freq">OD</div></div>
+    </div>
+  </div>
+
+  <!-- Recent Lab Values -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-label">Recent Lab Values</span>
+      <span class="section-count">Mar 15</span>
+    </div>
+    <div class="section-body">
+      <div class="lab-brief"><div><div class="lab-brief-name">Fasting Blood Sugar</div><div class="lab-brief-range">Normal: 70–100 mg/dL</div></div><div class="lab-brief-val high">145 mg/dL ↑</div></div>
+      <div class="lab-brief"><div><div class="lab-brief-name">HbA1c</div><div class="lab-brief-range">Target: &lt;7.0%</div></div><div class="lab-brief-val high">7.2% ↑</div></div>
+      <div class="lab-brief"><div><div class="lab-brief-name">Blood Pressure</div><div class="lab-brief-range">Target: &lt;140/90</div></div><div class="lab-brief-val normal">130/80 ✓</div></div>
+      <div class="lab-brief"><div><div class="lab-brief-name">Total Cholesterol</div><div class="lab-brief-range">Normal: &lt;200 mg/dL</div></div><div class="lab-brief-val high">232 mg/dL ↑</div></div>
+    </div>
+  </div>
+
+  <!-- Last Visit -->
+  <div class="section">
+    <div class="section-head"><span class="section-label">Last Visit</span></div>
+    <div class="section-body">
+      <div class="visit-card">
+        <div class="visit-doctor">Dr. Vivek Malhotra</div>
+        <div class="visit-hospital">City Care Hospital, Mumbai</div>
+        <div class="visit-date">March 15, 2026 · Routine follow-up</div>
+        <div class="visit-note">BP well controlled. Continue current meds. Metformin dosage adequate. Ordered LFT to check liver function. Advised dietary changes for cholesterol.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Investigations -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-label">Pending Investigations</span>
+      <span class="section-count" style="background:var(--wrn-lt);color:#92400E">2</span>
+    </div>
+    <div class="section-body">
+      <div class="pending-item"><span class="pending-icon">⚠️</span><div><div class="pending-text">LFT (Liver Function Test)</div><div class="pending-age">Ordered 18 days ago — no result received</div></div></div>
+      <div class="pending-item"><span class="pending-icon">🔄</span><div><div class="pending-text">HbA1c — Due for repeat</div><div class="pending-age">Last done 3 months ago</div></div></div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+</div>
+
+<div class="done-bar">
+  <button class="btn-done" onclick="endSession()">✓ Done — Close Summary</button>
+</div>
+</div>
+
+<!-- ===================== SESSION ENDED ===================== -->
+<div class="s" id="s-ended">
+<div class="sb"><span>10:35</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="cen">
+  <div class="ended-icon">✓</div>
+  <div style="font-size:22px;font-weight:700;color:var(--t);margin-bottom:8px">Session Closed</div>
+  <div style="font-size:14px;color:var(--ts);line-height:1.5;margin-bottom:40px">Patient summary for Rajesh Kumar has been closed. Access has been revoked.</div>
+  <button class="bp acc" onclick="resetAndGoDash()" style="max-width:300px;width:100%">Back to Dashboard</button>
+  <button class="bp out" onclick="resetAndGoEntry()" style="max-width:300px;width:100%;margin-top:12px">Enter Next Patient Code</button>
+</div>
+</div>
+
+<!-- ===================== PROFILE & SETTINGS ===================== -->
+<div class="s" id="s-profile">
+<div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div class="ct">
+  <div class="prof-av">PS</div>
+  <div class="prof-nm">Dr. Priya Sharma</div>
+  <div class="prof-spec">General Medicine</div>
+  <div class="prof-hosp">Jadeva Hospital, Bangalore</div>
+
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-val">142</div>
+      <div class="stat-lbl">Total Patients</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" style="color:var(--acc)">22s</div>
+      <div class="stat-lbl">Avg. Review</div>
+    </div>
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;margin-top:8px">Account</div>
+
+  <div class="set-item">
+    <div class="set-ic" style="background:var(--accl)">👤</div>
+    <div class="set-info"><div class="set-nm">Edit Profile</div><div class="set-desc">Name, specialization, registration</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+  <div class="set-item">
+    <div class="set-ic" style="background:var(--accl)">🏥</div>
+    <div class="set-info"><div class="set-nm">Hospital</div><div class="set-desc">Jadeva Hospital, Bangalore</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+  <div class="set-item">
+    <div class="set-ic" style="background:#F0FDF4">📱</div>
+    <div class="set-info"><div class="set-nm">Phone Number</div><div class="set-desc">+91 98765 43210</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;margin-top:24px">Preferences</div>
+
+  <div class="set-item">
+    <div class="set-ic" style="background:var(--wrn-lt)">🔔</div>
+    <div class="set-info"><div class="set-nm">Notifications</div><div class="set-desc">Access alerts, updates</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+  <div class="set-item">
+    <div class="set-ic" style="background:#F3F4F6">🌐</div>
+    <div class="set-info"><div class="set-nm">Language</div><div class="set-desc">English</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;margin-top:24px">Support</div>
+
+  <div class="set-item">
+    <div class="set-ic" style="background:var(--accl)">❓</div>
+    <div class="set-info"><div class="set-nm">Help & FAQ</div><div class="set-desc">How MedHistry works</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+  <div class="set-item">
+    <div class="set-ic" style="background:var(--dng-lt)">🔒</div>
+    <div class="set-info"><div class="set-nm">Privacy & Data</div><div class="set-desc">DPDPA compliance info</div></div>
+    <span class="set-arrow">›</span>
+  </div>
+
+  <button class="bp out" style="margin-top:24px;color:var(--dng);border-color:var(--dng)" onclick="goTo('s-login')">Log Out</button>
+
+  <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--tl)">MedHistry for Doctors · v1.0.0</div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bn">
+  <button class="ni" onclick="goTo('s-dash')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="ni" onclick="goTo('s-entry')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Enter Code</span>
+  </button>
+  <button class="ni ac" onclick="goTo('s-profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </button>
+</div>
+</div>
+
+</div>
+
+<script>
+let digits = [];
+const maxDigits = 6;
+
+function goTo(id) {
+  document.querySelectorAll('.s').forEach(s => s.classList.remove('a'));
+  document.getElementById(id).classList.add('a');
+}
+
+function typeDigit(d) {
+  if (digits.length >= maxDigits) return;
+  digits.push(d);
+  updateDisplay();
+  if (digits.length === maxDigits) {
+    setTimeout(() => {
+      document.getElementById('code-feedback').innerHTML = '<div class="code-status searching">🔍 Finding patient...</div>';
+      setTimeout(() => goTo('s-loading'), 800);
+      setTimeout(() => goTo('s-briefing'), 2200);
+    }, 300);
+  }
+}
+
+function backspace() {
+  digits.pop();
+  updateDisplay();
+  document.getElementById('code-feedback').innerHTML = '';
+}
+
+function updateDisplay() {
+  for (let i = 1; i <= maxDigits; i++) {
+    const el = document.getElementById('d' + i);
+    if (digits[i - 1]) {
+      el.textContent = digits[i - 1];
+      el.classList.add('filled');
+    } else {
+      el.textContent = '';
+      el.classList.remove('filled');
+    }
+  }
+}
+
+function completeOtp() {
+  goTo('s-dash');
+}
+
+function endSession() {
+  goTo('s-ended');
+}
+
+function resetAndGoDash() {
+  digits = [];
+  updateDisplay();
+  document.getElementById('code-feedback').innerHTML = '';
+  goTo('s-dash');
+}
+
+function resetAndGoEntry() {
+  digits = [];
+  updateDisplay();
+  document.getElementById('code-feedback').innerHTML = '';
+  goTo('s-entry');
+}
+</script>
+</body>
+</html>

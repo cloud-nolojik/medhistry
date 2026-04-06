@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MedHistry — Patient App</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--p:#4A90D9;--pd:#3A7BC8;--pl:#E8F1FB;--acc:#2ECC71;--accd:#27AE60;--dng:#E74C3C;--wrn:#F39C12;--t:#1A1A2E;--ts:#6B7280;--tl:#9CA3AF;--bg:#F8FAFC;--w:#FFF;--brd:#E5E7EB;--sh:0 1px 3px rgba(0,0,0,.08);--r:16px;--rs:12px;--rx:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1A1A2E;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.pf{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3);border:8px solid #2A2A3E}
+.s{display:none;flex-direction:column;height:100%;width:100%;position:absolute;top:0;left:0;background:var(--bg);animation:fi .25s ease}
+.s.a{display:flex}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 8px;font-size:14px;font-weight:600;color:var(--t);flex-shrink:0}
+.sb .r{display:flex;gap:6px;align-items:center;font-size:12px}
+.hd{padding:4px 24px 16px;flex-shrink:0}
+.hd h1{font-size:28px;font-weight:700;color:var(--t);line-height:1.2}
+.hd p{font-size:14px;color:var(--ts);margin-top:4px}
+.hr{display:flex;justify-content:space-between;align-items:center}
+.bn{display:flex;justify-content:space-around;align-items:center;padding:12px 16px 28px;background:var(--w);border-top:1px solid var(--brd);flex-shrink:0}
+.ni{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 12px;border:none;background:none;font-family:inherit}
+.ni svg{width:24px;height:24px;color:var(--tl)}.ni span{font-size:11px;color:var(--tl);font-weight:500}
+.ni.ac svg{color:var(--p)}.ni.ac span{color:var(--p);font-weight:600}
+.ct{flex:1;overflow-y:auto;padding:0 24px 20px}.ct::-webkit-scrollbar{display:none}
+.cd{background:var(--w);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:var(--sh);border:1px solid var(--brd)}
+.sc{background:linear-gradient(135deg,var(--p),var(--pd));border-radius:var(--r);padding:24px;margin-bottom:20px;color:#fff;border:none;box-shadow:0 4px 16px rgba(74,144,217,.3)}
+.sc h3{font-size:14px;font-weight:500;opacity:.85;margin-bottom:12px}
+.ct-tags{display:flex;flex-wrap:wrap;gap:8px}
+.ct-tag{background:rgba(255,255,255,.2);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500}
+.mi{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--brd)}.mi:last-child{border-bottom:none}
+.mic{width:44px;height:44px;border-radius:12px;background:var(--pl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.mif{flex:1}.mn{font-size:15px;font-weight:600;color:var(--t)}.md{font-size:13px;color:var(--ts);margin-top:2px}
+.ti{display:flex;gap:16px;padding-bottom:24px;position:relative}
+.tl{position:absolute;left:19px;top:44px;bottom:0;width:2px;background:var(--brd)}.ti:last-child .tl{display:none}
+.td{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;z-index:1}
+.td.rx{background:#EBF5FF}.td.lb{background:#F0FDF4}.td.vi{background:#FEF3C7}.td.sn{background:#FDF2F8}
+.tc{flex:1}.tdt{font-size:12px;color:var(--tl);font-weight:500;margin-bottom:4px}
+.tt{font-size:15px;font-weight:600;color:var(--t)}.tds{font-size:13px;color:var(--ts);margin-top:4px;line-height:1.5}
+.pa{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#FEF3C7;border-radius:var(--rx);border-left:4px solid var(--wrn);margin-bottom:16px}
+.pa .ic{font-size:20px;flex-shrink:0}.pa .tx{font-size:13px;color:#92400E;font-weight:500;line-height:1.4}
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.qi{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 12px;background:var(--w);border-radius:var(--rs);border:1px solid var(--brd);cursor:pointer}
+.qi:active{background:var(--pl);border-color:var(--p)}
+.qic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.ql{font-size:13px;font-weight:600;color:var(--t)}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;margin-top:8px}
+.sh h2{font-size:18px;font-weight:700;color:var(--t)}.sh a{font-size:14px;color:var(--p);font-weight:600;cursor:pointer}
+.lr{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--brd)}.lr:last-child{border-bottom:none}
+.lnm{font-size:14px;font-weight:500;color:var(--t)}.lv{font-size:14px;font-weight:600}
+.lv.n{color:var(--accd)}.lv.h{color:var(--dng)}
+.ls{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+.ls.n{background:#F0FDF4;color:var(--accd)}.ls.h{background:#FEF2F2;color:var(--dng)}
+.bp{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:var(--p);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.bp:active{background:var(--pd)}
+.dc{display:flex;align-items:center;gap:14px;padding:16px;background:var(--w);border-radius:var(--rs);border:1px solid var(--brd);margin-bottom:12px;cursor:pointer}
+.dc:active{background:var(--bg)}
+.dic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.dic.rx{background:#EBF5FF}.dic.lb{background:#F0FDF4}.dic.rp{background:#FEF3C7}
+.di{flex:1}.dit{font-size:15px;font-weight:600;color:var(--t)}.dim{font-size:12px;color:var(--ts);margin-top:3px}
+.phone-input{display:flex;align-items:center;gap:12px;padding:16px;background:var(--w);border:2px solid var(--brd);border-radius:var(--rs);font-size:18px;font-weight:600;color:var(--t)}
+.phone-input:focus-within{border-color:var(--p)}
+.phone-input .prefix{color:var(--ts);font-weight:500}
+.phone-input input{border:none;outline:none;font-size:18px;font-weight:600;color:var(--t);font-family:inherit;flex:1;background:transparent}
+.otp-wrap{display:flex;gap:12px;justify-content:center;margin:32px 0}
+.otp-box{width:48px;height:56px;border:2px solid var(--brd);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;font-family:'SF Mono',Menlo,Consolas,monospace;color:var(--t);background:var(--w)}
+.otp-box.f{border-color:var(--p);background:var(--pl)}
+.np{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:300px;margin-top:16px}
+.nk{height:52px;border:none;border-radius:var(--rs);font-size:22px;font-weight:600;color:var(--t);background:var(--w);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh)}
+.nk:active{background:var(--pl)}.nk.e{background:transparent;box-shadow:none}.nk.bs{font-size:18px;background:var(--bg);box-shadow:none}
+.ai{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--brd);align-items:center}.ai:last-child{border-bottom:none}
+.aav{width:44px;height:44px;border-radius:50%;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ainf{flex:1}.ainm{font-size:15px;font-weight:600;color:var(--t)}.aim{font-size:12px;color:var(--ts);margin-top:2px}
+.adur{font-size:12px;color:var(--tl);background:var(--bg);padding:4px 10px;border-radius:8px;font-weight:500}
+.cen{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 32px;text-align:center}
+.consent-card{background:var(--pl);border-radius:var(--r);padding:20px;margin-bottom:24px;border:1px solid rgba(74,144,217,.2);text-align:left;width:100%}
+.consent-card h3{font-size:16px;font-weight:700;color:var(--t);margin-bottom:12px}
+.ci{display:flex;align-items:flex-start;gap:10px;padding:8px 0}
+.ci .cii{font-size:16px;flex-shrink:0;margin-top:1px}
+.ci .cit{font-size:14px;color:var(--ts);line-height:1.5}
+.ci .cit strong{color:var(--t)}
+.code-digits{display:flex;gap:12px;margin-bottom:24px}
+.code-d{width:52px;height:68px;background:var(--w);border:2px solid var(--p);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:var(--t);font-family:'SF Mono',Menlo,Consolas,monospace;box-shadow:0 2px 8px rgba(74,144,217,.15)}
+.code-timer{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.timer-ring{width:32px;height:32px;border-radius:50%;border:3px solid var(--brd);border-top-color:var(--p);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--p);animation:sp 60s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.code-sec{display:flex;align-items:center;gap:8px;margin-top:16px;padding:12px 20px;background:#F0FDF4;border-radius:12px}
+.code-sec span{font-size:13px;color:var(--accd);font-weight:500}
+</style>
+</head>
+<body>
+<div class="pf">
+
+<!-- SPLASH -->
+<div class="s a" id="s-splash">
+<div class="cen" style="background:linear-gradient(135deg,var(--p),var(--pd))">
+  <div style="width:88px;height:88px;border-radius:24px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;margin-bottom:24px;backdrop-filter:blur(8px)">
+    <span style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
+  </div>
+  <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:8px">MedHistry</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.75);margin-bottom:60px">Your health story, in your hands</div>
+  <button class="bp" style="background:rgba(255,255,255,.2);backdrop-filter:blur(4px);max-width:300px" onclick="go('s-ob1')">Get Started</button>
+  <div style="margin-top:16px;font-size:14px;color:rgba(255,255,255,.6);cursor:pointer" onclick="go('s-login')">Already have an account? <strong style="color:#fff">Log in</strong></div>
+</div>
+</div>
+
+<!-- ONBOARDING 1 -->
+<div class="s" id="s-ob1">
+<div class="cen">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="go('s-splash')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:160px;height:160px;border-radius:50%;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:40px">📋</div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);margin-bottom:12px;line-height:1.3">Upload your<br>medical records</div>
+  <div style="font-size:15px;color:var(--ts);line-height:1.6;margin-bottom:48px;max-width:300px">Take photos of prescriptions, lab reports, and old records. We'll read and organize everything for you.</div>
+  <div style="display:flex;gap:8px;margin-bottom:40px"><div style="width:24px;height:8px;border-radius:4px;background:var(--p)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div></div>
+  <button class="bp" style="max-width:300px" onclick="go('s-ob2')">Next</button>
+</div>
+</div>
+
+<!-- ONBOARDING 2 -->
+<div class="s" id="s-ob2">
+<div class="cen">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="go('s-ob1')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:160px;height:160px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:40px">🩺</div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);margin-bottom:12px;line-height:1.3">Share with your<br>doctor instantly</div>
+  <div style="font-size:15px;color:var(--ts);line-height:1.6;margin-bottom:48px;max-width:300px">Show a 6-digit code to your doctor. They see your health summary in 30 seconds — no digging through paper files.</div>
+  <div style="display:flex;gap:8px;margin-bottom:40px"><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div><div style="width:24px;height:8px;border-radius:4px;background:var(--p)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div></div>
+  <button class="bp" style="max-width:300px" onclick="go('s-ob3')">Next</button>
+</div>
+</div>
+
+<!-- ONBOARDING 3 -->
+<div class="s" id="s-ob3">
+<div class="cen">
+  <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="go('s-ob2')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="width:160px;height:160px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:40px">🔒</div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);margin-bottom:12px;line-height:1.3">You're always<br>in control</div>
+  <div style="font-size:15px;color:var(--ts);line-height:1.6;margin-bottom:48px;max-width:300px">Your health data is encrypted and private. Only you decide which doctor sees it, and access expires automatically.</div>
+  <div style="display:flex;gap:8px;margin-bottom:40px"><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div><div style="width:24px;height:8px;border-radius:4px;background:var(--p)"></div></div>
+  <button class="bp" style="max-width:300px" onclick="go('s-signup')">Create Account</button>
+</div>
+</div>
+
+<!-- SIGNUP -->
+<div class="s" id="s-signup">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div style="cursor:pointer;margin-bottom:12px" onclick="go('s-ob3')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1>Create your account</h1><p>We'll send you a verification code</p></div>
+<div class="ct">
+  <div style="font-size:13px;font-weight:600;color:var(--ts);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Full Name</div>
+  <div class="phone-input" style="margin-bottom:20px"><input type="text" placeholder="Rajesh Kumar" value="Rajesh Kumar"></div>
+  <div style="font-size:13px;font-weight:600;color:var(--ts);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Phone Number</div>
+  <div class="phone-input" style="margin-bottom:32px"><span class="prefix">+91</span><input type="tel" placeholder="98765 43210" value="98765 43210"></div>
+  <button class="bp" onclick="go('s-otp')">Send Verification Code</button>
+  <div style="text-align:center;margin-top:20px;font-size:14px;color:var(--ts)">Already have an account? <span style="color:var(--p);font-weight:600;cursor:pointer" onclick="go('s-login')">Log in</span></div>
+</div>
+</div>
+
+<!-- LOGIN -->
+<div class="s" id="s-login">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div style="cursor:pointer;margin-bottom:12px" onclick="go('s-ob3')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1>Welcome back</h1><p>Log in to your MedHistry account</p></div>
+<div class="ct">
+  <div style="font-size:13px;font-weight:600;color:var(--ts);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Phone Number</div>
+  <div class="phone-input" style="margin-bottom:32px"><span class="prefix">+91</span><input type="tel" placeholder="98765 43210" value="98765 43210"></div>
+  <button class="bp" onclick="go('s-otp')">Send OTP</button>
+  <div style="text-align:center;margin-top:20px;font-size:14px;color:var(--ts)">New here? <span style="color:var(--p);font-weight:600;cursor:pointer" onclick="go('s-signup')">Create account</span></div>
+</div>
+</div>
+
+<!-- OTP -->
+<div class="s" id="s-otp">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd">
+  <div style="cursor:pointer;margin-bottom:12px" onclick="go('s-signup')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <h1 style="font-size:24px">Verify your number</h1>
+  <p>Enter the 6-digit code sent to +91 98765 43210</p>
+</div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center">
+  <div class="otp-wrap">
+    <div class="otp-box f">4</div><div class="otp-box f">8</div><div class="otp-box f">2</div><div class="otp-box f">9</div><div class="otp-box">_</div><div class="otp-box"></div>
+  </div>
+  <div style="font-size:14px;color:var(--ts);margin-bottom:24px">Resend code in <strong style="color:var(--p)">0:28</strong></div>
+  <div class="np">
+    <button class="nk" onclick="go('s-home')">1</button><button class="nk" onclick="go('s-home')">2</button><button class="nk" onclick="go('s-home')">3</button>
+    <button class="nk" onclick="go('s-home')">4</button><button class="nk" onclick="go('s-home')">5</button><button class="nk" onclick="go('s-home')">6</button>
+    <button class="nk" onclick="go('s-home')">7</button><button class="nk" onclick="go('s-home')">8</button><button class="nk" onclick="go('s-home')">9</button>
+    <button class="nk e"></button><button class="nk" onclick="go('s-home')">0</button><button class="nk bs">⌫</button>
+  </div>
+</div>
+</div>
+
+<!-- HOME -->
+<div class="s" id="s-home">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div><h1>Hello, Rajesh 👋</h1><p>Here's your health summary</p></div><div onclick="go('s-profile')" style="width:44px;height:44px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;cursor:pointer">R</div></div></div>
+<div class="ct">
+  <div class="sc"><h3>ACTIVE CONDITIONS</h3><div class="ct-tags"><span class="ct-tag">High Blood Pressure</span><span class="ct-tag">Type 2 Diabetes</span><span class="ct-tag">High Cholesterol</span></div></div>
+  <div class="pa"><span class="ic">⚠️</span><span class="tx">Your Liver Function Test results are pending — ordered 18 days ago</span></div>
+  <div class="qa"><div class="qi" onclick="go('s-upload')"><div class="qic" style="background:#EBF5FF">📸</div><span class="ql">Upload Record</span></div><div class="qi" onclick="go('s-share')"><div class="qic" style="background:#F0FDF4">🔑</div><span class="ql">Share with Doctor</span></div></div>
+  <div class="sh"><h2>Current Medications</h2></div>
+  <div class="cd">
+    <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Amlodipine 5mg</div><div class="md">Once daily · For blood pressure</div></div></div>
+    <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Metformin 500mg</div><div class="md">Twice daily · For blood sugar</div></div></div>
+    <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Ecosprin 75mg</div><div class="md">Once daily · Blood thinner</div></div></div>
+  </div>
+  <div class="sh"><h2>Recent Lab Results</h2><a>View all</a></div>
+  <div class="cd">
+    <div class="lr"><div><div class="lnm">Blood Sugar (Fasting)</div><div style="font-size:12px;color:var(--tl);margin-top:2px">Mar 15, 2026</div></div><div style="text-align:right"><div class="lv h">145 mg/dL</div><span class="ls h">High</span></div></div>
+    <div class="lr"><div><div class="lnm">Blood Pressure</div><div style="font-size:12px;color:var(--tl);margin-top:2px">Mar 15, 2026</div></div><div style="text-align:right"><div class="lv n">130/80</div><span class="ls n">Normal</span></div></div>
+    <div class="lr"><div><div class="lnm">Total Cholesterol</div><div style="font-size:12px;color:var(--tl);margin-top:2px">Feb 28, 2026</div></div><div style="text-align:right"><div class="lv h">232 mg/dL</div><span class="ls h">High</span></div></div>
+  </div>
+  <div class="sh"><h2>Last Visit</h2></div>
+  <div class="cd" style="border-left:4px solid var(--p)">
+    <div style="font-size:14px;font-weight:600;color:var(--t)">Dr. Vivek Malhotra</div>
+    <div style="font-size:13px;color:var(--ts);margin-top:4px">City Care Hospital, Mumbai</div>
+    <div style="font-size:12px;color:var(--tl);margin-top:8px">March 15, 2026 · Routine follow-up</div>
+    <div style="font-size:13px;color:var(--ts);margin-top:10px;line-height:1.5">Blood pressure well controlled. Continue current medications. Liver function test ordered.</div>
+  </div>
+</div>
+<div class="bn">
+  <div class="ni ac" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Home</span></div>
+  <div class="ni" onclick="go('s-timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Timeline</span></div>
+  <div class="ni" onclick="go('s-upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></div>
+  <div class="ni" onclick="go('s-share')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Share</span></div>
+</div>
+</div>
+
+<!-- SHARE / ACCESS CODE with consent -->
+<div class="s" id="s-share">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center;padding-top:20px">
+  <div style="width:64px;height:64px;border-radius:20px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px">🔐</div>
+  <div style="font-size:20px;font-weight:700;color:var(--t);text-align:center;margin-bottom:6px">Share with your Doctor</div>
+  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:24px;line-height:1.5;max-width:300px">Show this code during your visit. Your doctor enters it to see your health summary.</div>
+  <div class="consent-card">
+    <h3>What your doctor will see:</h3>
+    <div class="ci"><span class="cii">🩺</span><span class="cit"><strong>Active conditions</strong> — your diagnosed health conditions</span></div>
+    <div class="ci"><span class="cii">💊</span><span class="cit"><strong>Current medications</strong> — what you're taking and dosages</span></div>
+    <div class="ci"><span class="cii">🧪</span><span class="cit"><strong>Lab results</strong> — your recent test values and trends</span></div>
+    <div class="ci"><span class="cii">⚠️</span><span class="cit"><strong>Allergies & alerts</strong> — so they prescribe safely</span></div>
+    <div class="ci"><span class="cii">⏱️</span><span class="cit"><strong>Access expires automatically</strong> after the visit. The doctor cannot save or share your data.</span></div>
+  </div>
+  <div class="code-digits">
+    <div class="code-d">4</div><div class="code-d">8</div><div class="code-d">2</div><div class="code-d">9</div><div class="code-d">1</div><div class="code-d">7</div>
+  </div>
+  <div class="code-timer"><div class="timer-ring">58</div><span style="font-size:14px;color:var(--ts)">New code in 58 seconds</span></div>
+  <div class="code-sec"><span>🔒</span><span>Your data is encrypted and secure</span></div>
+  <div style="width:100%;margin-top:20px" onclick="go('s-alog')">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--w);border:1px solid var(--brd);border-radius:var(--rs);cursor:pointer;font-size:14px;font-weight:600;color:var(--ts)">📋 View Access History</div>
+  </div>
+</div>
+<div class="bn">
+  <div class="ni" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Home</span></div>
+  <div class="ni" onclick="go('s-timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Timeline</span></div>
+  <div class="ni" onclick="go('s-upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></div>
+  <div class="ni ac" onclick="go('s-share')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Share</span></div>
+</div>
+</div>
+
+<!-- UPLOAD -->
+<div class="s" id="s-upload">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-home')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Upload Records</h1><div style="width:24px"></div></div></div>
+<div class="ct">
+  <div style="border:2px dashed var(--p);border-radius:var(--r);padding:48px 24px;text-align:center;background:var(--pl);margin-bottom:20px;cursor:pointer">
+    <div style="font-size:48px;margin-bottom:16px">📷</div>
+    <div style="font-size:16px;font-weight:600;color:var(--pd);margin-bottom:4px">Take a Photo</div>
+    <div style="font-size:13px;color:var(--ts)">Point your camera at the document</div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:24px">
+    <div class="qi" style="flex:1"><span style="font-size:28px">🖼️</span><span class="ql">Gallery</span></div>
+    <div class="qi" style="flex:1"><span style="font-size:28px">📄</span><span class="ql">PDF File</span></div>
+    <div class="qi" style="flex:1"><span style="font-size:28px">📑</span><span class="ql">Batch Scan</span></div>
+  </div>
+  <div class="sh"><h2>Recent Uploads</h2></div>
+  <div class="dc"><div class="dic rx">💊</div><div class="di"><div class="dit">Prescription — Dr. Malhotra</div><div class="dim">March 15, 2026 · Verified ✓</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+  <div class="dc"><div class="dic lb">🧪</div><div class="di"><div class="dit">Blood Test Report</div><div class="dim">March 15, 2026 · Verified ✓</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+</div>
+<div class="bn">
+  <div class="ni" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Home</span></div>
+  <div class="ni" onclick="go('s-timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Timeline</span></div>
+  <div class="ni ac" onclick="go('s-upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></div>
+  <div class="ni" onclick="go('s-share')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Share</span></div>
+</div>
+</div>
+
+<!-- TIMELINE -->
+<div class="s" id="s-timeline">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><h1>Your Timeline</h1><p>Complete medical history</p></div>
+<div class="ct">
+  <div class="ti"><div class="td vi">🏥</div><div class="tl"></div><div class="tc"><div class="tdt">March 15, 2026</div><div class="tt">Routine Follow-up</div><div class="tds">Dr. Vivek Malhotra · City Care Hospital<br>BP well controlled at 130/80. LFT ordered.</div></div></div>
+  <div class="ti"><div class="td lb">🧪</div><div class="tl"></div><div class="tc"><div class="tdt">March 15, 2026</div><div class="tt">Blood Test Results</div><div class="tds">Fasting sugar: 145 mg/dL (high) · HbA1c: 7.2% · BP: 130/80</div></div></div>
+  <div class="ti"><div class="td rx">💊</div><div class="tl"></div><div class="tc"><div class="tdt">February 28, 2026</div><div class="tt">Prescription Updated</div><div class="tds">Metformin increased to 500mg BD. Sugar not reaching target.</div></div></div>
+  <div class="ti"><div class="td vi">🏥</div><div class="tl"></div><div class="tc"><div class="tdt">January 10, 2026</div><div class="tt">First Visit — Jadeva Hospital</div><div class="tds">Dr. Suresh Patel · Diagnosed Type 2 Diabetes. Started Metformin.</div></div></div>
+  <div class="ti"><div class="td sn">📋</div><div class="tc"><div class="tdt">December 2025</div><div class="tt">Old Records Uploaded</div><div class="tds">3 prescriptions and 2 lab reports from previous hospital.</div></div></div>
+</div>
+<div class="bn">
+  <div class="ni" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Home</span></div>
+  <div class="ni ac" onclick="go('s-timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Timeline</span></div>
+  <div class="ni" onclick="go('s-upload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></div>
+  <div class="ni" onclick="go('s-share')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Share</span></div>
+</div>
+</div>
+
+<!-- ACCESS LOG -->
+<div class="s" id="s-alog">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-share')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Access History</h1><div style="width:24px"></div></div></div>
+<div class="ct">
+  <p style="font-size:14px;color:var(--ts);margin-bottom:24px;line-height:1.5">Everyone who has viewed your health summary.</p>
+  <div class="cd">
+    <div class="ai"><div class="aav">👨‍⚕️</div><div class="ainf"><div class="ainm">Dr. Vivek Malhotra</div><div class="aim">City Care Hospital · Today, 10:32 AM</div></div><div class="adur">4 min</div></div>
+    <div class="ai"><div class="aav">👩‍⚕️</div><div class="ainf"><div class="ainm">Dr. Priya Sharma</div><div class="aim">Jadeva Hospital · Mar 28, 11:15 AM</div></div><div class="adur">6 min</div></div>
+    <div class="ai"><div class="aav">👨‍⚕️</div><div class="ainf"><div class="ainm">Dr. Suresh Patel</div><div class="aim">Jadeva Hospital · Mar 15, 9:48 AM</div></div><div class="adur">8 min</div></div>
+  </div>
+</div>
+</div>
+
+<!-- PROFILE -->
+<div class="s" id="s-profile">
+<div class="sb"><span>9:41</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-home')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Profile</h1><div style="width:24px"></div></div></div>
+<div class="ct">
+  <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
+    <div style="width:80px;height:80px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:32px;margin-bottom:16px">R</div>
+    <div style="font-size:20px;font-weight:700;color:var(--t)">Rajesh Kumar</div>
+    <div style="font-size:14px;color:var(--ts);margin-top:4px">+91 98765 43210</div>
+  </div>
+  <div class="dc"><span style="font-size:20px;width:48px;text-align:center">👤</span><div class="di"><div class="dit">Personal Details</div><div class="dim">Name, phone, date of birth</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+  <div class="dc"><span style="font-size:20px;width:48px;text-align:center">🔒</span><div class="di"><div class="dit">Privacy & Consent</div><div class="dim">Manage who sees your data</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+  <div class="dc"><span style="font-size:20px;width:48px;text-align:center">🌐</span><div class="di"><div class="dit">Language</div><div class="dim">English</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+  <div class="dc"><span style="font-size:20px;width:48px;text-align:center">📞</span><div class="di"><div class="dit">Help & Support</div><div class="dim">FAQs, contact us</div></div><span style="color:var(--tl);font-size:18px">›</span></div>
+  <div class="dc" onclick="go('s-splash')"><span style="font-size:20px;width:48px;text-align:center">🚪</span><div class="di"><div class="dit" style="color:var(--dng)">Log Out</div></div></div>
+</div>
+</div>
+
+</div>
+<script>function go(id){document.querySelectorAll('.s').forEach(s=>s.classList.remove('a'));document.getElementById(id).classList.add('a')}</script>
+</body>
+</html>

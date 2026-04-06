@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedHistry — Super Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#1A1A2E;--pd:#12121F;--acc:#4A90D9;--accd:#3A7BC8;--accl:#E8F1FB;--suc:#27AE60;--suc-lt:#F0FDF4;--dng:#E74C3C;--dng-lt:#FEF2F2;--wrn:#F39C12;--wrn-lt:#FEF3C7;--t:#1A1A2E;--ts:#6B7280;--tl:#9CA3AF;--bg:#F5F7FA;--w:#FFF;--brd:#E5E7EB;--sh:0 1px 3px rgba(0,0,0,.08);--r:12px;--rs:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+
+/* Sidebar */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:var(--p);padding:24px 0;display:flex;flex-direction:column;z-index:10}
+.side-logo{display:flex;align-items:center;gap:10px;padding:0 24px;margin-bottom:8px}
+.side-logo .icon{width:40px;height:40px;border-radius:12px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.side-logo .name{font-size:18px;font-weight:700;color:#fff}
+.owner-badge{margin:0 24px 24px;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(74,144,217,.15);color:var(--acc);width:fit-content}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 24px;color:rgba(255,255,255,.5);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.05)}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--acc)}
+.nav-item .ic{font-size:18px;width:24px;text-align:center}
+.nav-item .count{margin-left:auto;background:rgba(255,255,255,.1);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;color:rgba(255,255,255,.5)}
+.nav-section{font-size:11px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:1px;padding:20px 24px 8px}
+.side-footer{margin-top:auto;padding:16px 24px;border-top:1px solid rgba(255,255,255,.06)}
+.side-user{display:flex;align-items:center;gap:10px}
+.side-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),#2ECC71);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+
+/* Main */
+.main{margin-left:260px;padding:32px}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.page-title{font-size:26px;font-weight:700;color:var(--t)}
+.page-sub{font-size:14px;color:var(--ts);margin-top:4px}
+.top-actions{display:flex;gap:10px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-primary{background:var(--acc);color:#fff}.btn-primary:hover{background:var(--accd)}
+.btn-dark{background:var(--p);color:#fff}.btn-dark:hover{background:var(--pd)}
+.btn-outline{background:transparent;border:2px solid var(--brd);color:var(--t)}.btn-outline:hover{border-color:var(--acc);color:var(--acc)}
+.btn-success{background:var(--suc);color:#fff}.btn-success:hover{background:#219a52}
+.btn-sm{padding:8px 14px;font-size:13px}
+
+/* Form */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--ts);margin-bottom:6px}
+.form-input{width:100%;padding:12px 14px;border:2px solid var(--brd);border-radius:var(--rs);font-size:14px;font-family:inherit;color:var(--t);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--acc)}
+.form-input::placeholder{color:var(--tl)}
+.form-select{width:100%;padding:12px 14px;border:2px solid var(--brd);border-radius:var(--rs);font-size:14px;font-family:inherit;color:var(--t);outline:none;background:var(--w);cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--w);border-radius:var(--r);padding:20px;border:1px solid var(--brd)}
+.stat-top{display:flex;justify-content:space-between;align-items:flex-start}
+.stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.stat-val{font-size:32px;font-weight:700;color:var(--t);margin-top:12px}
+.stat-label{font-size:13px;color:var(--ts);margin-top:2px}
+
+/* Card */
+.card{background:var(--w);border-radius:var(--r);border:1px solid var(--brd);margin-bottom:24px;overflow:hidden}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--brd)}
+.card-title{font-size:16px;font-weight:700;color:var(--t)}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.5px;padding:12px 16px;border-bottom:1px solid var(--brd);background:#FAFBFC}
+td{padding:14px 16px;border-bottom:1px solid #F3F4F6;font-size:14px;color:var(--t);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFC}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-active{background:var(--suc-lt);color:var(--suc)}
+.badge-pending{background:var(--wrn-lt);color:#92400E}
+.badge-expired{background:#F3F4F6;color:var(--tl)}
+.badge-new{background:var(--accl);color:var(--acc)}
+
+/* Code */
+.code-display{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:14px;font-weight:700;color:var(--acc);background:var(--accl);padding:6px 12px;border-radius:6px;letter-spacing:1px;display:inline-block}
+
+/* Hospital card */
+.hosp-row{display:flex;align-items:center;gap:14px}
+.hosp-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hosp-name{font-size:14px;font-weight:600;color:var(--t)}
+.hosp-loc{font-size:12px;color:var(--ts);margin-top:2px}
+
+.doc-row{display:flex;align-items:center;gap:12px}
+.doc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.doc-name{font-size:14px;font-weight:600;color:var(--t)}
+.doc-spec{font-size:12px;color:var(--ts)}
+
+/* Tabs */
+.tab{display:none}.tab.active{display:block}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}.modal-bg.active{display:flex}
+.modal{background:var(--w);border-radius:16px;padding:32px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .2s ease;max-height:90vh;overflow-y:auto}
+@keyframes mIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal h3{font-size:20px;font-weight:700;color:var(--t);margin-bottom:4px}
+.modal .sub{font-size:14px;color:var(--ts);margin-bottom:24px;line-height:1.5}
+.modal-actions{display:flex;gap:12px;margin-top:24px}.modal-actions .btn{flex:1}
+
+/* Generated Code */
+.gen-code{text-align:center;padding:24px;background:var(--accl);border-radius:var(--r);margin:20px 0}
+.gen-code .lbl{font-size:13px;color:var(--ts);margin-bottom:8px}
+.gen-code .code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:36px;font-weight:700;color:var(--acc);letter-spacing:4px}
+.gen-code .hint{font-size:12px;color:var(--tl);margin-top:8px}
+
+/* Send buttons */
+.send-row{display:flex;gap:12px;margin-top:16px}
+.send-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 12px;background:var(--bg);border-radius:var(--rs);border:2px solid var(--brd);cursor:pointer;transition:all .15s}
+.send-btn:hover{border-color:var(--acc);background:var(--accl)}
+.send-btn .ic{font-size:24px}
+.send-btn .lb{font-size:13px;font-weight:600;color:var(--t)}
+
+/* Toast */
+.toast{position:fixed;bottom:32px;right:32px;background:var(--p);color:#fff;padding:16px 24px;border-radius:var(--r);font-size:14px;font-weight:500;display:none;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:200;animation:slideUp .3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.toast.show{display:flex}
+
+/* Activity */
+.activity-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #F3F4F6}
+.activity-item:last-child{border-bottom:none}
+.act-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.act-text{font-size:14px;color:var(--t);line-height:1.5}.act-text strong{font-weight:600}
+.act-time{font-size:12px;color:var(--tl);margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="side-logo">
+    <div class="icon">Mh</div>
+    <div class="name">MedHistry</div>
+  </div>
+  <div class="owner-badge">👑 Product Owner</div>
+
+  <div class="nav-section">Platform</div>
+  <div class="nav-item active" onclick="showTab(this,'tab-dash')"><span class="ic">📊</span>Dashboard</div>
+  <div class="nav-item" onclick="showTab(this,'tab-hospitals')"><span class="ic">🏥</span>Hospitals<span class="count">3</span></div>
+  <div class="nav-item" onclick="showTab(this,'tab-doctors')"><span class="ic">👨‍⚕️</span>All Doctors<span class="count">28</span></div>
+  <div class="nav-item" onclick="showTab(this,'tab-codes')"><span class="ic">🔑</span>Invite Codes<span class="count">6</span></div>
+
+  <div class="nav-section">Settings</div>
+  <div class="nav-item"><span class="ic">⚙️</span>Platform Settings</div>
+  <div class="nav-item"><span class="ic">🔔</span>Notifications</div>
+
+  <div class="side-footer">
+    <div class="side-user">
+      <div class="side-av">VK</div>
+      <div><div style="font-size:13px;font-weight:600;color:#fff">Vijesh Krishna</div><div style="font-size:11px;color:rgba(255,255,255,.4)">Super Admin · Nolojik</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- ====== DASHBOARD ====== -->
+<div class="tab active" id="tab-dash">
+  <div class="top-bar">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">MedHistry Platform Overview</div></div>
+    <div class="top-actions">
+      <button class="btn btn-outline" onclick="openModal('m-add-hosp')">🏥 Add Hospital</button>
+      <button class="btn btn-primary" onclick="openModal('m-invite')">+ Invite Doctor</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon" style="background:var(--accl)">🏥</div></div>
+      <div class="stat-val">3</div>
+      <div class="stat-label">Hospitals / Clinics</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon" style="background:var(--suc-lt)">👨‍⚕️</div></div>
+      <div class="stat-val">28</div>
+      <div class="stat-label">Registered Doctors</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon" style="background:var(--wrn-lt)">🔑</div></div>
+      <div class="stat-val">6</div>
+      <div class="stat-label">Pending Invites</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon" style="background:#F3E8FF">👥</div></div>
+      <div class="stat-val">312</div>
+      <div class="stat-label">Patients on Platform</div>
+    </div>
+  </div>
+
+  <!-- Hospitals Quick View -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Your Hospitals</span>
+      <button class="btn btn-outline btn-sm" onclick="openModal('m-add-hosp')">+ Add Hospital</button>
+    </div>
+    <table>
+      <thead><tr><th>Hospital</th><th>Doctors</th><th>Patient Lookups</th><th>Pending Invites</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><div class="hosp-row"><div class="hosp-icon" style="background:var(--accl)">🏥</div><div><div class="hosp-name">Jadeva Hospital</div><div class="hosp-loc">Jayanagar, Bangalore</div></div></div></td>
+          <td><strong>12</strong></td><td>847</td><td>4</td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="openModal('m-invite')">Invite Doctor</button></td>
+        </tr>
+        <tr>
+          <td><div class="hosp-row"><div class="hosp-icon" style="background:var(--suc-lt)">🏥</div><div><div class="hosp-name">City Care Clinic</div><div class="hosp-loc">Koramangala, Bangalore</div></div></div></td>
+          <td><strong>9</strong></td><td>523</td><td>1</td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="openModal('m-invite')">Invite Doctor</button></td>
+        </tr>
+        <tr>
+          <td><div class="hosp-row"><div class="hosp-icon" style="background:var(--wrn-lt)">🏥</div><div><div class="hosp-name">Wellness First Clinic</div><div class="hosp-loc">HSR Layout, Bangalore</div></div></div></td>
+          <td><strong>7</strong></td><td>198</td><td>1</td>
+          <td><span class="badge badge-active">Active</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="openModal('m-invite')">Invite Doctor</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Recent Activity</span></div>
+    <div style="padding:16px 24px">
+      <div class="activity-item">
+        <div class="act-dot" style="background:var(--suc-lt)">✓</div>
+        <div><div class="act-text"><strong>Dr. Priya Sharma</strong> registered at Jadeva Hospital using code JDVA-P4KR</div><div class="act-time">2 hours ago</div></div>
+      </div>
+      <div class="activity-item">
+        <div class="act-dot" style="background:var(--accl)">🔑</div>
+        <div><div class="act-text">Invite code <strong>JDVA-8X2K</strong> sent to Dr. Sunil Patel via WhatsApp</div><div class="act-time">5 hours ago</div></div>
+      </div>
+      <div class="activity-item">
+        <div class="act-dot" style="background:var(--wrn-lt)">🏥</div>
+        <div><div class="act-text"><strong>Wellness First Clinic</strong> was added to the platform</div><div class="act-time">Yesterday</div></div>
+      </div>
+      <div class="activity-item">
+        <div class="act-dot" style="background:var(--suc-lt)">✓</div>
+        <div><div class="act-text"><strong>Dr. Rahul Joshi</strong> registered at City Care Clinic using code CCRC-H7WQ</div><div class="act-time">2 days ago</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== HOSPITALS ====== -->
+<div class="tab" id="tab-hospitals">
+  <div class="top-bar">
+    <div><div class="page-title">Hospitals & Clinics</div><div class="page-sub">3 registered on the platform</div></div>
+    <button class="btn btn-primary" onclick="openModal('m-add-hosp')">+ Add Hospital</button>
+  </div>
+
+  <!-- Jadeva -->
+  <div class="card">
+    <div class="card-head">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="hosp-icon" style="background:var(--accl);font-size:24px">🏥</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--t)">Jadeva Hospital</div>
+          <div style="font-size:13px;color:var(--ts)">Jayanagar 4th Block, Bangalore · KA/BLR/CE/2024/1847</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-invite')">+ Invite Doctor</button>
+        <button class="btn btn-outline btn-sm">Edit</button>
+      </div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--brd)">
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">12</div><div style="font-size:12px;color:var(--ts)">Doctors</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">847</div><div style="font-size:12px;color:var(--ts)">Lookups</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700;color:var(--wrn)">4</div><div style="font-size:12px;color:var(--ts)">Pending</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center"><div style="font-size:24px;font-weight:700;color:var(--acc)">22s</div><div style="font-size:12px;color:var(--ts)">Avg Review</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Doctor</th><th>Specialization</th><th>Reg. No.</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#5B8DEF">PS</div><div><div class="doc-name">Dr. Priya Sharma</div></div></div></td><td>General Medicine</td><td>KMC-28451</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#E67E22">VM</div><div><div class="doc-name">Dr. Vivek Malhotra</div></div></div></td><td>Cardiology</td><td>KMC-31205</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#9B59B6">AR</div><div><div class="doc-name">Dr. Anita Rao</div></div></div></td><td>Pediatrics</td><td>KMC-19874</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#F39C12">SP</div><div><div class="doc-name">Dr. Sunil Patel</div></div></div></td><td>ENT</td><td>—</td><td><span class="badge badge-pending">Invited</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- City Care -->
+  <div class="card">
+    <div class="card-head">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="hosp-icon" style="background:var(--suc-lt);font-size:24px">🏥</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--t)">City Care Clinic</div>
+          <div style="font-size:13px;color:var(--ts)">Koramangala, Bangalore · KA/BLR/CE/2023/0982</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-invite')">+ Invite Doctor</button>
+        <button class="btn btn-outline btn-sm">Edit</button>
+      </div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--brd)">
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">9</div><div style="font-size:12px;color:var(--ts)">Doctors</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">523</div><div style="font-size:12px;color:var(--ts)">Lookups</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700;color:var(--wrn)">1</div><div style="font-size:12px;color:var(--ts)">Pending</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center"><div style="font-size:24px;font-weight:700;color:var(--acc)">26s</div><div style="font-size:12px;color:var(--ts)">Avg Review</div></div>
+    </div>
+  </div>
+
+  <!-- Wellness First -->
+  <div class="card">
+    <div class="card-head">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="hosp-icon" style="background:var(--wrn-lt);font-size:24px">🏥</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--t)">Wellness First Clinic</div>
+          <div style="font-size:13px;color:var(--ts)">HSR Layout, Bangalore · KA/BLR/CE/2025/2341</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-invite')">+ Invite Doctor</button>
+        <button class="btn btn-outline btn-sm">Edit</button>
+      </div>
+    </div>
+    <div style="display:flex">
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">7</div><div style="font-size:12px;color:var(--ts)">Doctors</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700">198</div><div style="font-size:12px;color:var(--ts)">Lookups</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:24px;font-weight:700;color:var(--wrn)">1</div><div style="font-size:12px;color:var(--ts)">Pending</div></div>
+      <div style="flex:1;padding:16px 24px;text-align:center"><div style="font-size:24px;font-weight:700;color:var(--acc)">30s</div><div style="font-size:12px;color:var(--ts)">Avg Review</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ALL DOCTORS ====== -->
+<div class="tab" id="tab-doctors">
+  <div class="top-bar">
+    <div><div class="page-title">All Doctors</div><div class="page-sub">28 doctors across 3 hospitals</div></div>
+    <button class="btn btn-primary" onclick="openModal('m-invite')">+ Invite Doctor</button>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <input class="form-input" style="width:280px;padding:10px 14px;font-size:13px" placeholder="Search by name, hospital, specialization...">
+      <div style="display:flex;gap:8px">
+        <select class="form-select" style="width:180px;padding:8px 12px;font-size:13px"><option>All Hospitals</option><option>Jadeva Hospital</option><option>City Care Clinic</option><option>Wellness First Clinic</option></select>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Doctor</th><th>Hospital</th><th>Specialization</th><th>Patients This Week</th><th>Joined</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#5B8DEF">PS</div><div><div class="doc-name">Dr. Priya Sharma</div><div class="doc-spec">KMC-28451</div></div></div></td><td>Jadeva Hospital</td><td>General Medicine</td><td>18</td><td>Apr 2</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#E67E22">VM</div><div><div class="doc-name">Dr. Vivek Malhotra</div><div class="doc-spec">KMC-31205</div></div></div></td><td>Jadeva Hospital</td><td>Cardiology</td><td>24</td><td>Mar 28</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#2ECC71">RJ</div><div><div class="doc-name">Dr. Rahul Joshi</div><div class="doc-spec">KMC-42301</div></div></div></td><td>City Care Clinic</td><td>Orthopedics</td><td>11</td><td>Mar 20</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#E74C3C">MK</div><div><div class="doc-name">Dr. Meera Krishnan</div><div class="doc-spec">KMC-35612</div></div></div></td><td>Wellness First</td><td>Dermatology</td><td>20</td><td>Mar 15</td><td><span class="badge badge-active">Active</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#F39C12">SP</div><div><div class="doc-name">Dr. Sunil Patel</div><div class="doc-spec">—</div></div></div></td><td>Jadeva Hospital</td><td>ENT</td><td>—</td><td>—</td><td><span class="badge badge-pending">Invited</span></td></tr>
+        <tr><td><div class="doc-row"><div class="doc-av" style="background:#9B59B6">KN</div><div><div class="doc-name">Dr. Kavitha Nair</div><div class="doc-spec">—</div></div></div></td><td>City Care Clinic</td><td>Gynecology</td><td>—</td><td>—</td><td><span class="badge badge-pending">Invited</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== INVITE CODES ====== -->
+<div class="tab" id="tab-codes">
+  <div class="top-bar">
+    <div><div class="page-title">Invite Codes</div><div class="page-sub">Generate and send codes to doctors</div></div>
+    <button class="btn btn-primary" onclick="openModal('m-invite')">+ Generate New Code</button>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">All Codes</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm">All</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--wrn);border-color:var(--wrn)">Pending</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--suc);border-color:var(--suc)">Used</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Code</th><th>Hospital</th><th>Doctor</th><th>Created</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td><span class="code-display">JDVA-8X2K</span></td><td>Jadeva Hospital</td><td>Dr. Sunil Patel</td><td>Apr 5</td><td>Apr 12</td><td><span class="badge badge-pending">Pending</span></td><td><button class="btn btn-outline btn-sm" onclick="openModal('m-send')">📤 Send</button></td></tr>
+        <tr><td><span class="code-display">JDVA-M7NP</span></td><td>Jadeva Hospital</td><td>Dr. Kavitha Nair</td><td>Apr 4</td><td>Apr 11</td><td><span class="badge badge-pending">Pending</span></td><td><button class="btn btn-outline btn-sm" onclick="openModal('m-send')">📤 Send</button></td></tr>
+        <tr><td><span class="code-display">CCRC-T5FQ</span></td><td>City Care Clinic</td><td>Dr. Arun Mehta</td><td>Apr 3</td><td>Apr 10</td><td><span class="badge badge-pending">Pending</span></td><td><button class="btn btn-outline btn-sm" onclick="openModal('m-send')">📤 Send</button></td></tr>
+        <tr><td><span class="code-display">JDVA-P4KR</span></td><td>Jadeva Hospital</td><td>Dr. Priya Sharma</td><td>Mar 30</td><td>Apr 6</td><td><span class="badge badge-active">Used ✓</span></td><td><span style="font-size:13px;color:var(--suc)">Registered Apr 2</span></td></tr>
+        <tr><td><span class="code-display">CCRC-H7WQ</span></td><td>City Care Clinic</td><td>Dr. Rahul Joshi</td><td>Mar 18</td><td>Mar 25</td><td><span class="badge badge-active">Used ✓</span></td><td><span style="font-size:13px;color:var(--suc)">Registered Mar 20</span></td></tr>
+        <tr><td><span class="code-display">JDVA-Q3FW</span></td><td>Jadeva Hospital</td><td>General</td><td>Apr 1</td><td>Apr 8</td><td><span class="badge badge-expired">Expired</span></td><td><button class="btn btn-outline btn-sm" onclick="openModal('m-invite')">🔄 Regenerate</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ============ MODAL: ADD HOSPITAL ============ -->
+<div class="modal-bg" id="m-add-hosp">
+<div class="modal">
+  <h3>Add Hospital / Clinic</h3>
+  <div class="sub">Register a new hospital or clinic on MedHistry. You can then invite doctors to join it.</div>
+  <div class="form-group"><label class="form-label">Hospital / Clinic Name</label><input class="form-input" placeholder="e.g. Apollo Clinic"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">City</label><input class="form-input" placeholder="e.g. Bangalore"></div>
+    <div class="form-group"><label class="form-label">State</label><input class="form-input" placeholder="e.g. Karnataka"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Full Address</label><input class="form-input" placeholder="Street, area, pin code"></div>
+  <div class="form-group"><label class="form-label">Hospital Registration Number</label><input class="form-input" placeholder="Clinical establishment registration"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Contact Person</label><input class="form-input" placeholder="Hospital admin name"></div>
+    <div class="form-group"><label class="form-label">Contact Phone</label><input class="form-input" placeholder="+91 98765 43210"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Contact Email</label><input class="form-input" placeholder="admin@hospital.com"></div>
+  <div class="modal-actions">
+    <button class="btn btn-outline" onclick="closeModal('m-add-hosp')">Cancel</button>
+    <button class="btn btn-primary" onclick="closeModal('m-add-hosp');showToast('Hospital added successfully!')">Add Hospital</button>
+  </div>
+</div>
+</div>
+
+<!-- ============ MODAL: INVITE DOCTOR ============ -->
+<div class="modal-bg" id="m-invite">
+<div class="modal">
+  <h3>Invite a Doctor</h3>
+  <div class="sub">Generate an invite code and send it to a doctor. They'll use this code to register in the MedHistry Doctor app.</div>
+
+  <div class="form-group">
+    <label class="form-label">Select Hospital</label>
+    <select class="form-select" id="inv-hosp">
+      <option>Jadeva Hospital — Bangalore</option>
+      <option>City Care Clinic — Bangalore</option>
+      <option>Wellness First Clinic — Bangalore</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Doctor's Name</label><input class="form-input" placeholder="e.g. Dr. Ramesh Iyer" id="inv-name"></div>
+    <div class="form-group"><label class="form-label">Specialization</label><input class="form-input" placeholder="e.g. Cardiology" id="inv-spec"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Doctor's Phone</label><input class="form-input" placeholder="+91 98765 43210" id="inv-phone"></div>
+
+  <div id="inv-step1">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-invite')">Cancel</button>
+      <button class="btn btn-dark" onclick="genCode()">Generate Invite Code</button>
+    </div>
+  </div>
+
+  <div id="inv-step2" style="display:none">
+    <div class="gen-code">
+      <div class="lbl">Invite Code for Doctor</div>
+      <div class="code" id="gen-code-val">JDVA-R9TL</div>
+      <div class="hint">Valid for 7 days · Single use · For Jadeva Hospital</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:10px">Send to doctor:</div>
+    <div class="send-row">
+      <div class="send-btn" onclick="sendVia('whatsapp')"><span class="ic">💬</span><span class="lb">WhatsApp</span></div>
+      <div class="send-btn" onclick="sendVia('sms')"><span class="ic">📱</span><span class="lb">SMS</span></div>
+      <div class="send-btn" onclick="sendVia('email')"><span class="ic">📧</span><span class="lb">Email</span></div>
+      <div class="send-btn" onclick="sendVia('copy')"><span class="ic">📋</span><span class="lb">Copy</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('m-invite');resetInv()">Close</button>
+      <button class="btn btn-primary" onclick="closeModal('m-invite');resetInv();showToast('Invite code sent to doctor!')">Send & Done</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ MODAL: RESEND CODE ============ -->
+<div class="modal-bg" id="m-send">
+<div class="modal">
+  <h3>Send Invite Code</h3>
+  <div class="sub">Choose how to send this invite code to the doctor.</div>
+  <div class="gen-code">
+    <div class="lbl">Invite Code</div>
+    <div class="code">JDVA-8X2K</div>
+    <div class="hint">For Dr. Sunil Patel · Expires Apr 12, 2026</div>
+  </div>
+  <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:10px">Send via:</div>
+  <div class="send-row">
+    <div class="send-btn" onclick="sendVia('whatsapp')"><span class="ic">💬</span><span class="lb">WhatsApp</span></div>
+    <div class="send-btn" onclick="sendVia('sms')"><span class="ic">📱</span><span class="lb">SMS</span></div>
+    <div class="send-btn" onclick="sendVia('email')"><span class="ic">📧</span><span class="lb">Email</span></div>
+    <div class="send-btn" onclick="sendVia('copy')"><span class="ic">📋</span><span class="lb">Copy</span></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-outline" onclick="closeModal('m-send')">Cancel</button>
+    <button class="btn btn-primary" onclick="closeModal('m-send');showToast('Code sent successfully!')">Send</button>
+  </div>
+</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span>✓</span><span id="toast-msg"></span></div>
+
+<script>
+function showTab(el, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function genCode() {
+  const hosp = document.getElementById('inv-hosp').value;
+  const prefix = hosp.includes('Jadeva') ? 'JDVA' : hosp.includes('City') ? 'CCRC' : 'WLFC';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = prefix + '-';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('gen-code-val').textContent = code;
+  document.getElementById('inv-step1').style.display = 'none';
+  document.getElementById('inv-step2').style.display = 'block';
+}
+
+function resetInv() {
+  document.getElementById('inv-step1').style.display = 'block';
+  document.getElementById('inv-step2').style.display = 'none';
+  ['inv-name','inv-phone','inv-spec'].forEach(id => document.getElementById(id).value = '');
+}
+
+function sendVia(m) {
+  const msg = {whatsapp:'Opening WhatsApp...',sms:'Sending SMS...',email:'Opening email...',copy:'Code copied to clipboard!'};
+  showToast(msg[m] || 'Sent!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
