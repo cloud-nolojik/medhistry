@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: medhistry-db
+    restart: always
+    environment:
+      POSTGRES_USER: medhistry
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medhistry_prod_2026}
+      POSTGRES_DB: medhistry
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medhistry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: medhistry-api
+    restart: always
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      DATABASE_URL: postgresql+asyncpg://medhistry:${POSTGRES_PASSWORD:-medhistry_prod_2026}@db:5432/medhistry
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/code/uploads
+
+  nginx:
+    image: nginx:alpine
+    container_name: medhistry-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      - api
+
+  certbot:
+    image: certbot/certbot
+    container_name: medhistry-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-www:/var/www/certbot
+
+volumes:
+  pgdata:
+  uploads:
+  certbot-etc:
+  certbot-var:
+  certbot-www:

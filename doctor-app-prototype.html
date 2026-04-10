@@ -34,10 +34,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .nk{height:52px;border:none;border-radius:var(--rs);font-size:22px;font-weight:600;color:var(--t);background:var(--w);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh)}
 .nk:active{background:var(--pl)}.nk.e{background:transparent;box-shadow:none;cursor:default}.nk.bs{font-size:18px;background:var(--bg);box-shadow:none}
 
-/* Code Entry */
-.code-input-group{display:flex;gap:10px;margin-bottom:32px}
-.code-input{width:48px;height:60px;border:2px solid var(--brd);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;font-family:'SF Mono',Menlo,Consolas,monospace;color:var(--t);background:var(--w)}
-.code-input.filled{border-color:var(--acc);background:var(--accl)}
+/* QR Scanner */
+.qr-scanner-frame{width:260px;height:260px;position:relative;margin-bottom:32px}
+.qr-scanner-bg{width:100%;height:100%;background:#111;border-radius:20px;overflow:hidden;position:relative}
+.qr-scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.qr-scanner-box{width:200px;height:200px;position:relative}
+.qr-scanner-box::before,.qr-scanner-box::after{content:'';position:absolute;width:40px;height:40px;border-color:var(--acc);border-style:solid}
+.qr-scanner-box::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:8px 0 0 0}
+.qr-scanner-box::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 8px 0 0}
+.qr-corner-bl,.qr-corner-br{position:absolute;width:40px;height:40px;border-color:var(--acc);border-style:solid}
+.qr-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 8px}
+.qr-corner-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 8px 0}
+.qr-scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,var(--acc),transparent);animation:qrscan 2s ease-in-out infinite;top:0}
+@keyframes qrscan{0%,100%{top:10px;opacity:.5}50%{top:calc(100% - 10px);opacity:1}}
 .code-status{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:var(--rx);font-size:14px;font-weight:500}
 .code-status.searching{background:var(--accl);color:var(--acc)}
 
@@ -167,7 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="goTo('s-onboard1')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
   <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:48px">🔐</div>
   <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.3">Patient-Consented<br>Access Only</div>
-  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">Patients share a temporary 6-digit code from their app. Enter the code to view their history. Access auto-expires — no data is stored on your device.</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">Patients show a QR code on their app. Scan it with your camera to view their history. Access auto-expires — no data is stored on your device.</div>
   <div class="dots"><div class="dot"></div><div class="dot ac"></div><div class="dot"></div></div>
   <button class="bp" style="margin-top:40px;max-width:280px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px)" onclick="goTo('s-onboard3')">Next</button>
 </div>
@@ -179,7 +188,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="goTo('s-onboard2')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
   <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;margin-bottom:32px;font-size:48px">🏥</div>
   <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.3">Works With Your<br>Existing Setup</div>
-  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">MedHistry complements your HMS — not replaces it. No queues, no booking, no admin. Just open the app, enter the code, and see the patient's history.</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.65);line-height:1.6;max-width:300px">MedHistry complements your HMS — not replaces it. No queues, no booking, no admin. Just open the app, scan the QR code, and see the patient's history.</div>
   <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot ac"></div></div>
   <button class="bp" style="margin-top:40px;max-width:280px;background:#fff;color:var(--p)" onclick="goTo('s-invite')">Get Started</button>
 </div>
@@ -340,9 +349,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="ct">
   <!-- Main CTA -->
   <button class="dash-cta" onclick="goTo('s-entry')">
-    <div class="cta-icon">🔢</div>
-    <h2>Enter Patient Code</h2>
-    <p>Ask patient for their 6-digit MedHistry code</p>
+    <div class="cta-icon">📷</div>
+    <h2>Scan Patient QR Code</h2>
+    <p>Ask patient to show their MedHistry QR code</p>
   </button>
 
   <!-- Today's Patients -->
@@ -401,7 +410,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </button>
   <button class="ni" onclick="goTo('s-entry')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Enter Code</span>
+    <span>Scan QR</span>
   </button>
   <button class="ni" onclick="goTo('s-profile')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -410,40 +419,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 </div>
 
-<!-- ===================== CODE ENTRY ===================== -->
+<!-- ===================== QR SCANNER ===================== -->
 <div class="s" id="s-entry">
 <div class="sb"><span>10:30</span><div class="r"><span>📶</span><span>🔋</span></div></div>
 <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 24px">
   <div style="width:64px;height:64px;border-radius:16px;background:var(--p);display:flex;align-items:center;justify-content:center;margin-bottom:24px">
     <span style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
   </div>
-  <div style="font-size:24px;font-weight:700;color:var(--t);text-align:center;margin-bottom:8px">Enter Patient Code</div>
-  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:40px;line-height:1.5">Ask your patient to show the<br>6-digit code from their MedHistry app</div>
+  <div style="font-size:24px;font-weight:700;color:var(--t);text-align:center;margin-bottom:8px">Scan Patient QR Code</div>
+  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:32px;line-height:1.5">Ask your patient to show the<br>QR code from their MedHistry app</div>
 
-  <div class="code-input-group">
-    <div class="code-input" id="d1"></div>
-    <div class="code-input" id="d2"></div>
-    <div class="code-input" id="d3"></div>
-    <div class="code-input" id="d4"></div>
-    <div class="code-input" id="d5"></div>
-    <div class="code-input" id="d6"></div>
+  <div class="qr-scanner-frame" onclick="scanQR()">
+    <div class="qr-scanner-bg">
+      <!-- Simulated camera feed background -->
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#2d2d44);opacity:.85"></div>
+      <div class="qr-scanner-overlay">
+        <div class="qr-scanner-box">
+          <div class="qr-corner-bl"></div>
+          <div class="qr-corner-br"></div>
+          <div class="qr-scan-line"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="code-feedback"></div>
+  <div id="code-feedback" style="margin-bottom:16px"></div>
 
-  <div class="np" style="max-width:300px">
-    <button class="nk" onclick="typeDigit('1')">1</button>
-    <button class="nk" onclick="typeDigit('2')">2</button>
-    <button class="nk" onclick="typeDigit('3')">3</button>
-    <button class="nk" onclick="typeDigit('4')">4</button>
-    <button class="nk" onclick="typeDigit('5')">5</button>
-    <button class="nk" onclick="typeDigit('6')">6</button>
-    <button class="nk" onclick="typeDigit('7')">7</button>
-    <button class="nk" onclick="typeDigit('8')">8</button>
-    <button class="nk" onclick="typeDigit('9')">9</button>
-    <button class="nk e"></button>
-    <button class="nk" onclick="typeDigit('0')">0</button>
-    <button class="nk bs" onclick="backspace()">⌫</button>
+  <div style="font-size:13px;color:var(--ts);text-align:center;line-height:1.5">Point your camera at the patient's QR code.<br>It will be detected automatically.</div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-top:24px;padding:10px 20px;background:var(--bg);border-radius:8px;cursor:pointer">
+    <span style="font-size:18px">🔦</span>
+    <span style="font-size:13px;color:var(--ts);font-weight:500">Toggle flashlight</span>
   </div>
 </div>
 
@@ -455,7 +461,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </button>
   <button class="ni ac" onclick="goTo('s-entry')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Enter Code</span>
+    <span>Scan QR</span>
   </button>
   <button class="ni" onclick="goTo('s-profile')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -579,7 +585,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div style="font-size:22px;font-weight:700;color:var(--t);margin-bottom:8px">Session Closed</div>
   <div style="font-size:14px;color:var(--ts);line-height:1.5;margin-bottom:40px">Patient summary for Rajesh Kumar has been closed. Access has been revoked.</div>
   <button class="bp acc" onclick="resetAndGoDash()" style="max-width:300px;width:100%">Back to Dashboard</button>
-  <button class="bp out" onclick="resetAndGoEntry()" style="max-width:300px;width:100%;margin-top:12px">Enter Next Patient Code</button>
+  <button class="bp out" onclick="resetAndGoEntry()" style="max-width:300px;width:100%;margin-top:12px">Scan Next Patient QR</button>
 </div>
 </div>
 
@@ -661,7 +667,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </button>
   <button class="ni" onclick="goTo('s-entry')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Enter Code</span>
+    <span>Scan QR</span>
   </button>
   <button class="ni ac" onclick="goTo('s-profile')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -673,44 +679,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <script>
-let digits = [];
-const maxDigits = 6;
-
 function goTo(id) {
   document.querySelectorAll('.s').forEach(s => s.classList.remove('a'));
   document.getElementById(id).classList.add('a');
 }
 
-function typeDigit(d) {
-  if (digits.length >= maxDigits) return;
-  digits.push(d);
-  updateDisplay();
-  if (digits.length === maxDigits) {
-    setTimeout(() => {
-      document.getElementById('code-feedback').innerHTML = '<div class="code-status searching">🔍 Finding patient...</div>';
-      setTimeout(() => goTo('s-loading'), 800);
-      setTimeout(() => goTo('s-briefing'), 2200);
-    }, 300);
-  }
-}
-
-function backspace() {
-  digits.pop();
-  updateDisplay();
-  document.getElementById('code-feedback').innerHTML = '';
-}
-
-function updateDisplay() {
-  for (let i = 1; i <= maxDigits; i++) {
-    const el = document.getElementById('d' + i);
-    if (digits[i - 1]) {
-      el.textContent = digits[i - 1];
-      el.classList.add('filled');
-    } else {
-      el.textContent = '';
-      el.classList.remove('filled');
-    }
-  }
+function scanQR() {
+  // Simulate QR code scanning
+  document.getElementById('code-feedback').innerHTML = '<div class="code-status searching">📡 QR detected — Finding patient...</div>';
+  setTimeout(() => goTo('s-loading'), 800);
+  setTimeout(() => goTo('s-briefing'), 2200);
 }
 
 function completeOtp() {
@@ -722,15 +700,11 @@ function endSession() {
 }
 
 function resetAndGoDash() {
-  digits = [];
-  updateDisplay();
   document.getElementById('code-feedback').innerHTML = '';
   goTo('s-dash');
 }
 
 function resetAndGoEntry() {
-  digits = [];
-  updateDisplay();
   document.getElementById('code-feedback').innerHTML = '';
   goTo('s-entry');
 }

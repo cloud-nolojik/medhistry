@@ -8,7 +8,7 @@
 
 ## The Product in One Line
 
-Patient uploads medical records → AI generates a structured summary → Patient shows a 6-digit access code (like Google Authenticator) → Doctor enters code → Sees patient history in 30 seconds → Closes it. Done.
+Patient uploads medical records → AI generates a structured summary → Patient shows a QR code on their phone → Doctor scans the QR code from their MedHistry doctor app → Sees patient history in 30 seconds → Closes it. Done.
 
 ---
 
@@ -52,19 +52,21 @@ Once documents are uploaded and processed, patients see their "Health Story" —
 
 **Medication Display:** Show current medications as a simple list: drug name, dosage, frequency in plain language ("1 tablet with breakfast"), and why they take it ("for blood pressure"). Show medication history with dosage changes over time as a mini-timeline within each drug's card. This helps both the patient understand their treatment and ensures the AI summary is accurate for the doctor.
 
-### The 6-Digit Access Code (Google Authenticator Style)
+### The QR Code (Scan-to-Access)
 
 This is the consent mechanism — patient controls who sees their data.
 
-**Display Design:** The code should be the most prominent element on a dedicated "Share" screen. Large, high-contrast digits (at least 48px font), well-spaced for easy reading aloud. Use a monospace font for the digits so they're unambiguous (no confusion between 0/O, 1/l). Show a circular countdown timer around or below the code indicating how long until it refreshes.
+**Display Design:** The QR code should be the most prominent element on a dedicated "Share" screen. Display it large and centered (at least 200x200px) with high contrast on a white background for reliable scanning. Show a circular countdown timer around or below the QR code indicating how long until it refreshes. The QR code encodes an encrypted token that the doctor's app sends to the server to retrieve patient data — no sensitive health information is embedded in the QR code itself.
 
-**Rotation Timing:** Google Authenticator uses 30-second rotation. For MedHistry, consider 60-90 seconds — doctors may need slightly more time to pull out their phone and type the code, especially older doctors who type slowly. The code should grant access for the duration of a consultation session (suggest 15-30 minutes), not just the 60 seconds of the code's validity. Once the doctor enters a valid code, they get a time-limited session.
+**Why QR Code Over 6-Digit OTP:** QR codes eliminate the friction of reading digits aloud and typing them in. The doctor simply points their phone camera at the patient's screen — takes 2-3 seconds vs. 5-8 seconds for digit entry. This is especially beneficial for older doctors who may struggle with small keypads. It also eliminates transcription errors (misreading a 6 or 8, confusing 1 and 7, etc.). Indian users are already familiar with QR code scanning through UPI payment apps like Google Pay, PhonePe, and Paytm.
 
-**Visual Trust Signals:** Below the code, show a brief message: "Show this code to your doctor. They'll be able to see your health summary for this visit only." Add a lock icon and "Your data is encrypted" message. After a doctor accesses the data, show a confirmation: "Dr. [Name] viewed your health summary at [time]." This transparency builds trust.
+**Rotation Timing:** The QR code auto-refreshes every 60 seconds. Each refresh generates a new encrypted token, invalidating the previous one. Once the doctor scans a valid QR code, they get a time-limited session (15-30 minutes) — not just the 60 seconds of the code's validity.
+
+**Visual Trust Signals:** Below the QR code, show a brief message: "Let your doctor scan this QR code. They'll be able to see your health summary for this visit only." Add a lock icon and "Your data is encrypted" message. After a doctor accesses the data, show a confirmation: "Dr. [Name] viewed your health summary at [time]." This transparency builds trust.
 
 **Access History (Consent Manager):** In settings or a dedicated section, show a log of every access: who viewed, when, for how long. Let patients see this anytime. This is critical for DPDPA compliance and patient trust. Simple list: "Dr. Vivek Malhotra — April 5, 2026, 10:32 AM — Viewed for 4 minutes."
 
-**What If Patient Doesn't Have Phone?** Consider a fallback for Phase 2: a printed QR code from a previous visit, or an Aadhaar-linked lookup with explicit consent. For Phase 1, the app-based code is sufficient since the target users (Jadeva hospital's 300 patients) will be onboarded with the app.
+**What If Patient Doesn't Have Phone?** Consider a fallback for Phase 2: a pre-printed QR code card from a previous visit, or an Aadhaar-linked lookup with explicit consent. For Phase 1, the app-based QR code is sufficient since the target users (Jadeva hospital's 300 patients) will be onboarded with the app.
 
 ---
 
@@ -76,21 +78,21 @@ Doctors see 60-100 patients daily. They spend 10-15 minutes per consultation. Ev
 
 87% of doctors already use smartphones during patient care. One-third of clinical searches happen on mobile. But many senior doctors are not tech-savvy. The app must work for a 60-year-old doctor who barely uses WhatsApp, as well as a 30-year-old who lives on their phone.
 
-### The Code Entry Screen
+### The QR Scanner Screen
 
 This is the first (and often only) screen the doctor interacts with. It must be frictionless.
 
-**Design:** A single, clean screen with one purpose: enter the 6-digit code. Large input field (or 6 individual digit boxes like OTP screens everyone is used to in India — UPI, banking apps, etc.). Auto-focus on the input field when the app opens so the doctor can start typing immediately. Numeric keypad only. Auto-submit when 6 digits are entered — no "Submit" button needed.
+**Design:** A single, clean screen with one purpose: scan the patient's QR code. Show a full-width camera viewfinder with a QR code alignment frame in the center. The camera should activate immediately when the screen opens — no tap required. Show a subtle instruction: "Point your camera at the patient's QR code." The scanner should detect and process QR codes automatically without requiring a button press.
 
-**Speed Target:** From app open to seeing patient summary should take under 10 seconds. App open (1s) → Type 6 digits (3-5s) → Loading (1-2s) → Summary displayed.
+**Speed Target:** From app open to seeing patient summary should take under 10 seconds. App open (1s) → Point camera at QR code (2-3s) → Loading (1-2s) → Summary displayed. Scanning is fast and eliminates any manual typing.
 
-**Error States:** If code is invalid: "This code doesn't match any patient. Please check and try again." If code is expired: "This code has expired. Please ask the patient to show a new code." Keep error messages simple, never technical.
+**Error States:** If QR code is invalid: "This QR code doesn't match any patient. Please try again." If QR code is expired: "This QR code has expired. Ask the patient to show a fresh one." If camera can't focus or lighting is poor: "Move closer or adjust the lighting." Keep error messages simple, never technical.
 
-**Biometric Login:** Use fingerprint/face unlock instead of username/password for app access. Doctors shouldn't need to log in every time — biometric on app open, then straight to the code entry. Minimize friction ruthlessly.
+**Biometric Login:** Use fingerprint/face unlock instead of username/password for app access. Doctors shouldn't need to log in every time — biometric on app open, then straight to the QR scanner. Minimize friction ruthlessly.
 
 ### The Briefing Card (Patient Summary)
 
-This is the core of the entire product. The doctor enters a valid code and sees the patient's medical history as a structured, scannable briefing card. Not paragraphs. Not AI summaries to read. Structured, glanceable data.
+This is the core of the entire product. The doctor scans the patient's QR code and sees their medical history as a structured, scannable briefing card. Not paragraphs. Not AI summaries to read. Structured, glanceable data.
 
 **The "Glance-Grok-Go" Framework:**
 
@@ -166,14 +168,14 @@ The patient's app should show a notification: "Dr. [Name] finished viewing your 
 ### Simplicity as Religion
 
 Every feature request should pass the test: "Does this make the core flow faster or does it add friction?" The core flows are:
-- Patient: Upload → See summary → Show code
-- Doctor: Enter code → See briefing → Close
+- Patient: Upload → See summary → Show QR code
+- Doctor: Scan QR code → See briefing → Close
 
 Anything that doesn't serve these flows is Phase 2 or later.
 
 ### Accessibility
 
-**Font Sizes:** Body text minimum 16px. The 6-digit code should be at least 48px. Section headers 14-16px bold. Touch targets minimum 48x48px with adequate spacing between them.
+**Font Sizes:** Body text minimum 16px. The QR code should be at least 200x200px for reliable scanning. Section headers 14-16px bold. Touch targets minimum 48x48px with adequate spacing between them.
 
 **Contrast:** 4.5:1 minimum for normal text, 3:1 for large text (WCAG 2.1 AA). Test in bright sunlight conditions — doctors and patients will use these apps in well-lit hospital lobbies.
 
@@ -195,7 +197,7 @@ Anything that doesn't serve these flows is Phase 2 or later.
 
 **Device Diversity:** Many Indian patients use budget Android phones with smaller screens and older OS versions. Test on Android 10+ with 5-inch screens. Don't assume high-end devices.
 
-**UPI-Style OTP Familiarity:** Indian users interact with 6-digit OTPs constantly — UPI payments, bank logins, Aadhaar verification. The MedHistry access code will feel immediately familiar. Lean into this — make the code entry screen look and feel like the OTP screens Indians already know.
+**UPI-Style QR Familiarity:** Indian users interact with QR codes constantly — UPI payments via Google Pay, PhonePe, Paytm, scanning QR codes at shops, restaurants, and hospitals. The MedHistry QR code scanning flow will feel immediately familiar to both patients and doctors. Lean into this — make the scan flow feel as natural as paying via UPI.
 
 ### Data Privacy & DPDPA Compliance
 
@@ -215,7 +217,7 @@ Anything that doesn't serve these flows is Phase 2 or later.
 
 ### Apps to Download and Explore
 
-- **Google Authenticator** — Study the code display UX (large digits, countdown timer, rotation)
+- **Google Pay / PhonePe** — Study the QR code display and scanning UX (large QR, countdown timer, camera activation)
 - **Practo** — Study the doctor profile and health record organization
 - **1mg / Tata 1mg** — Study the medicine information display and document upload
 - **Adobe Scan / CamScanner** — Study the document scanning capture flow (alignment guides, auto-crop)
@@ -225,7 +227,7 @@ Anything that doesn't serve these flows is Phase 2 or later.
 
 - **Upload completion rate:** >85% of users who start an upload should finish it
 - **OCR accuracy perceived satisfaction:** >90% of extracted fields correct without manual editing
-- **Code entry to summary display:** <10 seconds
+- **QR scan to summary display:** <10 seconds
 - **Doctor time on briefing card:** 30-60 seconds average (this means the summary is working)
 - **App crash rate:** <1%
 - **App load time:** <2 seconds
@@ -240,15 +242,15 @@ Anything that doesn't serve these flows is Phase 2 or later.
 - [ ] Health story in plain language (no medical jargon)
 - [ ] Lab result trends with simple visualization (green/amber/red)
 - [ ] Current medications with dosage in plain terms
-- [ ] 6-digit access code screen (large digits, countdown timer, monospace font)
+- [ ] QR code share screen (large QR code, countdown timer, auto-refresh every 60s)
 - [ ] Access history log (who viewed, when, how long)
 - [ ] Offline viewing of own health story
-- [ ] 16px minimum body text, 48px minimum code digits
+- [ ] 16px minimum body text, 200x200px minimum QR code size
 - [ ] Calming blue/green color palette
 
 **Doctor App:**
 - [ ] Biometric login (fingerprint/face — no password friction)
-- [ ] Code entry screen with auto-focus, numeric keypad, auto-submit at 6 digits
+- [ ] QR scanner screen with instant camera activation and auto-detect
 - [ ] <10 seconds from app open to briefing card display
 - [ ] Critical alerts at top (red banner, always visible without scrolling)
 - [ ] Active conditions as scannable tags/chips

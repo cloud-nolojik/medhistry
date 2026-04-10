@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedHistry — Hospital Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#4A90D9;--pd:#2563EB;--bg:#F8FAFC;--card:#FFF;--text:#1A1A2E;--muted:#64748B;--err:#DC2626;--ok:#16A34A;--border:#E2E8F0;--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:900px;margin:0 auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+header h1{font-size:20px;color:var(--p)}
+header h1 span{color:var(--muted);font-weight:400;font-size:14px;margin-left:8px}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:var(--pd)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--p);color:var(--p)}
+.btn-danger{background:var(--err);color:#fff}.btn-danger:hover{background:#B91C1C}
+.btn-sm{padding:6px 14px;font-size:13px}
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:24px;margin-bottom:20px}
+.card h2{font-size:16px;margin-bottom:16px;color:var(--text)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.form-group input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:border .2s}
+.form-group input:focus{outline:none;border-color:var(--p)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.alert-ok{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
+.alert-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:2px solid var(--border)}
+td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.badge-pending{background:#FEF3C7;color:#92400E}
+.badge-accepted{background:#DCFCE7;color:#166534}
+.badge-expired{background:#F1F5F9;color:#64748B}
+.badge-revoked{background:#FEE2E2;color:#991B1B}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.login-card{width:100%;max-width:400px}
+.invite-code{font-family:monospace;font-size:13px;background:#F1F5F9;padding:4px 8px;border-radius:4px;user-select:all}
+.hidden{display:none}
+.info-bar{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:13px;color:#1E40AF;margin-bottom:24px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="app-login" class="container login-wrap">
+  <div class="card login-card">
+    <h2 style="text-align:center;margin-bottom:8px">Hospital Admin</h2>
+    <p style="text-align:center;color:var(--muted);margin-bottom:24px;font-size:14px">Log in with the credentials provided by the MedHistry team</p>
+    <div id="alert-auth"></div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Hospital Slug</label>
+        <input id="login-slug" placeholder="e.g. jadeva" required>
+      </div>
+      <div class="form-group">
+        <label>Admin Password</label>
+        <input id="login-pass" type="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+    </form>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app-dashboard" class="container hidden">
+  <header>
+    <h1>MedHistry <span id="dash-hospital-name"></span></h1>
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+  </header>
+
+  <div id="alert-dash"></div>
+
+  <div class="info-bar">
+    You're logged in as a hospital admin. Use this panel to invite doctors to your hospital. Doctors will use the invite code to create their account in the MedHistry doctor app.
+  </div>
+
+  <!-- Invite Doctor -->
+  <div class="card">
+    <h2>Invite a Doctor</h2>
+    <form onsubmit="handleInvite(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Doctor Name</label>
+          <input id="inv-name" placeholder="Dr. Arun Mehta" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input id="inv-phone" placeholder="+919812345678" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Specialisation (optional)</label>
+        <input id="inv-spec" placeholder="General Medicine">
+      </div>
+      <button type="submit" class="btn btn-primary">Send Invitation</button>
+    </form>
+  </div>
+
+  <!-- Invitations List -->
+  <div class="card">
+    <h2>Doctor Invitations</h2>
+    <div id="invitations-table"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api/v1';
+let token = null;
+let hospitalName = '';
+
+function showAlert(id, msg, type) {
+  document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { document.getElementById(id).innerHTML = ''; }, 5000);
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (r.status === 204) return null;
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Request failed');
+  return data;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  try {
+    const data = await api('/hospitals/login', 'POST', {
+      slug: document.getElementById('login-slug').value.trim(),
+      password: document.getElementById('login-pass').value,
+    });
+    token = data.access_token;
+    hospitalName = data.hospital.name;
+    document.getElementById('app-login').classList.add('hidden');
+    document.getElementById('app-dashboard').classList.remove('hidden');
+    document.getElementById('dash-hospital-name').textContent = '— ' + hospitalName;
+    loadInvitations();
+  } catch (err) { showAlert('alert-auth', err.message, 'err'); }
+}
+
+function logout() {
+  token = null;
+  document.getElementById('app-login').classList.remove('hidden');
+  document.getElementById('app-dashboard').classList.add('hidden');
+}
+
+async function handleInvite(e) {
+  e.preventDefault();
+  try {
+    const data = await api('/invitations/', 'POST', {
+      doctor_name: document.getElementById('inv-name').value.trim(),
+      doctor_phone: document.getElementById('inv-phone').value.trim(),
+      specialisation: document.getElementById('inv-spec').value.trim() || null,
+    });
+    showAlert('alert-dash', `Invitation sent! Share this code with the doctor: <span class="invite-code">${data.invite_code}</span>`, 'ok');
+    document.getElementById('inv-name').value = '';
+    document.getElementById('inv-phone').value = '';
+    document.getElementById('inv-spec').value = '';
+    loadInvitations();
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+
+async function revokeInvitation(id) {
+  try {
+    await api(`/invitations/${id}`, 'DELETE');
+    showAlert('alert-dash', 'Invitation revoked', 'ok');
+    loadInvitations();
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+
+async function loadInvitations() {
+  try {
+    const data = await api('/invitations/');
+    const el = document.getElementById('invitations-table');
+    if (!data.invitations.length) {
+      el.innerHTML = '<div class="empty">No invitations yet. Invite your first doctor above.</div>';
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Doctor</th><th>Phone</th><th>Invite Code</th><th>Status</th><th></th></tr></thead>
+      <tbody>${data.invitations.map(inv => `<tr>
+        <td><strong>${inv.doctor_name}</strong>${inv.specialisation ? '<br><span style="color:var(--muted);font-size:12px">' + inv.specialisation + '</span>' : ''}</td>
+        <td>${inv.doctor_phone}</td>
+        <td><span class="invite-code">${inv.invite_code}</span></td>
+        <td><span class="badge badge-${inv.status}">${inv.status}</span></td>
+        <td>${inv.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="revokeInvitation('${inv.id}')">Revoke</button>` : ''}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedHistry — Platform Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#0E2A3A;--pa:#50C8DC;--bg:#F8FAFC;--card:#FFF;--text:#0E2A3A;--muted:#64748B;--err:#DC2626;--ok:#16A34A;--border:#E2E8F0;--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1000px;margin:0 auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:16px;border-bottom:2px solid var(--p)}
+header h1{font-size:20px;color:var(--p)}
+header h1 span{color:var(--pa);font-weight:400;font-size:14px;margin-left:8px}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:#163E4E}
+.btn-blue{background:var(--pa);color:var(--p)}.btn-blue:hover{background:#78DCE8}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--pa);color:var(--pa)}
+.btn-danger{background:var(--err);color:#fff;font-size:13px;padding:6px 14px}.btn-danger:hover{background:#B91C1C}
+.btn-sm{padding:6px 14px;font-size:13px}
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:24px;margin-bottom:20px}
+.card h2{font-size:16px;margin-bottom:16px;color:var(--text)}
+.card h3{font-size:14px;margin-bottom:12px;color:var(--pa)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.form-group input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:border .2s}
+.form-group input:focus{outline:none;border-color:var(--pa)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.alert-ok{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
+.alert-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:2px solid var(--border)}
+td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
+tr:hover{background:#F8FAFC}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.badge-pending{background:#FEF3C7;color:#92400E}
+.badge-accepted{background:#DCFCE7;color:#166534}
+.badge-expired{background:#F1F5F9;color:#64748B}
+.badge-revoked{background:#FEE2E2;color:#991B1B}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.login-card{width:100%;max-width:400px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center}
+.stat-card .num{font-size:32px;font-weight:700;color:var(--p)}
+.stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+.clickable{cursor:pointer;transition:all .2s}.clickable:hover{border-color:var(--pa);box-shadow:0 2px 8px rgba(74,144,217,.15)}
+.back-btn{font-size:13px;color:var(--pa);cursor:pointer;border:none;background:none;font-weight:600;margin-bottom:16px}
+.back-btn:hover{text-decoration:underline}
+.invite-code{font-family:monospace;font-size:13px;background:#F1F5F9;padding:4px 8px;border-radius:4px;user-select:all}
+.hidden{display:none!important}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#fff;border-radius:var(--r);padding:32px;width:100%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="app-login" class="container login-wrap">
+  <div class="card login-card">
+    <h2 style="text-align:center;margin-bottom:8px">MedHistry</h2>
+    <p style="text-align:center;color:var(--muted);margin-bottom:24px;font-size:14px">Platform Admin</p>
+    <div id="alert-auth"></div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Email</label>
+        <input id="login-email" type="email" value="admin@medhistry.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="login-pass" type="password" value="medhistry_2026" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+    </form>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app-dashboard" class="container hidden">
+  <header>
+    <h1>MedHistry <span>Platform Admin</span></h1>
+    <div>
+      <span id="admin-name" style="font-size:14px;color:var(--muted);margin-right:16px"></span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div id="alert-dash"></div>
+
+  <!-- Top tab nav -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid #e2e8f0">
+    <button id="tab-btn-hospitals" class="btn btn-outline btn-sm" onclick="switchTab('hospitals')" style="border-bottom:2px solid var(--pa)">Hospitals</button>
+    <button id="tab-btn-playground" class="btn btn-outline btn-sm" onclick="switchTab('playground')">AI Playground</button>
+    <button id="tab-btn-reextract" class="btn btn-outline btn-sm" onclick="switchTab('reextract')">Re-extract</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats-row">
+    <div class="stat-card"><div class="num" id="stat-hospitals">-</div><div class="label">Hospitals</div></div>
+    <div class="stat-card"><div class="num" id="stat-doctors">-</div><div class="label">Doctors</div></div>
+    <div class="stat-card"><div class="num" id="stat-patients">-</div><div class="label">Patients</div></div>
+    <div class="stat-card"><div class="num" id="stat-invites">-</div><div class="label">Pending Invites</div></div>
+  </div>
+
+  <!-- ============= AI PLAYGROUND TAB ============= -->
+  <div id="tab-playground" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0">AI Playground</h2>
+      <p style="color:var(--muted);margin-top:0">
+        Upload a sample report to compare what different models extract and how the final
+        patient briefing reads. Nothing is saved — pure A/B testing.
+      </p>
+      <form onsubmit="handlePlaygroundRun(event)" enctype="multipart/form-data">
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="pg-provider">
+              <option value="gemini">Gemini (Google AI)</option>
+              <option value="medgemma">MedGemma 1.5 (Vertex)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Extraction model</label>
+            <select id="pg-extraction-model">
+              <option value="">(provider default)</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Summary model</label>
+            <select id="pg-summary-model">
+              <option value="">(default: gemini-2.5-flash)</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Sample report (PDF / JPG / PNG, max 20 MB)</label>
+          <input id="pg-file" type="file" accept="application/pdf,image/jpeg,image/png" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Run pipeline</button>
+        <span id="pg-status" style="margin-left:12px;color:var(--muted)"></span>
+      </form>
+    </div>
+
+    <div id="pg-result" class="hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Run result</h3>
+        <div id="pg-meta" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <h4 style="margin:0 0 8px">Extracted JSON</h4>
+            <pre id="pg-extracted" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;max-height:500px;font-size:12px"></pre>
+          </div>
+          <div>
+            <h4 style="margin:0 0 8px">Per-doc summary (from extractor)</h4>
+            <div id="pg-doc-summary" style="background:#f1f5f9;padding:12px;border-radius:8px;margin-bottom:16px;font-size:14px"></div>
+            <h4 style="margin:0 0 8px">Patient briefing (final)</h4>
+            <div id="pg-briefing" style="background:#ecfdf5;padding:12px;border-radius:8px;font-size:14px;border-left:3px solid #10b981"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============= RE-EXTRACT TAB ============= -->
+  <div id="tab-reextract" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Re-extract existing documents</h2>
+      <p style="color:var(--muted);margin-top:0">
+        Re-run extraction on documents already in the database. Use this when you switch
+        the default model or change the extraction prompt. Use <strong>dry run</strong> first
+        to preview the diff without writing.
+      </p>
+      <form onsubmit="handleReextract(event)">
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="rx-provider">
+              <option value="gemini">Gemini</option>
+              <option value="medgemma">MedGemma</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Extraction model (optional)</label>
+            <input id="rx-model" placeholder="e.g. gemini-2.5-flash">
+          </div>
+          <div class="form-group">
+            <label>Document IDs (optional, space-separated)</label>
+            <input id="rx-docs" placeholder="leave blank for all matching docs">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Patients (tick 1+ to filter, leave all unchecked for ALL patients)</span>
+            <span style="font-size:12px;color:var(--muted)">
+              <a href="#" onclick="rxSelectAllPatients(true);return false">select all</a> ·
+              <a href="#" onclick="rxSelectAllPatients(false);return false">clear</a> ·
+              <a href="#" onclick="loadReextractPatients();return false">refresh</a>
+            </span>
+          </label>
+          <div id="rx-patients" style="max-height:220px;overflow:auto;border:1px solid #e5e7eb;border-radius:6px;padding:8px;background:#fafafa;font-size:13px">
+            <div style="color:var(--muted)">Loading patients...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px">
+          <label><input type="checkbox" id="rx-dry-run" checked> Dry run (preview only)</label>
+          <label><input type="checkbox" id="rx-rebuild" checked> Rebuild patient summaries after</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Run re-extraction</button>
+        <span id="rx-status" style="margin-left:12px;color:var(--muted)"></span>
+      </form>
+    </div>
+    <div id="rx-result" class="hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Run summary</h3>
+        <div id="rx-summary" style="font-size:14px;margin-bottom:16px"></div>
+        <h4>Per-document audit</h4>
+        <div id="rx-audits"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content area: hospitals list OR hospital detail -->
+  <div id="tab-hospitals">
+  <div id="view-hospitals">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">Hospitals</h2>
+        <button class="btn btn-blue btn-sm" onclick="showAddHospital()">+ Add Hospital</button>
+      </div>
+      <div id="hospitals-table"></div>
+    </div>
+  </div>
+
+  <div id="view-hospital-detail" class="hidden">
+    <button class="back-btn" onclick="backToHospitals()">&larr; Back to all hospitals</button>
+
+    <div class="card">
+      <h2 id="detail-hospital-name"></h2>
+      <p id="detail-hospital-info" style="color:var(--muted);font-size:14px"></p>
+    </div>
+
+    <!-- Invite doctor into this hospital -->
+    <div class="card">
+      <h3>Invite a Doctor</h3>
+      <form onsubmit="handleInviteDoctor(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Doctor Name</label>
+            <input id="inv-name" placeholder="Dr. Arun Mehta" required>
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input id="inv-phone" placeholder="+919812345678" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email (invitation will be sent here)</label>
+            <input id="inv-email" type="email" placeholder="arun.mehta@jadeva.in">
+          </div>
+          <div class="form-group">
+            <label>Specialisation</label>
+            <input id="inv-spec" placeholder="General Medicine">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-blue btn-sm">Send Invitation</button>
+      </form>
+    </div>
+
+    <!-- Invitations -->
+    <div class="card">
+      <h3>Invitations</h3>
+      <div id="detail-invitations"></div>
+    </div>
+
+    <!-- Doctors -->
+    <div class="card">
+      <h3>Registered Doctors</h3>
+      <div id="detail-doctors"></div>
+    </div>
+  </div>
+  </div> <!-- /tab-hospitals -->
+</div>
+
+<!-- Edit Hospital Modal -->
+<div id="modal-edit-hospital" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal">
+    <h2 style="margin-bottom:20px">Edit Hospital</h2>
+    <div id="alert-edit-modal"></div>
+    <form onsubmit="handleEditHospital(event)">
+      <input type="hidden" id="edit-hosp-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hospital Name</label>
+          <input id="edit-hosp-name" required>
+        </div>
+        <div class="form-group">
+          <label>Slug (read-only)</label>
+          <input id="edit-hosp-slug" disabled style="background:#f1f5f9;color:var(--muted)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input id="edit-hosp-address" placeholder="123 Health Street">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input id="edit-hosp-city">
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input id="edit-hosp-state">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="edit-hosp-phone">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="edit-hosp-email">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>New Admin Password (leave blank to keep current)</label>
+        <input id="edit-hosp-pass" type="password" minlength="6" placeholder="••••••">
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-hospital').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Hospital Modal -->
+<div id="modal-add-hospital" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal">
+    <h2 style="margin-bottom:20px">Add Hospital</h2>
+    <div id="alert-modal"></div>
+    <form onsubmit="handleAddHospital(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hospital Name</label>
+          <input id="hosp-name" placeholder="Jadeva Hospital" required>
+        </div>
+        <div class="form-group">
+          <label>Slug (unique login ID)</label>
+          <input id="hosp-slug" placeholder="jadeva" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input id="hosp-city" placeholder="Bangalore">
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input id="hosp-state" placeholder="Karnataka">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="hosp-phone" placeholder="+918012345678">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="hosp-email" placeholder="admin@jadeva.in">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Admin Password (hospital will use this to log in)</label>
+        <input id="hosp-pass" type="password" minlength="6" required>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-add-hospital').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Hospital</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api/v1';
+let token = null;
+let currentHospitalId = null;
+
+function showAlert(id, msg, type) {
+  document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { if(document.getElementById(id)) document.getElementById(id).innerHTML = ''; }, 5000);
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (r.status === 204) return null;
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Request failed');
+  return data;
+}
+
+// --- Multipart upload helper (for playground file upload) ---
+async function apiMultipart(path, formData) {
+  const opts = { method: 'POST', body: formData, headers: {} };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  const r = await fetch(API + path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Request failed');
+  return data;
+}
+
+// --- Tab switching ---
+function switchTab(name) {
+  ['hospitals','playground','reextract'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    if (el) el.classList.toggle('hidden', t !== name);
+    const btn = document.getElementById('tab-btn-'+t);
+    if (btn) btn.style.borderBottom = (t === name) ? '2px solid var(--pa)' : 'none';
+  });
+  if (name === 'reextract') loadReextractPatients();
+}
+
+// --- Re-extract patient picker ---
+async function loadReextractPatients() {
+  const box = document.getElementById('rx-patients');
+  box.innerHTML = '<div style="color:var(--muted)">Loading patients...</div>';
+  try {
+    const patients = await api('/super-admin/patients', 'GET');
+    if (!patients.length) {
+      box.innerHTML = '<div style="color:var(--muted)">No patients yet.</div>';
+      return;
+    }
+    box.innerHTML = patients.map(p => `
+      <label style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid #f1f5f9">
+        <input type="checkbox" class="rx-patient-cb" value="${p.id}">
+        <span style="flex:1"><strong>${p.name || '(no name)'}</strong> &nbsp;<span style="color:var(--muted)">${p.phone || ''}</span></span>
+        <span style="color:var(--muted);font-size:12px">${p.document_count} doc${p.document_count === 1 ? '' : 's'}</span>
+      </label>
+    `).join('');
+  } catch (err) {
+    box.innerHTML = '<div style="color:#dc2626">Failed to load: ' + err.message + '</div>';
+  }
+}
+
+function rxSelectAllPatients(on) {
+  document.querySelectorAll('.rx-patient-cb').forEach(cb => { cb.checked = on; });
+}
+
+// --- Playground ---
+async function handlePlaygroundRun(e) {
+  e.preventDefault();
+  const file = document.getElementById('pg-file').files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('provider', document.getElementById('pg-provider').value);
+  const exm = document.getElementById('pg-extraction-model').value;
+  const sm = document.getElementById('pg-summary-model').value;
+  if (exm) fd.append('extraction_model', exm);
+  if (sm) fd.append('summary_model', sm);
+
+  document.getElementById('pg-status').textContent = 'Running pipeline...';
+  document.getElementById('pg-result').classList.add('hidden');
+  try {
+    const r = await apiMultipart('/super-admin/ai/playground/run', fd);
+    document.getElementById('pg-status').textContent = `Done in ${r.timing_ms?.total ?? '?'} ms`;
+    document.getElementById('pg-meta').innerHTML =
+      `<strong>Provider:</strong> ${r.provider} &nbsp; ` +
+      `<strong>Extraction model:</strong> ${r.extraction_model} &nbsp; ` +
+      `<strong>Summary model:</strong> ${r.summary_model} &nbsp; ` +
+      `<strong>Doc type:</strong> ${r.doc_type || '?'} &nbsp; ` +
+      `<strong>Extract:</strong> ${r.timing_ms?.extraction ?? '?'} ms &nbsp; ` +
+      `<strong>Summary:</strong> ${r.timing_ms?.summary ?? '?'} ms` +
+      (r.extraction_error ? `<div style="color:#dc2626;margin-top:8px">Extraction error: ${r.extraction_error}</div>` : '') +
+      (r.summary_error ? `<div style="color:#dc2626;margin-top:8px">Summary error: ${r.summary_error}</div>` : '');
+    document.getElementById('pg-extracted').textContent = JSON.stringify(r.extracted_data, null, 2);
+    document.getElementById('pg-doc-summary').textContent = r.ai_summary_from_extraction || '(none)';
+    document.getElementById('pg-briefing').textContent = r.patient_briefing_summary || '(none)';
+    document.getElementById('pg-result').classList.remove('hidden');
+  } catch (err) {
+    document.getElementById('pg-status').textContent = 'Failed: ' + err.message;
+  }
+}
+
+// --- Re-extract ---
+async function handleReextract(e) {
+  e.preventDefault();
+  const body = {
+    provider: document.getElementById('rx-provider').value,
+    dry_run: document.getElementById('rx-dry-run').checked,
+    rebuild_patient_summaries: document.getElementById('rx-rebuild').checked,
+  };
+  const m = document.getElementById('rx-model').value.trim();
+  if (m) body.extraction_model = m;
+  const checked = Array.from(document.querySelectorAll('.rx-patient-cb:checked')).map(cb => cb.value);
+  if (checked.length) body.patient_ids = checked;
+  const docs = document.getElementById('rx-docs').value.trim();
+  if (docs) body.document_ids = docs.split(/\s+/);
+
+  document.getElementById('rx-status').textContent = 'Running...';
+  document.getElementById('rx-result').classList.add('hidden');
+  try {
+    const r = await api('/super-admin/ai/reextract', 'POST', body);
+    document.getElementById('rx-status').textContent =
+      `Done. ${r.succeeded}/${r.total_documents} ok` + (r.dry_run ? ' (dry run)' : '');
+    document.getElementById('rx-summary').innerHTML =
+      `<strong>Provider:</strong> ${r.provider} &nbsp; ` +
+      `<strong>Model:</strong> ${r.extraction_model || '(default)'} &nbsp; ` +
+      `<strong>Total:</strong> ${r.total_documents} &nbsp; ` +
+      `<strong>Succeeded:</strong> ${r.succeeded} &nbsp; ` +
+      `<strong>Failed:</strong> ${r.failed} &nbsp; ` +
+      `<strong>Patients affected:</strong> ${r.patients_affected} &nbsp; ` +
+      `<strong>Summaries rebuilt:</strong> ${r.patient_summaries_rebuilt}` +
+      (r.dry_run ? ' &nbsp; <em>(dry run — nothing written)</em>' : '');
+    const rows = (r.audits || []).map(a => `
+      <tr>
+        <td><code>${a.document_id.slice(0,8)}</code></td>
+        <td>${a.status === 'ok' ? '✓' : '✗'}</td>
+        <td>${a.previous_doc_type || '-'} → ${a.new_doc_type || '-'}</td>
+        <td>${a.diagnoses_before ?? '-'} → ${a.diagnoses_after ?? '-'}</td>
+        <td>${a.medications_before ?? '-'} → ${a.medications_after ?? '-'}</td>
+        <td>${a.lab_results_before ?? '-'} → ${a.lab_results_after ?? '-'}</td>
+        <td style="color:#dc2626">${a.error || ''}</td>
+      </tr>`).join('');
+    document.getElementById('rx-audits').innerHTML = `
+      <table>
+        <thead><tr><th>Doc</th><th>Status</th><th>Type</th><th>Diagnoses</th><th>Meds</th><th>Labs</th><th>Error</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#94a3b8">No documents matched</td></tr>'}</tbody>
+      </table>`;
+    document.getElementById('rx-result').classList.remove('hidden');
+  } catch (err) {
+    document.getElementById('rx-status').textContent = 'Failed: ' + err.message;
+  }
+}
+
+// --- Auth ---
+async function handleLogin(e) {
+  e.preventDefault();
+  try {
+    const data = await api('/super-admin/login', 'POST', {
+      email: document.getElementById('login-email').value.trim(),
+      password: document.getElementById('login-pass').value,
+    });
+    token = data.access_token;
+    document.getElementById('admin-name').textContent = data.admin.name;
+    document.getElementById('app-login').classList.add('hidden');
+    document.getElementById('app-dashboard').classList.remove('hidden');
+    loadDashboard();
+  } catch (err) { showAlert('alert-auth', err.message, 'err'); }
+}
+
+function logout() {
+  token = null;
+  document.getElementById('app-login').classList.remove('hidden');
+  document.getElementById('app-dashboard').classList.add('hidden');
+}
+
+// --- Dashboard ---
+async function loadDashboard() {
+  loadStats();
+  loadHospitals();
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/super-admin/stats');
+    document.getElementById('stat-hospitals').textContent = s.hospitals;
+    document.getElementById('stat-doctors').textContent = s.doctors;
+    document.getElementById('stat-patients').textContent = s.patients;
+    document.getElementById('stat-invites').textContent = s.pending_invitations;
+  } catch(e) {}
+}
+
+async function loadHospitals() {
+  try {
+    const hospitals = await api('/super-admin/hospitals');
+    const el = document.getElementById('hospitals-table');
+    if (!hospitals.length) {
+      el.innerHTML = '<div class="empty">No hospitals yet. Click "+ Add Hospital" to onboard your first hospital.</div>';
+      return;
+    }
+    window._hospitals = {};
+    hospitals.forEach(h => { window._hospitals[h.id] = h; });
+    el.innerHTML = `<table>
+      <thead><tr><th>Hospital</th><th>Slug</th><th>City</th><th>Created</th><th></th></tr></thead>
+      <tbody>${hospitals.map(h => `<tr class="clickable" onclick="openHospital('${h.id}')">
+        <td><strong>${h.name}</strong></td>
+        <td><code>${h.slug}</code></td>
+        <td>${h.city || '-'}</td>
+        <td>${h.created_at?.slice(0,10) || '-'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showEditHospital('${h.id}')" style="margin-right:6px">Edit</button>
+          <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openHospital('${h.id}')">Manage</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+
+// --- Add Hospital ---
+function showAddHospital() {
+  document.getElementById('modal-add-hospital').classList.remove('hidden');
+  document.getElementById('alert-modal').innerHTML = '';
+}
+
+async function handleAddHospital(e) {
+  e.preventDefault();
+  try {
+    const h = await api('/super-admin/hospitals', 'POST', {
+      name: document.getElementById('hosp-name').value.trim(),
+      slug: document.getElementById('hosp-slug').value.trim(),
+      admin_password: document.getElementById('hosp-pass').value,
+      city: document.getElementById('hosp-city').value.trim() || null,
+      state: document.getElementById('hosp-state').value.trim() || null,
+      phone: document.getElementById('hosp-phone').value.trim() || null,
+      email: document.getElementById('hosp-email').value.trim() || null,
+    });
+    document.getElementById('modal-add-hospital').classList.add('hidden');
+    showAlert('alert-dash', `Hospital "${h.name}" created! They can log in at <a href="/hospital-admin">/hospital-admin</a> with slug <code>${h.slug}</code>`, 'ok');
+    ['hosp-name','hosp-slug','hosp-pass','hosp-city','hosp-state','hosp-phone','hosp-email'].forEach(id => document.getElementById(id).value = '');
+    loadDashboard();
+  } catch (err) { showAlert('alert-modal', err.message, 'err'); }
+}
+
+// --- Hospital Detail ---
+function openHospital(id) {
+  currentHospitalId = id;
+  const h = window._hospitals[id] || {};
+  document.getElementById('view-hospitals').classList.add('hidden');
+  document.getElementById('view-hospital-detail').classList.remove('hidden');
+  document.getElementById('detail-hospital-name').textContent = h.name || '';
+  document.getElementById('detail-hospital-info').textContent = `Slug: ${h.slug || ''}` + (h.city ? ` | ${h.city}` : '') + (h.phone ? ` | ${h.phone}` : '') + (h.email ? ` | ${h.email}` : '');
+  loadHospitalDetail(id);
+}
+
+function backToHospitals() {
+  currentHospitalId = null;
+  document.getElementById('view-hospitals').classList.remove('hidden');
+  document.getElementById('view-hospital-detail').classList.add('hidden');
+  loadDashboard();
+}
+
+async function loadHospitalDetail(id) {
+  loadHospitalInvitations(id);
+  loadHospitalDoctors(id);
+}
+
+async function loadHospitalInvitations(id) {
+  try {
+    const invitations = await api(`/super-admin/hospitals/${id}/invitations`);
+    const el = document.getElementById('detail-invitations');
+    if (!invitations.length) {
+      el.innerHTML = '<div class="empty" style="padding:20px">No invitations yet.</div>';
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Doctor</th><th>Phone</th><th>Email</th><th>Invite Code</th><th>Status</th><th></th></tr></thead>
+      <tbody>${invitations.map(inv => `<tr>
+        <td><strong>${inv.doctor_name}</strong>${inv.specialisation ? '<br><span style="color:var(--muted);font-size:12px">' + inv.specialisation + '</span>' : ''}</td>
+        <td>${inv.doctor_phone}</td>
+        <td>${inv.doctor_email || '<span style="color:var(--muted)">-</span>'}</td>
+        <td><span class="invite-code">${inv.invite_code}</span></td>
+        <td><span class="badge badge-${inv.status}">${inv.status}</span></td>
+        <td>${inv.doctor_email && inv.status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="resendEmail('${inv.id}', this)">Send</button>` : ''}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) { document.getElementById('detail-invitations').innerHTML = `<div class="alert alert-err">${e.message}</div>`; }
+}
+
+async function loadHospitalDoctors(id) {
+  try {
+    const doctors = await api(`/super-admin/hospitals/${id}/doctors`);
+    const el = document.getElementById('detail-doctors');
+    if (!doctors.length) {
+      el.innerHTML = '<div class="empty" style="padding:20px">No doctors registered yet.</div>';
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Specialisation</th><th>License</th><th>Joined</th></tr></thead>
+      <tbody>${doctors.map(d => `<tr>
+        <td><strong>${d.name}</strong></td>
+        <td>${d.phone}</td>
+        <td>${d.specialisation || '-'}</td>
+        <td>${d.license_number || '-'}</td>
+        <td>${d.created_at?.slice(0,10) || '-'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) { document.getElementById('detail-doctors').innerHTML = `<div class="alert alert-err">${e.message}</div>`; }
+}
+
+async function handleInviteDoctor(e) {
+  e.preventDefault();
+  try {
+    const emailVal = document.getElementById('inv-email').value.trim() || null;
+    const inv = await api(`/super-admin/hospitals/${currentHospitalId}/invitations`, 'POST', {
+      doctor_name: document.getElementById('inv-name').value.trim(),
+      doctor_phone: document.getElementById('inv-phone').value.trim(),
+      doctor_email: emailVal,
+      specialisation: document.getElementById('inv-spec').value.trim() || null,
+    });
+    const emailMsg = emailVal ? ` Email sent to <strong>${emailVal}</strong>.` : '';
+    showAlert('alert-dash', `Invitation sent! Code: <span class="invite-code">${inv.invite_code}</span>${emailMsg}`, 'ok');
+    document.getElementById('inv-name').value = '';
+    document.getElementById('inv-phone').value = '';
+    document.getElementById('inv-email').value = '';
+    document.getElementById('inv-spec').value = '';
+    loadHospitalDetail(currentHospitalId);
+    loadStats();
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+
+// --- Resend invitation email ---
+async function resendEmail(invitationId, btn) {
+  const origText = btn.textContent;
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  try {
+    const r = await api(`/super-admin/invitations/${invitationId}/resend-email`, 'POST');
+    btn.textContent = 'Sent!';
+    btn.style.background = 'var(--ok)';
+    btn.style.color = '#fff';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.background = ''; btn.style.color = ''; }, 3000);
+    showAlert('alert-dash', `Email resent to <strong>${r.to}</strong>`, 'ok');
+  } catch (err) {
+    btn.textContent = 'Failed';
+    btn.style.background = 'var(--err)';
+    btn.style.color = '#fff';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; btn.style.background = ''; btn.style.color = ''; }, 3000);
+    showAlert('alert-dash', err.message, 'err');
+  }
+}
+
+// --- Auto-fill email from previous invitations ---
+// When phone loses focus, check if we already have an email on file for this doctor
+document.addEventListener('DOMContentLoaded', () => {
+  const phoneInput = document.getElementById('inv-phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('blur', async () => {
+      const phone = phoneInput.value.trim();
+      const emailInput = document.getElementById('inv-email');
+      if (!phone || !token || !currentHospitalId || emailInput.value.trim()) return;
+      try {
+        const invitations = await api(`/super-admin/hospitals/${currentHospitalId}/invitations`);
+        const match = invitations.find(inv => inv.doctor_phone === phone && inv.doctor_email);
+        if (match) {
+          emailInput.value = match.doctor_email;
+          emailInput.style.borderColor = 'var(--pa)';
+          setTimeout(() => { emailInput.style.borderColor = ''; }, 2000);
+        }
+      } catch(e) {}
+    });
+  }
+});
+
+// --- Edit Hospital ---
+function showEditHospital(id) {
+  const h = window._hospitals[id];
+  if (!h) return;
+  document.getElementById('edit-hosp-id').value = id;
+  document.getElementById('edit-hosp-name').value = h.name || '';
+  document.getElementById('edit-hosp-slug').value = h.slug || '';
+  document.getElementById('edit-hosp-address').value = h.address || '';
+  document.getElementById('edit-hosp-city').value = h.city || '';
+  document.getElementById('edit-hosp-state').value = h.state || '';
+  document.getElementById('edit-hosp-phone').value = h.phone || '';
+  document.getElementById('edit-hosp-email').value = h.email || '';
+  document.getElementById('edit-hosp-pass').value = '';
+  document.getElementById('alert-edit-modal').innerHTML = '';
+  document.getElementById('modal-edit-hospital').classList.remove('hidden');
+}
+
+async function handleEditHospital(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-hosp-id').value;
+  const body = {
+    name: document.getElementById('edit-hosp-name').value.trim(),
+    address: document.getElementById('edit-hosp-address').value.trim() || null,
+    city: document.getElementById('edit-hosp-city').value.trim() || null,
+    state: document.getElementById('edit-hosp-state').value.trim() || null,
+    phone: document.getElementById('edit-hosp-phone').value.trim() || null,
+    email: document.getElementById('edit-hosp-email').value.trim() || null,
+  };
+  const pw = document.getElementById('edit-hosp-pass').value;
+  if (pw) body.admin_password = pw;
+  try {
+    await api(`/super-admin/hospitals/${id}`, 'PUT', body);
+    document.getElementById('modal-edit-hospital').classList.add('hidden');
+    showAlert('alert-dash', 'Hospital updated successfully!', 'ok');
+    loadDashboard();
+  } catch (err) { showAlert('alert-edit-modal', err.message, 'err'); }
+}
+</script>
+</body>
+</html>

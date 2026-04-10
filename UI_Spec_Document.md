@@ -63,8 +63,8 @@
 | Label (uppercase) | 12px | Bold 700 | 1.3 | 0.8px |
 | Timestamp | 12px | Regular 400 | 1.4 | 0 |
 | Tiny | 11px | Medium 500 | 1.3 | 0 |
-| Access code digits | 32px | Bold 700 | 1.0 | 2px |
-| Doctor code input | 28px | Bold 700 | 1.0 | 0 |
+| QR code container | 200x200px min | — | — | — |
+| QR timer text | 14px | Semibold 600 | 1.3 | 0 |
 | Invite code input | 22px | Bold 700 | 1.0 | 0 |
 | OTP input | 24px | Bold 700 | 1.0 | 0 |
 | Patient name (briefing) | 22px | Bold 700 | 1.2 | -0.2px |
@@ -109,8 +109,8 @@
 ### Touch Targets
 
 All interactive elements: minimum **48x48px** tap area
-Code digit inputs: **48x60px**
-Numpad keys: **full column width x 52px**
+QR code display: **200x200px minimum** (patient app)
+QR scanner viewfinder: **full width, 1:1 aspect ratio** (doctor app)
 Bottom nav items: **48x48px** icon area + label
 Settings items: **full width x 56px minimum**
 Invite code boxes: **44x56px**
@@ -152,7 +152,7 @@ Invite code boxes: **44x56px**
 **Onboarding Content:**
 1. Upload & Organize — Upload prescriptions, lab reports, scan paper documents
 2. AI Health Story — Records become a structured health summary in plain language
-3. Share Securely — Show a temporary 6-digit code to let your doctor see your history
+3. Share Securely — Show a QR code to let your doctor scan and see your history
 
 ### Screen 3: Signup
 
@@ -236,7 +236,7 @@ Invite code boxes: **44x56px**
 - Icon: 24x24px, inactive #9CA3AF, active #4A90D9
 - Label: 11px, inactive #9CA3AF Medium, active #4A90D9 Semibold
 
-### Screen 7: Share (Access Code)
+### Screen 7: Share (QR Code)
 
 **Layout:** Centered content + bottom nav
 
@@ -249,14 +249,19 @@ Invite code boxes: **44x56px**
 | Consent title | 16px Bold #1A1A2E, 12px bottom margin |
 | Consent item icon | 16px emoji, flex-shrink: 0 |
 | Consent item text | 14px Regular #6B7280, with bold #1A1A2E for emphasis, line-height: 1.5 |
-| Code digits | 6 boxes, each 52x68px, radius: 16px, bg: white, border: 2px #4A90D9 |
-| Digit font | 32px Bold, monospace, color: #1A1A2E |
-| Gap between digits | 12px |
+| QR code container | 200x200px, bg: white, padding: 16px, border: 2px #4A90D9, radius: 16px |
+| QR code | 168x168px centered within container, high contrast black-on-white |
 | Timer ring | 32px circle, 3px border, top: #4A90D9, rest: #E5E7EB |
 | Timer number | 11px Bold #4A90D9 inside ring |
 | Timer text | 14px Regular #6B7280 |
 | Security badge | bg: #F0FDF4, radius: 12px, padding: 12px 20px |
 | Access history button | bg: white, border: 1px, radius: 12px, padding: 14px, full width |
+
+**QR Code Details:**
+- Encodes an encrypted session token (not health data)
+- Auto-refreshes every 60 seconds with fade-out/fade-in animation
+- High error correction level (L25) for reliable scanning in various lighting
+- Minimum quiet zone of 4 modules around QR code
 
 ### Screen 8: Upload Records
 
@@ -353,7 +358,7 @@ Invite code boxes: **44x56px**
 
 **Onboarding Content:**
 1. 30-Second Patient Briefing — Structured summary: conditions, medications, lab results, alerts
-2. Patient-Consented Access — Temporary 6-digit code, auto-expiring sessions, no data stored on device
+2. Patient-Consented Access — Scan patient's QR code, auto-expiring sessions, no data stored on device
 3. Works With Existing Setup — Complements HMS, no queues, no booking, no admin
 
 ### Screen 3: Hospital Invite Code
@@ -443,7 +448,7 @@ Invite code boxes: **44x56px**
 | Greeting line | 14px Regular #6B7280 ("Good morning,") |
 | Doctor name | 24px Bold #1A1A2E |
 | Profile avatar | 44x44px circle, gradient: #2C3E50 → #4A90D9, initials: 16px Bold white |
-| Enter Code CTA | Full width, gradient: #2C3E50 → #1A2530 (135deg), radius: 16px, padding: 28px 24px, shadow-doctor |
+| Scan QR Code CTA | Full width, gradient: #2C3E50 → #1A2530 (135deg), radius: 16px, padding: 28px 24px, shadow-doctor |
 | CTA icon | 36px, centered, 12px bottom margin |
 | CTA title | 20px Bold white |
 | CTA subtitle | 14px Regular white/75% opacity |
@@ -460,31 +465,28 @@ Invite code boxes: **44x56px**
 
 **Bottom Navigation:**
 - Height: 12px top + item + 28px bottom (safe area)
-- Items: 3 (Home, Enter Code, Profile)
+- Items: 3 (Home, Scan QR, Profile)
 - Icon: 24x24px, inactive #9CA3AF, active #4A90D9
 - Label: 11px, inactive #9CA3AF Medium, active #4A90D9 Semibold
 
-### Screen 8: Code Entry
+### Screen 8: QR Scanner
 
-**Layout:** Full screen centered, numpad at bottom, bottom nav
-**Background:** #F8FAFC
+**Layout:** Full screen with camera viewfinder, bottom nav
+**Background:** #000000 (camera feed)
 
 | Element | Spec |
 |---------|------|
 | Logo | 64x64px, radius: 16px, bg: #2C3E50, text: 18px ExtraBold white |
-| Title | 24px Bold #1A1A2E |
-| Subtitle | 14px Regular #6B7280, line-height: 1.5 |
-| Input boxes | 6 boxes, each 48x60px, radius: 14px, border: 2px #E5E7EB |
-| Input focused | border: 2px #4A90D9, shadow: 0 0 0 3px rgba(74,144,217,0.15) |
-| Input filled | border: 2px #4A90D9, bg: #E8F1FB |
-| Digit font | 28px Bold, monospace, #1A1A2E |
-| Gap between inputs | 10px |
-| Numpad grid | 3 columns, 12px gap, max-width: 300px |
-| Numpad key | full-width x 52px, radius: 12px, bg: white, shadow-sm |
-| Numpad font | 22px Semibold #1A1A2E |
-| Feedback: searching | bg: #E8F1FB, color: #4A90D9, radius: 8px, padding: 12px 20px |
+| Title | 24px Bold white (overlaid on camera) |
+| Subtitle | 14px Regular white/75%, line-height: 1.5 |
+| Scanner frame | 250x250px, centered, border: 3px white, corner accents: 40px #4A90D9 |
+| Scanner overlay | Semi-transparent black (#000 at 60% opacity) outside scanner frame |
+| Scanning animation | Horizontal line sweep inside frame, color: #4A90D9, 2s loop |
+| Instruction text | 14px Semibold white, below scanner frame, 16px margin-top |
+| Feedback: scanning | bg: #E8F1FB, color: #4A90D9, radius: 8px, padding: 12px 20px |
 | Feedback: error | bg: #FEF2F2, color: #E74C3C |
-| Auto-submit | Triggers when 6th digit entered, 300ms delay → feedback → navigate |
+| Auto-detect | Camera detects QR code automatically → vibrate → feedback → navigate |
+| Flashlight toggle | 44x44px circle, bg: rgba(255,255,255,0.2), bottom-right of frame |
 
 ### Screen 9: Loading
 
@@ -585,7 +587,7 @@ Invite code boxes: **44x56px**
 | Title | 22px Bold #1A1A2E |
 | Description | 14px Regular #6B7280, line-height: 1.5, center |
 | Back to Dashboard button | max-width: 300px, bg: #4A90D9, radius: 12px |
-| Enter Next Code button | max-width: 300px, bg: transparent, border: 2px #E5E7EB, color: #2C3E50, radius: 12px |
+| Scan Next Patient button | max-width: 300px, bg: transparent, border: 2px #E5E7EB, color: #2C3E50, radius: 12px |
 | Button spacing | 12px between buttons |
 
 ### Screen 12: Profile & Settings
@@ -636,18 +638,20 @@ Invite code boxes: **44x56px**
 - Invalid code: shake animation, error message below
 - Successfully verified: green success banner with hospital name
 
-### Patient App: Code Rotation
-- Code refreshes every **60 seconds**
+### Patient App: QR Code Rotation
+- QR code refreshes every **60 seconds** with a new encrypted token
 - Circular timer animation: 60s linear rotation on timer ring border
-- When code refreshes: fade-out old digits (150ms), fade-in new digits (200ms)
-- Code format: 6 random digits, monospace display
+- When QR refreshes: fade-out old QR code (150ms), fade-in new QR code (200ms)
+- QR encodes: encrypted session token (server-generated, time-limited)
+- QR error correction: Level L (25%) for reliable scanning
 
-### Doctor App: Code Entry
-- Auto-focus first input on screen load
-- Each digit typed fills next empty box with scale animation (100ms)
-- Backspace removes last filled box
-- On 6th digit: 300ms pause → "Finding patient..." feedback → 800ms → loading screen → 1400ms → briefing
-- Invalid code: shake animation on input boxes (3 cycles, 100ms each), red border flash
+### Doctor App: QR Scanner
+- Camera activates automatically on screen load (requires camera permission)
+- Scanner frame centered on screen with corner accent markers
+- Horizontal scanning line animation sweeps through frame
+- On successful scan: haptic vibrate → "Finding patient..." feedback → 800ms → loading screen → 1400ms → briefing
+- Invalid QR: shake animation on scanner frame, red border flash, error message below
+- Flashlight toggle for low-light environments
 
 ### Briefing Card: Progressive Disclosure
 - All sections start expanded (doctor needs to see everything at a glance)
@@ -677,7 +681,7 @@ Splash → Onboarding (3 screens) → Signup / Login → OTP → Home
                                                           ├── Home (dashboard)
                                                           ├── Timeline
                                                           ├── Upload → Camera → OCR → Review
-                                                          ├── Share (access code + consent)
+                                                          ├── Share (QR code + consent)
                                                           │   └── Access Log
                                                           └── Profile & Settings
 ```
@@ -689,7 +693,7 @@ Splash → Onboarding (3 screens) → Invite Code → Signup → OTP → Dashboa
                                   Login → OTP → Dashboard
                                                     ├── Dashboard (Home)
                                                     │   └── Today's Patients list
-                                                    ├── Enter Code → Loading → Briefing Card
+                                                    ├── Scan QR Code → Loading → Briefing Card
                                                     │   └── Done → Session Ended
                                                     └── Profile & Settings
 ```
@@ -706,7 +710,7 @@ Splash → Onboarding (3 screens) → Invite Code → Signup → OTP → Dashboa
 - [ ] Font scalable to 200% without breaking layout
 - [ ] No information hidden behind hover states
 - [ ] Critical alerts have distinct shape + color + icon + text
-- [ ] Monospace font for codes prevents digit confusion (0/O, 1/l)
+- [ ] QR code has sufficient quiet zone and error correction for reliable scanning
 - [ ] Invite code input supports uppercase auto-conversion
-- [ ] OTP auto-read from SMS (Android) / clipboard suggestion (iOS)
+- [ ] Camera permission requested clearly with explanation for QR scanning
 - [ ] Bottom nav respects safe area insets on both platforms

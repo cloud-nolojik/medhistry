@@ -1,0 +1,117 @@
+"""Doctor registration (via invitation), login, and profile endpoints."""
+
+from datetime import datetime, timezone
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import hash_password, verify_password, create_access_token
+from app.models.doctor import Doctor
+from app.models.invitation import Invitation, InvitationStatus
+from app.schemas.doctor import DoctorRegisterViaInvite, DoctorLogin, DoctorOut, DoctorTokenResponse
+from app.api.deps import get_current_doctor
+
+router = APIRouter(prefix="/doctors", tags=["doctors"])
+
+
+def _ensure_aware(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+@router.post("/register", response_model=DoctorTokenResponse, status_code=status.HTTP_201_CREATED)
+async def register_doctor(data: DoctorRegisterViaInvite, db: AsyncSession = Depends(get_db)):
+    """Register a doctor using an invitation code from a hospital admin.
+
+    The invite_code links the doctor to the correct hospital.
+    """
+    # Find the invitation
+    result = await db.execute(
+        select(Invitation).where(
+            Invitation.invite_code == data.invite_code,
+            Invitation.status == InvitationStatus.PENDING,
+        )
+    )
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invitation code",
+        )
+
+    # Check invitation not expired
+    if datetime.now(timezone.utc) > _ensure_aware(invitation.expires_at):
+        invitation.status = InvitationStatus.EXPIRED
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Invitation has expired",
+        )
+
+    # Check phone matches invitation
+    if data.phone != invitation.doctor_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number does not match the invitation",
+        )
+
+    # Check phone not already registered
+    existing = await db.execute(select(Doctor).where(Doctor.phone == data.phone))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Phone number already registered",
+        )
+
+    # Create doctor account
+    doctor = Doctor(
+        hospital_id=invitation.hospital_id,
+        phone=data.phone,
+        name=data.name,
+        password_hash=hash_password(data.password),
+        specialisation=data.specialisation or invitation.specialisation,
+        license_number=data.license_number,
+        email=data.email,
+    )
+    db.add(doctor)
+
+    # Mark invitation as accepted
+    invitation.status = InvitationStatus.ACCEPTED
+    invitation.accepted_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(doctor)
+
+    token = create_access_token(f"doctor:{doctor.id}")
+    return DoctorTokenResponse(
+        access_token=token,
+        doctor=DoctorOut.model_validate(doctor),
+    )
+
+
+@router.post("/login", response_model=DoctorTokenResponse)
+async def login_doctor(data: DoctorLogin, db: AsyncSession = Depends(get_db)):
+    """Doctor login with phone + password."""
+    result = await db.execute(select(Doctor).where(Doctor.phone == data.phone))
+    doctor = result.scalar_one_or_none()
+    if not doctor or not verify_password(data.password, doctor.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid phone or password",
+        )
+
+    token = create_access_token(f"doctor:{doctor.id}")
+    return DoctorTokenResponse(
+        access_token=token,
+        doctor=DoctorOut.model_validate(doctor),
+    )
+
+
+@router.get("/me", response_model=DoctorOut)
+async def get_doctor_profile(doctor: Doctor = Depends(get_current_doctor)):
+    """Get the current doctor's profile."""
+    return DoctorOut.model_validate(doctor)

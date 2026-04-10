@@ -79,8 +79,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .ci .cii{font-size:16px;flex-shrink:0;margin-top:1px}
 .ci .cit{font-size:14px;color:var(--ts);line-height:1.5}
 .ci .cit strong{color:var(--t)}
-.code-digits{display:flex;gap:12px;margin-bottom:24px}
-.code-d{width:52px;height:68px;background:var(--w);border:2px solid var(--p);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:var(--t);font-family:'SF Mono',Menlo,Consolas,monospace;box-shadow:0 2px 8px rgba(74,144,217,.15)}
+.qr-container{width:220px;height:220px;background:var(--w);border:2px solid var(--p);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 2px 8px rgba(74,144,217,.15);padding:12px}
+.qr-code{width:100%;height:100%}
 .code-timer{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .timer-ring{width:32px;height:32px;border-radius:50%;border:3px solid var(--brd);border-top-color:var(--p);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--p);animation:sp 60s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -122,7 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <div style="position:absolute;top:20px;left:24px;cursor:pointer;padding:8px" onclick="go('s-ob1')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
   <div style="width:160px;height:160px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:40px">🩺</div>
   <div style="font-size:24px;font-weight:700;color:var(--t);margin-bottom:12px;line-height:1.3">Share with your<br>doctor instantly</div>
-  <div style="font-size:15px;color:var(--ts);line-height:1.6;margin-bottom:48px;max-width:300px">Show a 6-digit code to your doctor. They see your health summary in 30 seconds — no digging through paper files.</div>
+  <div style="font-size:15px;color:var(--ts);line-height:1.6;margin-bottom:48px;max-width:300px">Show a QR code to your doctor. They scan it and see your health summary in 30 seconds — no digging through paper files.</div>
   <div style="display:flex;gap:8px;margin-bottom:40px"><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div><div style="width:24px;height:8px;border-radius:4px;background:var(--p)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--brd)"></div></div>
   <button class="bp" style="max-width:300px" onclick="go('s-ob3')">Next</button>
 </div>
@@ -195,7 +195,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="ct">
   <div class="sc"><h3>ACTIVE CONDITIONS</h3><div class="ct-tags"><span class="ct-tag">High Blood Pressure</span><span class="ct-tag">Type 2 Diabetes</span><span class="ct-tag">High Cholesterol</span></div></div>
   <div class="pa"><span class="ic">⚠️</span><span class="tx">Your Liver Function Test results are pending — ordered 18 days ago</span></div>
-  <div class="qa"><div class="qi" onclick="go('s-upload')"><div class="qic" style="background:#EBF5FF">📸</div><span class="ql">Upload Record</span></div><div class="qi" onclick="go('s-share')"><div class="qic" style="background:#F0FDF4">🔑</div><span class="ql">Share with Doctor</span></div></div>
+  <div class="qa"><div class="qi" onclick="go('s-upload')"><div class="qic" style="background:#EBF5FF">📸</div><span class="ql">Upload Record</span></div><div class="qi" onclick="go('s-share')"><div class="qic" style="background:#F0FDF4">📲</div><span class="ql">Show QR Code</span></div></div>
   <div class="sh"><h2>Current Medications</h2></div>
   <div class="cd">
     <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Amlodipine 5mg</div><div class="md">Once daily · For blood pressure</div></div></div>
@@ -230,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="ct" style="display:flex;flex-direction:column;align-items:center;padding-top:20px">
   <div style="width:64px;height:64px;border-radius:20px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px">🔐</div>
   <div style="font-size:20px;font-weight:700;color:var(--t);text-align:center;margin-bottom:6px">Share with your Doctor</div>
-  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:24px;line-height:1.5;max-width:300px">Show this code during your visit. Your doctor enters it to see your health summary.</div>
+  <div style="font-size:14px;color:var(--ts);text-align:center;margin-bottom:24px;line-height:1.5;max-width:300px">Let your doctor scan this QR code to see your health summary for this visit.</div>
   <div class="consent-card">
     <h3>What your doctor will see:</h3>
     <div class="ci"><span class="cii">🩺</span><span class="cit"><strong>Active conditions</strong> — your diagnosed health conditions</span></div>
@@ -239,10 +239,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div class="ci"><span class="cii">⚠️</span><span class="cit"><strong>Allergies & alerts</strong> — so they prescribe safely</span></div>
     <div class="ci"><span class="cii">⏱️</span><span class="cit"><strong>Access expires automatically</strong> after the visit. The doctor cannot save or share your data.</span></div>
   </div>
-  <div class="code-digits">
-    <div class="code-d">4</div><div class="code-d">8</div><div class="code-d">2</div><div class="code-d">9</div><div class="code-d">1</div><div class="code-d">7</div>
+  <div class="qr-container">
+    <svg class="qr-code" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- QR Code visual representation -->
+      <rect width="200" height="200" fill="white"/>
+      <!-- Position detection patterns (top-left) -->
+      <rect x="8" y="8" width="42" height="42" fill="#1A1A2E"/><rect x="14" y="14" width="30" height="30" fill="white"/><rect x="20" y="20" width="18" height="18" fill="#1A1A2E"/>
+      <!-- Position detection patterns (top-right) -->
+      <rect x="150" y="8" width="42" height="42" fill="#1A1A2E"/><rect x="156" y="14" width="30" height="30" fill="white"/><rect x="162" y="20" width="18" height="18" fill="#1A1A2E"/>
+      <!-- Position detection patterns (bottom-left) -->
+      <rect x="8" y="150" width="42" height="42" fill="#1A1A2E"/><rect x="14" y="156" width="30" height="30" fill="white"/><rect x="20" y="162" width="18" height="18" fill="#1A1A2E"/>
+      <!-- Alignment pattern -->
+      <rect x="88" y="88" width="24" height="24" fill="#1A1A2E"/><rect x="92" y="92" width="16" height="16" fill="white"/><rect x="96" y="96" width="8" height="8" fill="#1A1A2E"/>
+      <!-- Data modules (representative pattern) -->
+      <rect x="58" y="8" width="6" height="6" fill="#1A1A2E"/><rect x="70" y="8" width="6" height="6" fill="#1A1A2E"/><rect x="82" y="8" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="20" width="6" height="6" fill="#1A1A2E"/><rect x="76" y="20" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="64" y="32" width="6" height="6" fill="#1A1A2E"/><rect x="82" y="32" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="44" width="6" height="6" fill="#1A1A2E"/><rect x="70" y="44" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="8" y="58" width="6" height="6" fill="#1A1A2E"/><rect x="20" y="58" width="6" height="6" fill="#1A1A2E"/><rect x="32" y="58" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="58" width="6" height="6" fill="#1A1A2E"/><rect x="76" y="58" width="6" height="6" fill="#1A1A2E"/><rect x="120" y="58" width="6" height="6" fill="#1A1A2E"/><rect x="138" y="58" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="8" y="70" width="6" height="6" fill="#1A1A2E"/><rect x="32" y="70" width="6" height="6" fill="#1A1A2E"/><rect x="58" y="70" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="120" y="70" width="6" height="6" fill="#1A1A2E"/><rect x="150" y="70" width="6" height="6" fill="#1A1A2E"/><rect x="176" y="70" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="14" y="82" width="6" height="6" fill="#1A1A2E"/><rect x="38" y="82" width="6" height="6" fill="#1A1A2E"/><rect x="58" y="82" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="126" y="82" width="6" height="6" fill="#1A1A2E"/><rect x="156" y="82" width="6" height="6" fill="#1A1A2E"/><rect x="186" y="82" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="120" width="6" height="6" fill="#1A1A2E"/><rect x="76" y="120" width="6" height="6" fill="#1A1A2E"/><rect x="120" y="120" width="6" height="6" fill="#1A1A2E"/><rect x="138" y="120" width="6" height="6" fill="#1A1A2E"/><rect x="156" y="120" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="64" y="132" width="6" height="6" fill="#1A1A2E"/><rect x="82" y="132" width="6" height="6" fill="#1A1A2E"/><rect x="126" y="132" width="6" height="6" fill="#1A1A2E"/><rect x="150" y="132" width="6" height="6" fill="#1A1A2E"/><rect x="176" y="132" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="144" width="6" height="6" fill="#1A1A2E"/><rect x="70" y="144" width="6" height="6" fill="#1A1A2E"/><rect x="120" y="144" width="6" height="6" fill="#1A1A2E"/><rect x="144" y="144" width="6" height="6" fill="#1A1A2E"/><rect x="186" y="144" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="156" width="6" height="6" fill="#1A1A2E"/><rect x="82" y="156" width="6" height="6" fill="#1A1A2E"/><rect x="132" y="156" width="6" height="6" fill="#1A1A2E"/><rect x="156" y="156" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="64" y="168" width="6" height="6" fill="#1A1A2E"/><rect x="76" y="168" width="6" height="6" fill="#1A1A2E"/><rect x="120" y="168" width="6" height="6" fill="#1A1A2E"/><rect x="144" y="168" width="6" height="6" fill="#1A1A2E"/><rect x="176" y="168" width="6" height="6" fill="#1A1A2E"/>
+      <rect x="58" y="180" width="6" height="6" fill="#1A1A2E"/><rect x="70" y="180" width="6" height="6" fill="#1A1A2E"/><rect x="82" y="180" width="6" height="6" fill="#1A1A2E"/><rect x="132" y="180" width="6" height="6" fill="#1A1A2E"/><rect x="150" y="180" width="6" height="6" fill="#1A1A2E"/><rect x="186" y="180" width="6" height="6" fill="#1A1A2E"/>
+      <!-- Timing patterns -->
+      <rect x="48" y="8" width="2" height="42" fill="#1A1A2E" opacity="0.15"/>
+      <rect x="8" y="48" width="42" height="2" fill="#1A1A2E" opacity="0.15"/>
+    </svg>
   </div>
-  <div class="code-timer"><div class="timer-ring">58</div><span style="font-size:14px;color:var(--ts)">New code in 58 seconds</span></div>
+  <div class="code-timer"><div class="timer-ring">58</div><span style="font-size:14px;color:var(--ts)">New QR code in 58 seconds</span></div>
   <div class="code-sec"><span>🔒</span><span>Your data is encrypted and secure</span></div>
   <div style="width:100%;margin-top:20px" onclick="go('s-alog')">
     <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--w);border:1px solid var(--brd);border-radius:var(--rs);cursor:pointer;font-size:14px;font-weight:600;color:var(--ts)">📋 View Access History</div>
