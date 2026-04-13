@@ -28,14 +28,21 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun DoctorSignupScreen(
     hospital: String,
+    prefillName: String = "",
+    prefillSpecialisation: String = "",
+    prefillPhone: String = "",
     onBack: () -> Unit,
     onLogin: () -> Unit,
     onContinue: (name: String, specialization: String, regNumber: String, phone: String) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var specialization by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(prefillName) }
+    var specialization by remember { mutableStateOf(prefillSpecialisation) }
     var regNumber by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    var phone by remember {
+        // Strip country code prefix (+91) if present
+        val stripped = prefillPhone.removePrefix("+91").removePrefix("91").trim()
+        mutableStateOf(stripped)
+    }
 
     Column(
         modifier = Modifier

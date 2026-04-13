@@ -64,6 +64,7 @@ async def verify_invite_code(invite_code: str, db: AsyncSession = Depends(get_db
         "hospital_name": hospital_name,
         "doctor_name": invitation.doctor_name,
         "specialisation": invitation.specialisation,
+        "doctor_phone": invitation.doctor_phone,
     }
 
 

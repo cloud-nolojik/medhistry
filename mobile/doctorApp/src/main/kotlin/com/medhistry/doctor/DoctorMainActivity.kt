@@ -49,7 +49,7 @@ private sealed class DoctorScreen {
     data object Onboarding2 : DoctorScreen()
     data object Onboarding3 : DoctorScreen()
     data object InviteCode : DoctorScreen()
-    data class Signup(val hospital: String) : DoctorScreen()
+    data class Signup(val hospital: String, val doctorName: String = "", val specialisation: String = "", val phone: String = "") : DoctorScreen()
     data class Otp(val phone: String, val hospital: String, val name: String, val specialization: String) : DoctorScreen()
     data object Login : DoctorScreen()
     data class Home(val session: DoctorSession, val tab: DoctorTab = DoctorTab.Home) : DoctorScreen()
@@ -86,10 +86,15 @@ private fun DoctorAppRoot(api: MedHistryApi) {
         DoctorScreen.InviteCode -> DoctorInviteCodeScreen(
             api = api,
             onBack = { screen = DoctorScreen.Onboarding3 },
-            onVerified = { _, hospital -> screen = DoctorScreen.Signup(hospital) },
+            onVerified = { code, hospital, doctorName, specialisation, phone ->
+                screen = DoctorScreen.Signup(hospital, doctorName, specialisation, phone)
+            },
         )
         is DoctorScreen.Signup -> DoctorSignupScreen(
             hospital = s.hospital,
+            prefillName = s.doctorName,
+            prefillSpecialisation = s.specialisation,
+            prefillPhone = s.phone,
             onBack = { screen = DoctorScreen.InviteCode },
             onLogin = { screen = DoctorScreen.Login },
             onContinue = { name, spec, _, phone ->

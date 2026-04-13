@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 fun DoctorInviteCodeScreen(
     api: MedHistryApi,
     onBack: () -> Unit,
-    onVerified: (code: String, hospital: String) -> Unit,
+    onVerified: (code: String, hospital: String, doctorName: String, specialisation: String, phone: String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
 
@@ -161,7 +161,7 @@ fun DoctorInviteCodeScreen(
                         scope.launch {
                             try {
                                 val result = api.verifyInviteCode(code)
-                                onVerified(code, result.hospitalName)
+                                onVerified(code, result.hospitalName, result.doctorName ?: "", result.specialisation ?: "", result.doctorPhone ?: "")
                             } catch (e: Exception) {
                                 error = MedHistryApi.friendlyMessage(e)
                             } finally {
