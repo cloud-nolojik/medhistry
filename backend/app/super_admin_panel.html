@@ -568,8 +568,18 @@ pre{background:#0F172A;color:#E2E8F0;padding:16px;border-radius:12px;overflow:au
 
 <script>
 const API = window.location.origin + '/api/v1';
-let token = null;
+let token = sessionStorage.getItem('sa_token');
 let currentHospitalId = null;
+
+// Auto-restore session on page load
+if (token) {
+  document.getElementById('app-login').classList.add('hidden');
+  document.getElementById('app-dashboard').classList.remove('hidden');
+  const savedName = sessionStorage.getItem('sa_name') || 'Admin';
+  document.getElementById('admin-name').textContent = savedName;
+  document.getElementById('user-initial').textContent = savedName.charAt(0).toUpperCase();
+  setTimeout(() => loadDashboard(), 0);
+}
 
 function showAlert(id, msg, type) {
   document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
@@ -742,7 +752,9 @@ async function handleLogin(e) {
       password: document.getElementById('login-pass').value,
     });
     token = data.access_token;
+    sessionStorage.setItem('sa_token', token);
     const name = data.admin.name || 'Admin';
+    sessionStorage.setItem('sa_name', name);
     document.getElementById('admin-name').textContent = name;
     document.getElementById('user-initial').textContent = name.charAt(0).toUpperCase();
     document.getElementById('app-login').classList.add('hidden');
@@ -753,6 +765,8 @@ async function handleLogin(e) {
 
 function logout() {
   token = null;
+  sessionStorage.removeItem('sa_token');
+  sessionStorage.removeItem('sa_name');
   document.getElementById('app-login').classList.remove('hidden');
   document.getElementById('app-dashboard').classList.add('hidden');
 }

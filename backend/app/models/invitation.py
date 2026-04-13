@@ -2,7 +2,14 @@
 
 import uuid
 import secrets
+import string
 from datetime import datetime, timezone
+
+
+def _generate_invite_code() -> str:
+    """Generate an 8-character uppercase alphanumeric invite code."""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
 
 from sqlalchemy import String, DateTime, Boolean, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,7 +42,7 @@ class Invitation(Base):
     specialisation: Mapped[str | None] = mapped_column(String(100))
     invite_code: Mapped[str] = mapped_column(
         String(32), unique=True, index=True, nullable=False,
-        default=lambda: secrets.token_urlsafe(16)
+        default=_generate_invite_code
     )
     status: Mapped[InvitationStatus] = mapped_column(
         SAEnum(InvitationStatus, native_enum=False, length=20),
