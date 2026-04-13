@@ -27,6 +27,13 @@ class InvitationOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class InvitationUpdate(BaseModel):
+    doctor_name: str | None = None
+    doctor_phone: str | None = None
+    doctor_email: str | None = None
+    specialisation: str | None = None
+
+
 class InvitationListOut(BaseModel):
     invitations: list[InvitationOut]
     total: int

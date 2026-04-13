@@ -53,10 +53,11 @@ push_code() {
     fi
 
     log "Pushing code to GitHub..."
-    git push origin main || git push origin master || err "Git push failed"
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    git push origin "${BRANCH}:main" || err "Git push failed"
 
     log "Pulling code on server..."
-    remote "git pull origin main || git pull origin master"
+    remote "git stash -q 2>/dev/null; git pull origin main; git stash drop -q 2>/dev/null"
     log "Server code updated"
 }
 

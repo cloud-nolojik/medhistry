@@ -4,64 +4,179 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MedHistry — Platform Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--p:#0E2A3A;--pa:#50C8DC;--bg:#F8FAFC;--card:#FFF;--text:#0E2A3A;--muted:#64748B;--err:#DC2626;--ok:#16A34A;--border:#E2E8F0;--r:12px}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.container{max-width:1000px;margin:0 auto;padding:24px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:16px;border-bottom:2px solid var(--p)}
-header h1{font-size:20px;color:var(--p)}
-header h1 span{color:var(--pa);font-weight:400;font-size:14px;margin-left:8px}
-.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:#163E4E}
-.btn-blue{background:var(--pa);color:var(--p)}.btn-blue:hover{background:#78DCE8}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--pa);color:var(--pa)}
-.btn-danger{background:var(--err);color:#fff;font-size:13px;padding:6px 14px}.btn-danger:hover{background:#B91C1C}
-.btn-sm{padding:6px 14px;font-size:13px}
-.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:24px;margin-bottom:20px}
-.card h2{font-size:16px;margin-bottom:16px;color:var(--text)}
-.card h3{font-size:14px;margin-bottom:12px;color:var(--pa)}
+:root{
+  --p:#0E2A3A;--pa:#50C8DC;--pa-light:#E8F8FB;--bg:#F1F5F9;--card:#FFF;
+  --text:#1E293B;--muted:#64748B;--err:#DC2626;--ok:#16A34A;--warn:#F59E0B;
+  --border:#E2E8F0;--r:16px;--shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.08);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ===== SIDEBAR LAYOUT ===== */
+.app-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--p);color:#fff;padding:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sidebar-brand{padding:24px 24px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-brand h1{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.sidebar-brand h1 span{color:var(--pa);font-weight:400;font-size:13px;display:block;margin-top:2px}
+.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item.active{color:#fff;background:rgba(80,200,220,.15)}
+.nav-item.active .nav-icon{color:var(--pa)}
+.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{padding:16px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--pa);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--p)}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:rgba(255,255,255,.4)}
+.btn-logout{background:none;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-logout:hover{border-color:rgba(255,255,255,.25);color:#fff}
+
+/* ===== MAIN CONTENT ===== */
+.main-content{padding:32px 40px;max-width:1100px}
+.page-header{margin-bottom:28px}
+.page-header h2{font-size:22px;font-weight:700;color:var(--p);letter-spacing:-.3px}
+.page-header p{font-size:14px;color:var(--muted);margin-top:4px}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-header h3{font-size:15px;font-weight:600;color:var(--text)}
+.card-header .card-desc{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* ===== STATS ===== */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px;box-shadow:var(--shadow);transition:all .15s}
+.stat-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.stat-card .stat-label{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat-card .stat-num{font-size:36px;font-weight:700;color:var(--p);margin-top:4px;line-height:1}
+.stat-card .stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.stat-icon-blue{background:#EFF6FF;color:#3B82F6}
+.stat-icon-green{background:#F0FDF4;color:#22C55E}
+.stat-icon-purple{background:#FAF5FF;color:#A855F7}
+.stat-icon-amber{background:#FFFBEB;color:#F59E0B}
+
+/* ===== BUTTONS ===== */
+.btn{padding:9px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:#163E4E;box-shadow:0 2px 8px rgba(14,42,58,.25)}
+.btn-accent{background:var(--pa);color:var(--p)}.btn-accent:hover{background:#78DCE8}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--pa);color:var(--pa);background:var(--pa-light)}
+.btn-danger{background:#FEE2E2;color:#DC2626;border:1px solid #FECACA}.btn-danger:hover{background:#FCA5A5;color:#991B1B}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-ghost{background:none;border:none;color:var(--pa);font-weight:600;padding:6px 10px;border-radius:8px}.btn-ghost:hover{background:var(--pa-light)}
+
+/* ===== FORMS ===== */
 .form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
-.form-group input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;transition:border .2s}
-.form-group input:focus{outline:none;border-color:var(--pa)}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;transition:all .15s;background:#fff;color:var(--text)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--pa);box-shadow:0 0 0 3px rgba(80,200,220,.12)}
+.form-group input::placeholder{color:#CBD5E1}
+.form-group select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
-.alert-ok{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
-.alert-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+.checkbox-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer}
+.checkbox-label input[type="checkbox"]{width:16px;height:16px;accent-color:var(--pa)}
+
+/* ===== TABLE ===== */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:2px solid var(--border)}
-td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
-tr:hover{background:#F8FAFC}
-.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:2px solid var(--border);background:#FAFBFC}
+td{padding:14px;border-bottom:1px solid #F1F5F9;font-size:14px}
+tbody tr{transition:background .1s}
+tbody tr:hover{background:#F8FAFC}
+.clickable{cursor:pointer}
+
+/* ===== BADGES ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.2px}
 .badge-pending{background:#FEF3C7;color:#92400E}
 .badge-accepted{background:#DCFCE7;color:#166534}
 .badge-expired{background:#F1F5F9;color:#64748B}
 .badge-revoked{background:#FEE2E2;color:#991B1B}
-.empty{text-align:center;padding:40px;color:var(--muted)}
-.login-wrap{display:flex;align-items:center;justify-content:center;min-height:80vh}
-.login-card{width:100%;max-width:400px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center}
-.stat-card .num{font-size:32px;font-weight:700;color:var(--p)}
-.stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;margin-top:4px}
-.clickable{cursor:pointer;transition:all .2s}.clickable:hover{border-color:var(--pa);box-shadow:0 2px 8px rgba(74,144,217,.15)}
-.back-btn{font-size:13px;color:var(--pa);cursor:pointer;border:none;background:none;font-weight:600;margin-bottom:16px}
+
+/* ===== ALERTS ===== */
+.alert{padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:500}
+.alert-ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0}
+.alert-err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+
+/* ===== MISC ===== */
+.empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty svg{width:48px;height:48px;color:#CBD5E1;margin-bottom:12px}
+.empty p{font-size:14px;margin-top:8px}
+.invite-code{font-family:'SF Mono',Monaco,'Courier New',monospace;font-size:12px;background:#F1F5F9;padding:4px 10px;border-radius:6px;user-select:all;font-weight:600;letter-spacing:.5px}
+.back-btn{font-size:13px;color:var(--pa);cursor:pointer;border:none;background:none;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:4px}
 .back-btn:hover{text-decoration:underline}
-.invite-code{font-family:monospace;font-size:13px;background:#F1F5F9;padding:4px 8px;border-radius:4px;user-select:all}
 .hidden{display:none!important}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100}
-.modal{background:#fff;border-radius:var(--r);padding:32px;width:100%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#fff;border-radius:var(--r);padding:32px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:20px}
+.section-divider{height:1px;background:var(--border);margin:24px 0}
+
+/* ===== LOGIN ===== */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0E2A3A 0%,#163E4E 50%,#0E2A3A 100%)}
+.login-card{width:100%;max-width:400px;padding:40px;border-radius:20px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo h2{font-size:22px;font-weight:700;color:var(--p)}
+.login-logo p{font-size:13px;color:var(--muted);margin-top:4px}
+.login-logo .logo-icon{width:56px;height:56px;background:var(--pa-light);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+
+/* ===== PRE/CODE ===== */
+pre{background:#0F172A;color:#E2E8F0;padding:16px;border-radius:12px;overflow:auto;max-height:500px;font-size:12px;font-family:'SF Mono',Monaco,'Courier New',monospace;line-height:1.6}
+
+/* ===== FILE INPUT ===== */
+.file-input-wrap{position:relative;border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;transition:all .15s;cursor:pointer}
+.file-input-wrap:hover{border-color:var(--pa);background:var(--pa-light)}
+.file-input-wrap input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.file-input-wrap .file-label{font-size:13px;color:var(--muted);font-weight:500}
+.file-input-wrap .file-label strong{color:var(--pa)}
+
+/* ===== PATIENT PICKER ===== */
+.patient-picker{max-height:200px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;background:#fff}
+.patient-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F8FAFC;transition:background .1s}
+.patient-row:last-child{border-bottom:none}
+.patient-row:hover{background:#FAFBFC}
+.patient-row label{display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;font-size:13px}
+.patient-count{font-size:11px;color:var(--muted);background:#F1F5F9;padding:2px 8px;border-radius:99px;font-weight:600}
+
+/* ===== RESULT PANEL ===== */
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.result-panel{border-radius:12px;padding:16px;font-size:14px;line-height:1.6}
+.result-panel h4{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px;color:var(--muted)}
+.result-json{background:#0F172A;color:#E2E8F0}
+.result-summary{background:#F0FDF4;border-left:3px solid #10B981}
+.result-doc{background:#F1F5F9}
+
+/* ===== META ROW ===== */
+.meta-row{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);margin-bottom:16px}
+.meta-item{display:flex;align-items:center;gap:4px}
+.meta-item strong{color:var(--text);font-weight:600}
+
+@media(max-width:768px){
+  .app-layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main-content{padding:20px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .result-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="app-login" class="container login-wrap">
-  <div class="card login-card">
-    <h2 style="text-align:center;margin-bottom:8px">MedHistry</h2>
-    <p style="text-align:center;color:var(--muted);margin-bottom:24px;font-size:14px">Platform Admin</p>
+<!-- ============= LOGIN ============= -->
+<div id="app-login" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0E2A3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <h2>MedHistry</h2>
+      <p>Platform Administration</p>
+    </div>
     <div id="alert-auth"></div>
     <form onsubmit="handleLogin(event)">
       <div class="form-group">
@@ -72,271 +187,327 @@ tr:hover{background:#F8FAFC}
         <label>Password</label>
         <input id="login-pass" type="password" value="medhistry_2026" required>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;margin-top:8px;justify-content:center">
+        Sign in
+      </button>
     </form>
   </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="app-dashboard" class="container hidden">
-  <header>
-    <h1>MedHistry <span>Platform Admin</span></h1>
-    <div>
-      <span id="admin-name" style="font-size:14px;color:var(--muted);margin-right:16px"></span>
-      <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+<!-- ============= DASHBOARD ============= -->
+<div id="app-dashboard" class="app-layout hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>MedHistry <span>Platform Admin</span></h1>
     </div>
-  </header>
-
-  <div id="alert-dash"></div>
-
-  <!-- Top tab nav -->
-  <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid #e2e8f0">
-    <button id="tab-btn-hospitals" class="btn btn-outline btn-sm" onclick="switchTab('hospitals')" style="border-bottom:2px solid var(--pa)">Hospitals</button>
-    <button id="tab-btn-playground" class="btn btn-outline btn-sm" onclick="switchTab('playground')">AI Playground</button>
-    <button id="tab-btn-reextract" class="btn btn-outline btn-sm" onclick="switchTab('reextract')">Re-extract</button>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats" id="stats-row">
-    <div class="stat-card"><div class="num" id="stat-hospitals">-</div><div class="label">Hospitals</div></div>
-    <div class="stat-card"><div class="num" id="stat-doctors">-</div><div class="label">Doctors</div></div>
-    <div class="stat-card"><div class="num" id="stat-patients">-</div><div class="label">Patients</div></div>
-    <div class="stat-card"><div class="num" id="stat-invites">-</div><div class="label">Pending Invites</div></div>
-  </div>
-
-  <!-- ============= AI PLAYGROUND TAB ============= -->
-  <div id="tab-playground" class="hidden">
-    <div class="card">
-      <h2 style="margin-top:0">AI Playground</h2>
-      <p style="color:var(--muted);margin-top:0">
-        Upload a sample report to compare what different models extract and how the final
-        patient briefing reads. Nothing is saved — pure A/B testing.
-      </p>
-      <form onsubmit="handlePlaygroundRun(event)" enctype="multipart/form-data">
-        <div class="form-row-3">
-          <div class="form-group">
-            <label>Provider</label>
-            <select id="pg-provider">
-              <option value="gemini">Gemini (Google AI)</option>
-              <option value="medgemma">MedGemma 1.5 (Vertex)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Extraction model</label>
-            <select id="pg-extraction-model">
-              <option value="">(provider default)</option>
-              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Summary model</label>
-            <select id="pg-summary-model">
-              <option value="">(default: gemini-2.5-flash)</option>
-              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-            </select>
-          </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="tab-btn-hospitals" onclick="switchTab('hospitals')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Hospitals
+      </button>
+      <button class="nav-item" id="tab-btn-playground" onclick="switchTab('playground')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        AI Playground
+      </button>
+      <button class="nav-item" id="tab-btn-reextract" onclick="switchTab('reextract')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Re-extract
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="user-initial">A</div>
+        <div class="user-info">
+          <div class="user-name" id="admin-name">Admin</div>
+          <div class="user-role">Super Admin</div>
         </div>
-        <div class="form-group">
-          <label>Sample report (PDF / JPG / PNG, max 20 MB)</label>
-          <input id="pg-file" type="file" accept="application/pdf,image/jpeg,image/png" required>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div id="alert-dash"></div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </div>
-        <button type="submit" class="btn btn-primary">Run pipeline</button>
-        <span id="pg-status" style="margin-left:12px;color:var(--muted)"></span>
-      </form>
+        <div class="stat-label">Hospitals</div>
+        <div class="stat-num" id="stat-hospitals">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="stat-label">Doctors</div>
+        <div class="stat-num" id="stat-doctors">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-label">Patients</div>
+        <div class="stat-num" id="stat-patients">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-amber">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="stat-label">Pending Invites</div>
+        <div class="stat-num" id="stat-invites">-</div>
+      </div>
     </div>
 
-    <div id="pg-result" class="hidden">
+    <!-- ============= HOSPITALS TAB ============= -->
+    <div id="tab-hospitals">
+      <div id="view-hospitals">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Hospitals</h3>
+              <div class="card-desc">Manage onboarded hospitals and their doctors</div>
+            </div>
+            <button class="btn btn-accent btn-sm" onclick="showAddHospital()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Hospital
+            </button>
+          </div>
+          <div id="hospitals-table"></div>
+        </div>
+      </div>
+
+      <div id="view-hospital-detail" class="hidden">
+        <button class="back-btn" onclick="backToHospitals()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to all hospitals
+        </button>
+
+        <div class="card">
+          <h3 id="detail-hospital-name" style="font-size:18px;font-weight:700"></h3>
+          <p id="detail-hospital-info" style="color:var(--muted);font-size:13px;margin-top:4px"></p>
+        </div>
+
+        <!-- Invite doctor -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Invite a Doctor</h3>
+              <div class="card-desc">Send an invitation code to onboard a new doctor</div>
+            </div>
+          </div>
+          <form onsubmit="handleInviteDoctor(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Doctor Name</label>
+                <input id="inv-name" placeholder="Dr. Arun Mehta" required>
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input id="inv-phone" placeholder="+919812345678" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email</label>
+                <input id="inv-email" type="email" placeholder="arun.mehta@jadeva.in">
+              </div>
+              <div class="form-group">
+                <label>Specialisation</label>
+                <input id="inv-spec" placeholder="General Medicine">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-accent btn-sm">Send Invitation</button>
+          </form>
+        </div>
+
+        <!-- Invitations -->
+        <div class="card">
+          <div class="card-header"><div><h3>Invitations</h3></div></div>
+          <div id="detail-invitations"></div>
+        </div>
+
+        <!-- Doctors -->
+        <div class="card">
+          <div class="card-header"><div><h3>Registered Doctors</h3></div></div>
+          <div id="detail-doctors"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= AI PLAYGROUND TAB ============= -->
+    <div id="tab-playground" class="hidden">
+      <div class="page-header">
+        <h2>AI Playground</h2>
+        <p>Upload a sample report to compare extraction models. Nothing is saved.</p>
+      </div>
       <div class="card">
-        <h3 style="margin-top:0">Run result</h3>
-        <div id="pg-meta" style="font-size:13px;color:var(--muted);margin-bottom:12px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div>
-            <h4 style="margin:0 0 8px">Extracted JSON</h4>
-            <pre id="pg-extracted" style="background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;max-height:500px;font-size:12px"></pre>
+        <form onsubmit="handlePlaygroundRun(event)" enctype="multipart/form-data">
+          <div class="form-row-3">
+            <div class="form-group">
+              <label>Provider</label>
+              <select id="pg-provider">
+                <option value="gemini">Gemini (Google AI)</option>
+                <option value="medgemma">MedGemma 1.5 (Vertex)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Extraction Model</label>
+              <select id="pg-extraction-model">
+                <option value="">(provider default)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Summary Model</label>
+              <select id="pg-summary-model">
+                <option value="">(default: gemini-2.5-flash)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <h4 style="margin:0 0 8px">Per-doc summary (from extractor)</h4>
-            <div id="pg-doc-summary" style="background:#f1f5f9;padding:12px;border-radius:8px;margin-bottom:16px;font-size:14px"></div>
-            <h4 style="margin:0 0 8px">Patient briefing (final)</h4>
-            <div id="pg-briefing" style="background:#ecfdf5;padding:12px;border-radius:8px;font-size:14px;border-left:3px solid #10b981"></div>
+          <div class="form-group">
+            <label>Sample Report</label>
+            <div class="file-input-wrap" id="file-drop-zone">
+              <input id="pg-file" type="file" accept="application/pdf,image/jpeg,image/png" required onchange="updateFileLabel(this)">
+              <div class="file-label" id="file-label-text">
+                <strong>Click to upload</strong> or drag & drop<br>
+                <span style="font-size:12px;color:#94A3B8">PDF, JPG, or PNG up to 20 MB</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run Pipeline
+            </button>
+            <span id="pg-status" style="font-size:13px;color:var(--muted)"></span>
+          </div>
+        </form>
+      </div>
+
+      <div id="pg-result" class="hidden">
+        <div class="card">
+          <div class="card-header"><div><h3>Results</h3></div></div>
+          <div class="meta-row" id="pg-meta"></div>
+          <div class="result-grid">
+            <div>
+              <div class="result-panel result-json">
+                <h4 style="color:#94A3B8">Extracted JSON</h4>
+                <pre id="pg-extracted" style="background:transparent;padding:0;margin:0;max-height:400px"></pre>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="result-panel result-doc">
+                <h4>Per-doc Summary</h4>
+                <div id="pg-doc-summary"></div>
+              </div>
+              <div class="result-panel result-summary">
+                <h4 style="color:#166534">Patient Briefing</h4>
+                <div id="pg-briefing"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ============= RE-EXTRACT TAB ============= -->
-  <div id="tab-reextract" class="hidden">
-    <div class="card">
-      <h2 style="margin-top:0">Re-extract existing documents</h2>
-      <p style="color:var(--muted);margin-top:0">
-        Re-run extraction on documents already in the database. Use this when you switch
-        the default model or change the extraction prompt. Use <strong>dry run</strong> first
-        to preview the diff without writing.
-      </p>
-      <form onsubmit="handleReextract(event)">
-        <div class="form-row-3">
-          <div class="form-group">
-            <label>Provider</label>
-            <select id="rx-provider">
-              <option value="gemini">Gemini</option>
-              <option value="medgemma">MedGemma</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Extraction model (optional)</label>
-            <input id="rx-model" placeholder="e.g. gemini-2.5-flash">
-          </div>
-          <div class="form-group">
-            <label>Document IDs (optional, space-separated)</label>
-            <input id="rx-docs" placeholder="leave blank for all matching docs">
-          </div>
-        </div>
-        <div class="form-group">
-          <label style="display:flex;justify-content:space-between;align-items:center">
-            <span>Patients (tick 1+ to filter, leave all unchecked for ALL patients)</span>
-            <span style="font-size:12px;color:var(--muted)">
-              <a href="#" onclick="rxSelectAllPatients(true);return false">select all</a> ·
-              <a href="#" onclick="rxSelectAllPatients(false);return false">clear</a> ·
-              <a href="#" onclick="loadReextractPatients();return false">refresh</a>
-            </span>
-          </label>
-          <div id="rx-patients" style="max-height:220px;overflow:auto;border:1px solid #e5e7eb;border-radius:6px;padding:8px;background:#fafafa;font-size:13px">
-            <div style="color:var(--muted)">Loading patients...</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px">
-          <label><input type="checkbox" id="rx-dry-run" checked> Dry run (preview only)</label>
-          <label><input type="checkbox" id="rx-rebuild" checked> Rebuild patient summaries after</label>
-        </div>
-        <button type="submit" class="btn btn-primary">Run re-extraction</button>
-        <span id="rx-status" style="margin-left:12px;color:var(--muted)"></span>
-      </form>
-    </div>
-    <div id="rx-result" class="hidden">
+    <!-- ============= RE-EXTRACT TAB ============= -->
+    <div id="tab-reextract" class="hidden">
+      <div class="page-header">
+        <h2>Re-extract Documents</h2>
+        <p>Re-run extraction on existing documents when you switch models or update prompts.</p>
+      </div>
       <div class="card">
-        <h3 style="margin-top:0">Run summary</h3>
-        <div id="rx-summary" style="font-size:14px;margin-bottom:16px"></div>
-        <h4>Per-document audit</h4>
-        <div id="rx-audits"></div>
+        <form onsubmit="handleReextract(event)">
+          <div class="form-row-3">
+            <div class="form-group">
+              <label>Provider</label>
+              <select id="rx-provider">
+                <option value="gemini">Gemini</option>
+                <option value="medgemma">MedGemma</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Extraction Model (optional)</label>
+              <input id="rx-model" placeholder="e.g. gemini-2.5-flash">
+            </div>
+            <div class="form-group">
+              <label>Document IDs (optional)</label>
+              <input id="rx-docs" placeholder="Space-separated, or blank for all">
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;justify-content:space-between;align-items:center">
+              <span>Filter by Patient</span>
+              <span style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:500">
+                <a href="#" class="btn-ghost btn-sm" onclick="rxSelectAllPatients(true);return false">Select all</a>
+                <a href="#" class="btn-ghost btn-sm" onclick="rxSelectAllPatients(false);return false">Clear</a>
+                <a href="#" class="btn-ghost btn-sm" onclick="loadReextractPatients();return false">Refresh</a>
+              </span>
+            </label>
+            <div class="patient-picker" id="rx-patients">
+              <div style="padding:16px;color:var(--muted);text-align:center;font-size:13px">Loading patients...</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:20px;align-items:center;margin-bottom:16px">
+            <label class="checkbox-label"><input type="checkbox" id="rx-dry-run" checked> Dry run (preview only)</label>
+            <label class="checkbox-label"><input type="checkbox" id="rx-rebuild" checked> Rebuild summaries after</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Run Re-extraction
+            </button>
+            <span id="rx-status" style="font-size:13px;color:var(--muted)"></span>
+          </div>
+        </form>
+      </div>
+      <div id="rx-result" class="hidden">
+        <div class="card">
+          <div class="card-header"><div><h3>Results</h3></div></div>
+          <div class="meta-row" id="rx-summary"></div>
+          <h4 style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-bottom:12px">Per-document Audit</h4>
+          <div id="rx-audits"></div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Main content area: hospitals list OR hospital detail -->
-  <div id="tab-hospitals">
-  <div id="view-hospitals">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0">Hospitals</h2>
-        <button class="btn btn-blue btn-sm" onclick="showAddHospital()">+ Add Hospital</button>
-      </div>
-      <div id="hospitals-table"></div>
-    </div>
-  </div>
-
-  <div id="view-hospital-detail" class="hidden">
-    <button class="back-btn" onclick="backToHospitals()">&larr; Back to all hospitals</button>
-
-    <div class="card">
-      <h2 id="detail-hospital-name"></h2>
-      <p id="detail-hospital-info" style="color:var(--muted);font-size:14px"></p>
-    </div>
-
-    <!-- Invite doctor into this hospital -->
-    <div class="card">
-      <h3>Invite a Doctor</h3>
-      <form onsubmit="handleInviteDoctor(event)">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Doctor Name</label>
-            <input id="inv-name" placeholder="Dr. Arun Mehta" required>
-          </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input id="inv-phone" placeholder="+919812345678" required>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Email (invitation will be sent here)</label>
-            <input id="inv-email" type="email" placeholder="arun.mehta@jadeva.in">
-          </div>
-          <div class="form-group">
-            <label>Specialisation</label>
-            <input id="inv-spec" placeholder="General Medicine">
-          </div>
-        </div>
-        <button type="submit" class="btn btn-blue btn-sm">Send Invitation</button>
-      </form>
-    </div>
-
-    <!-- Invitations -->
-    <div class="card">
-      <h3>Invitations</h3>
-      <div id="detail-invitations"></div>
-    </div>
-
-    <!-- Doctors -->
-    <div class="card">
-      <h3>Registered Doctors</h3>
-      <div id="detail-doctors"></div>
-    </div>
-  </div>
-  </div> <!-- /tab-hospitals -->
+  </main>
 </div>
 
-<!-- Edit Hospital Modal -->
+<!-- ===== Edit Hospital Modal ===== -->
 <div id="modal-edit-hospital" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="modal">
-    <h2 style="margin-bottom:20px">Edit Hospital</h2>
+    <h2>Edit Hospital</h2>
     <div id="alert-edit-modal"></div>
     <form onsubmit="handleEditHospital(event)">
       <input type="hidden" id="edit-hosp-id">
       <div class="form-row">
-        <div class="form-group">
-          <label>Hospital Name</label>
-          <input id="edit-hosp-name" required>
-        </div>
-        <div class="form-group">
-          <label>Slug (read-only)</label>
-          <input id="edit-hosp-slug" disabled style="background:#f1f5f9;color:var(--muted)">
-        </div>
+        <div class="form-group"><label>Hospital Name</label><input id="edit-hosp-name" required></div>
+        <div class="form-group"><label>Slug (read-only)</label><input id="edit-hosp-slug" disabled style="background:#F1F5F9;color:var(--muted)"></div>
       </div>
-      <div class="form-group">
-        <label>Address</label>
-        <input id="edit-hosp-address" placeholder="123 Health Street">
+      <div class="form-group"><label>Address</label><input id="edit-hosp-address" placeholder="123 Health Street"></div>
+      <div class="form-row">
+        <div class="form-group"><label>City</label><input id="edit-hosp-city"></div>
+        <div class="form-group"><label>State</label><input id="edit-hosp-state"></div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label>City</label>
-          <input id="edit-hosp-city">
-        </div>
-        <div class="form-group">
-          <label>State</label>
-          <input id="edit-hosp-state">
-        </div>
+        <div class="form-group"><label>Phone</label><input id="edit-hosp-phone"></div>
+        <div class="form-group"><label>Email</label><input id="edit-hosp-email"></div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Phone</label>
-          <input id="edit-hosp-phone">
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input id="edit-hosp-email">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>New Admin Password (leave blank to keep current)</label>
-        <input id="edit-hosp-pass" type="password" minlength="6" placeholder="••••••">
-      </div>
+      <div class="form-group"><label>New Admin Password (leave blank to keep)</label><input id="edit-hosp-pass" type="password" minlength="6" placeholder="••••••"></div>
       <div style="display:flex;gap:12px;justify-content:flex-end">
         <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-hospital').classList.add('hidden')">Cancel</button>
         <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -345,49 +516,51 @@ tr:hover{background:#F8FAFC}
   </div>
 </div>
 
-<!-- Add Hospital Modal -->
+<!-- ===== Add Hospital Modal ===== -->
 <div id="modal-add-hospital" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="modal">
-    <h2 style="margin-bottom:20px">Add Hospital</h2>
+    <h2>Add Hospital</h2>
     <div id="alert-modal"></div>
     <form onsubmit="handleAddHospital(event)">
       <div class="form-row">
-        <div class="form-group">
-          <label>Hospital Name</label>
-          <input id="hosp-name" placeholder="Jadeva Hospital" required>
-        </div>
-        <div class="form-group">
-          <label>Slug (unique login ID)</label>
-          <input id="hosp-slug" placeholder="jadeva" required>
-        </div>
+        <div class="form-group"><label>Hospital Name</label><input id="hosp-name" placeholder="Jadeva Hospital" required></div>
+        <div class="form-group"><label>Slug (unique login ID)</label><input id="hosp-slug" placeholder="jadeva" required></div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label>City</label>
-          <input id="hosp-city" placeholder="Bangalore">
-        </div>
-        <div class="form-group">
-          <label>State</label>
-          <input id="hosp-state" placeholder="Karnataka">
-        </div>
+        <div class="form-group"><label>City</label><input id="hosp-city" placeholder="Bangalore"></div>
+        <div class="form-group"><label>State</label><input id="hosp-state" placeholder="Karnataka"></div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label>Phone</label>
-          <input id="hosp-phone" placeholder="+918012345678">
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input id="hosp-email" placeholder="admin@jadeva.in">
-        </div>
+        <div class="form-group"><label>Phone</label><input id="hosp-phone" placeholder="+918012345678"></div>
+        <div class="form-group"><label>Email</label><input id="hosp-email" placeholder="admin@jadeva.in"></div>
       </div>
-      <div class="form-group">
-        <label>Admin Password (hospital will use this to log in)</label>
-        <input id="hosp-pass" type="password" minlength="6" required>
-      </div>
+      <div class="form-group"><label>Admin Password</label><input id="hosp-pass" type="password" minlength="6" required></div>
       <div style="display:flex;gap:12px;justify-content:flex-end">
         <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-add-hospital').classList.add('hidden')">Cancel</button>
         <button type="submit" class="btn btn-primary">Create Hospital</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Edit Invitation Modal ===== -->
+<div id="modal-edit-invitation" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal">
+    <h2>Edit Invitation</h2>
+    <div id="alert-edit-inv"></div>
+    <form onsubmit="handleEditInvitation(event)">
+      <input type="hidden" id="edit-inv-id">
+      <div class="form-row">
+        <div class="form-group"><label>Doctor Name</label><input id="edit-inv-name" required></div>
+        <div class="form-group"><label>Phone</label><input id="edit-inv-phone" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input id="edit-inv-email" type="email"></div>
+        <div class="form-group"><label>Specialisation</label><input id="edit-inv-spec"></div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-invitation').classList.add('hidden')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
     </form>
   </div>
@@ -414,7 +587,6 @@ async function api(path, method = 'GET', body = null) {
   return data;
 }
 
-// --- Multipart upload helper (for playground file upload) ---
 async function apiMultipart(path, formData) {
   const opts = { method: 'POST', body: formData, headers: {} };
   if (token) opts.headers['Authorization'] = `Bearer ${token}`;
@@ -424,13 +596,22 @@ async function apiMultipart(path, formData) {
   return data;
 }
 
+function updateFileLabel(input) {
+  const label = document.getElementById('file-label-text');
+  if (input.files.length) {
+    const f = input.files[0];
+    const size = (f.size / 1024 / 1024).toFixed(1);
+    label.innerHTML = `<strong>${f.name}</strong> <span style="color:#94A3B8">(${size} MB)</span>`;
+  }
+}
+
 // --- Tab switching ---
 function switchTab(name) {
   ['hospitals','playground','reextract'].forEach(t => {
     const el = document.getElementById('tab-'+t);
     if (el) el.classList.toggle('hidden', t !== name);
     const btn = document.getElementById('tab-btn-'+t);
-    if (btn) btn.style.borderBottom = (t === name) ? '2px solid var(--pa)' : 'none';
+    if (btn) btn.classList.toggle('active', t === name);
   });
   if (name === 'reextract') loadReextractPatients();
 }
@@ -438,22 +619,24 @@ function switchTab(name) {
 // --- Re-extract patient picker ---
 async function loadReextractPatients() {
   const box = document.getElementById('rx-patients');
-  box.innerHTML = '<div style="color:var(--muted)">Loading patients...</div>';
+  box.innerHTML = '<div style="padding:16px;color:var(--muted);text-align:center;font-size:13px">Loading patients...</div>';
   try {
     const patients = await api('/super-admin/patients', 'GET');
     if (!patients.length) {
-      box.innerHTML = '<div style="color:var(--muted)">No patients yet.</div>';
+      box.innerHTML = '<div style="padding:16px;color:var(--muted);text-align:center;font-size:13px">No patients yet.</div>';
       return;
     }
     box.innerHTML = patients.map(p => `
-      <label style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid #f1f5f9">
-        <input type="checkbox" class="rx-patient-cb" value="${p.id}">
-        <span style="flex:1"><strong>${p.name || '(no name)'}</strong> &nbsp;<span style="color:var(--muted)">${p.phone || ''}</span></span>
-        <span style="color:var(--muted);font-size:12px">${p.document_count} doc${p.document_count === 1 ? '' : 's'}</span>
-      </label>
+      <div class="patient-row">
+        <label>
+          <input type="checkbox" class="rx-patient-cb" value="${p.id}">
+          <span style="flex:1"><strong>${p.name || '(no name)'}</strong> <span style="color:var(--muted);font-size:12px">${p.phone || ''}</span></span>
+        </label>
+        <span class="patient-count">${p.document_count} doc${p.document_count === 1 ? '' : 's'}</span>
+      </div>
     `).join('');
   } catch (err) {
-    box.innerHTML = '<div style="color:#dc2626">Failed to load: ' + err.message + '</div>';
+    box.innerHTML = '<div style="padding:16px;color:#dc2626;text-align:center;font-size:13px">Failed to load: ' + err.message + '</div>';
   }
 }
 
@@ -480,14 +663,14 @@ async function handlePlaygroundRun(e) {
     const r = await apiMultipart('/super-admin/ai/playground/run', fd);
     document.getElementById('pg-status').textContent = `Done in ${r.timing_ms?.total ?? '?'} ms`;
     document.getElementById('pg-meta').innerHTML =
-      `<strong>Provider:</strong> ${r.provider} &nbsp; ` +
-      `<strong>Extraction model:</strong> ${r.extraction_model} &nbsp; ` +
-      `<strong>Summary model:</strong> ${r.summary_model} &nbsp; ` +
-      `<strong>Doc type:</strong> ${r.doc_type || '?'} &nbsp; ` +
-      `<strong>Extract:</strong> ${r.timing_ms?.extraction ?? '?'} ms &nbsp; ` +
-      `<strong>Summary:</strong> ${r.timing_ms?.summary ?? '?'} ms` +
-      (r.extraction_error ? `<div style="color:#dc2626;margin-top:8px">Extraction error: ${r.extraction_error}</div>` : '') +
-      (r.summary_error ? `<div style="color:#dc2626;margin-top:8px">Summary error: ${r.summary_error}</div>` : '');
+      `<span class="meta-item"><strong>Provider:</strong> ${r.provider}</span>` +
+      `<span class="meta-item"><strong>Extraction:</strong> ${r.extraction_model}</span>` +
+      `<span class="meta-item"><strong>Summary:</strong> ${r.summary_model}</span>` +
+      `<span class="meta-item"><strong>Type:</strong> ${r.doc_type || '?'}</span>` +
+      `<span class="meta-item"><strong>Extract:</strong> ${r.timing_ms?.extraction ?? '?'} ms</span>` +
+      `<span class="meta-item"><strong>Summary:</strong> ${r.timing_ms?.summary ?? '?'} ms</span>` +
+      (r.extraction_error ? `<div style="color:#dc2626;margin-top:8px;width:100%">Extraction error: ${r.extraction_error}</div>` : '') +
+      (r.summary_error ? `<div style="color:#dc2626;margin-top:8px;width:100%">Summary error: ${r.summary_error}</div>` : '');
     document.getElementById('pg-extracted').textContent = JSON.stringify(r.extracted_data, null, 2);
     document.getElementById('pg-doc-summary').textContent = r.ai_summary_from_extraction || '(none)';
     document.getElementById('pg-briefing').textContent = r.patient_briefing_summary || '(none)';
@@ -519,29 +702,31 @@ async function handleReextract(e) {
     document.getElementById('rx-status').textContent =
       `Done. ${r.succeeded}/${r.total_documents} ok` + (r.dry_run ? ' (dry run)' : '');
     document.getElementById('rx-summary').innerHTML =
-      `<strong>Provider:</strong> ${r.provider} &nbsp; ` +
-      `<strong>Model:</strong> ${r.extraction_model || '(default)'} &nbsp; ` +
-      `<strong>Total:</strong> ${r.total_documents} &nbsp; ` +
-      `<strong>Succeeded:</strong> ${r.succeeded} &nbsp; ` +
-      `<strong>Failed:</strong> ${r.failed} &nbsp; ` +
-      `<strong>Patients affected:</strong> ${r.patients_affected} &nbsp; ` +
-      `<strong>Summaries rebuilt:</strong> ${r.patient_summaries_rebuilt}` +
-      (r.dry_run ? ' &nbsp; <em>(dry run — nothing written)</em>' : '');
+      `<span class="meta-item"><strong>Provider:</strong> ${r.provider}</span>` +
+      `<span class="meta-item"><strong>Model:</strong> ${r.extraction_model || '(default)'}</span>` +
+      `<span class="meta-item"><strong>Total:</strong> ${r.total_documents}</span>` +
+      `<span class="meta-item"><strong>OK:</strong> ${r.succeeded}</span>` +
+      `<span class="meta-item"><strong>Failed:</strong> ${r.failed}</span>` +
+      `<span class="meta-item"><strong>Patients:</strong> ${r.patients_affected}</span>` +
+      `<span class="meta-item"><strong>Summaries:</strong> ${r.patient_summaries_rebuilt}</span>` +
+      (r.dry_run ? '<span class="meta-item" style="color:var(--warn)"><strong>Dry run</strong></span>' : '');
     const rows = (r.audits || []).map(a => `
       <tr>
-        <td><code>${a.document_id.slice(0,8)}</code></td>
-        <td>${a.status === 'ok' ? '✓' : '✗'}</td>
-        <td>${a.previous_doc_type || '-'} → ${a.new_doc_type || '-'}</td>
-        <td>${a.diagnoses_before ?? '-'} → ${a.diagnoses_after ?? '-'}</td>
-        <td>${a.medications_before ?? '-'} → ${a.medications_after ?? '-'}</td>
-        <td>${a.lab_results_before ?? '-'} → ${a.lab_results_after ?? '-'}</td>
-        <td style="color:#dc2626">${a.error || ''}</td>
+        <td><code style="font-size:12px;background:#F1F5F9;padding:2px 6px;border-radius:4px">${a.document_id.slice(0,8)}</code></td>
+        <td>${a.status === 'ok' ? '<span style="color:var(--ok)">OK</span>' : '<span style="color:var(--err)">Fail</span>'}</td>
+        <td>${a.previous_doc_type || '-'} &rarr; ${a.new_doc_type || '-'}</td>
+        <td>${a.diagnoses_before ?? '-'} &rarr; ${a.diagnoses_after ?? '-'}</td>
+        <td>${a.medications_before ?? '-'} &rarr; ${a.medications_after ?? '-'}</td>
+        <td>${a.lab_results_before ?? '-'} &rarr; ${a.lab_results_after ?? '-'}</td>
+        <td style="color:#dc2626;font-size:12px">${a.error || ''}</td>
       </tr>`).join('');
     document.getElementById('rx-audits').innerHTML = `
+      <div style="overflow-x:auto">
       <table>
         <thead><tr><th>Doc</th><th>Status</th><th>Type</th><th>Diagnoses</th><th>Meds</th><th>Labs</th><th>Error</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#94a3b8">No documents matched</td></tr>'}</tbody>
-      </table>`;
+        <tbody>${rows || '<tr><td colspan="7" class="empty" style="padding:24px">No documents matched</td></tr>'}</tbody>
+      </table>
+      </div>`;
     document.getElementById('rx-result').classList.remove('hidden');
   } catch (err) {
     document.getElementById('rx-status').textContent = 'Failed: ' + err.message;
@@ -557,7 +742,9 @@ async function handleLogin(e) {
       password: document.getElementById('login-pass').value,
     });
     token = data.access_token;
-    document.getElementById('admin-name').textContent = data.admin.name;
+    const name = data.admin.name || 'Admin';
+    document.getElementById('admin-name').textContent = name;
+    document.getElementById('user-initial').textContent = name.charAt(0).toUpperCase();
     document.getElementById('app-login').classList.add('hidden');
     document.getElementById('app-dashboard').classList.remove('hidden');
     loadDashboard();
@@ -571,10 +758,7 @@ function logout() {
 }
 
 // --- Dashboard ---
-async function loadDashboard() {
-  loadStats();
-  loadHospitals();
-}
+async function loadDashboard() { loadStats(); loadHospitals(); }
 
 async function loadStats() {
   try {
@@ -591,21 +775,21 @@ async function loadHospitals() {
     const hospitals = await api('/super-admin/hospitals');
     const el = document.getElementById('hospitals-table');
     if (!hospitals.length) {
-      el.innerHTML = '<div class="empty">No hospitals yet. Click "+ Add Hospital" to onboard your first hospital.</div>';
+      el.innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><p>No hospitals yet. Add your first hospital to get started.</p></div>';
       return;
     }
     window._hospitals = {};
     hospitals.forEach(h => { window._hospitals[h.id] = h; });
     el.innerHTML = `<table>
-      <thead><tr><th>Hospital</th><th>Slug</th><th>City</th><th>Created</th><th></th></tr></thead>
+      <thead><tr><th>Hospital</th><th>Slug</th><th>City</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
       <tbody>${hospitals.map(h => `<tr class="clickable" onclick="openHospital('${h.id}')">
         <td><strong>${h.name}</strong></td>
-        <td><code>${h.slug}</code></td>
+        <td><code style="font-size:12px;background:#F1F5F9;padding:2px 8px;border-radius:4px">${h.slug}</code></td>
         <td>${h.city || '-'}</td>
         <td>${h.created_at?.slice(0,10) || '-'}</td>
-        <td>
+        <td style="text-align:right">
           <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();showEditHospital('${h.id}')" style="margin-right:6px">Edit</button>
-          <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();openHospital('${h.id}')">Manage</button>
+          <button class="btn btn-accent btn-sm" onclick="event.stopPropagation();openHospital('${h.id}')">Manage</button>
         </td>
       </tr>`).join('')}</tbody>
     </table>`;
@@ -631,7 +815,7 @@ async function handleAddHospital(e) {
       email: document.getElementById('hosp-email').value.trim() || null,
     });
     document.getElementById('modal-add-hospital').classList.add('hidden');
-    showAlert('alert-dash', `Hospital "${h.name}" created! They can log in at <a href="/hospital-admin">/hospital-admin</a> with slug <code>${h.slug}</code>`, 'ok');
+    showAlert('alert-dash', `Hospital "${h.name}" created!`, 'ok');
     ['hosp-name','hosp-slug','hosp-pass','hosp-city','hosp-state','hosp-phone','hosp-email'].forEach(id => document.getElementById(id).value = '');
     loadDashboard();
   } catch (err) { showAlert('alert-modal', err.message, 'err'); }
@@ -655,28 +839,33 @@ function backToHospitals() {
   loadDashboard();
 }
 
-async function loadHospitalDetail(id) {
-  loadHospitalInvitations(id);
-  loadHospitalDoctors(id);
-}
+async function loadHospitalDetail(id) { loadHospitalInvitations(id); loadHospitalDoctors(id); }
 
 async function loadHospitalInvitations(id) {
   try {
     const invitations = await api(`/super-admin/hospitals/${id}/invitations`);
+    window._invitations = {};
+    invitations.forEach(inv => { window._invitations[inv.id] = inv; });
     const el = document.getElementById('detail-invitations');
     if (!invitations.length) {
-      el.innerHTML = '<div class="empty" style="padding:20px">No invitations yet.</div>';
+      el.innerHTML = '<div class="empty" style="padding:24px"><p>No invitations sent yet.</p></div>';
       return;
     }
     el.innerHTML = `<table>
-      <thead><tr><th>Doctor</th><th>Phone</th><th>Email</th><th>Invite Code</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Doctor</th><th>Phone</th><th>Email</th><th>Invite Code</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
       <tbody>${invitations.map(inv => `<tr>
         <td><strong>${inv.doctor_name}</strong>${inv.specialisation ? '<br><span style="color:var(--muted);font-size:12px">' + inv.specialisation + '</span>' : ''}</td>
         <td>${inv.doctor_phone}</td>
         <td>${inv.doctor_email || '<span style="color:var(--muted)">-</span>'}</td>
         <td><span class="invite-code">${inv.invite_code}</span></td>
         <td><span class="badge badge-${inv.status}">${inv.status}</span></td>
-        <td>${inv.doctor_email && inv.status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="resendEmail('${inv.id}', this)">Send</button>` : ''}</td>
+        <td style="text-align:right;white-space:nowrap">
+          ${inv.status === 'pending' ? `
+            <button class="btn btn-outline btn-sm" onclick="showEditInvitation('${inv.id}')" style="margin-right:4px">Edit</button>
+            ${inv.doctor_email ? `<button class="btn btn-accent btn-sm" onclick="resendEmail('${inv.id}', this)" style="margin-right:4px">Send</button>` : ''}
+            <button class="btn btn-danger btn-sm" onclick="deleteInvitation('${inv.id}')">Revoke</button>
+          ` : ''}
+        </td>
       </tr>`).join('')}</tbody>
     </table>`;
   } catch(e) { document.getElementById('detail-invitations').innerHTML = `<div class="alert alert-err">${e.message}</div>`; }
@@ -687,7 +876,7 @@ async function loadHospitalDoctors(id) {
     const doctors = await api(`/super-admin/hospitals/${id}/doctors`);
     const el = document.getElementById('detail-doctors');
     if (!doctors.length) {
-      el.innerHTML = '<div class="empty" style="padding:20px">No doctors registered yet.</div>';
+      el.innerHTML = '<div class="empty" style="padding:24px"><p>No doctors registered yet.</p></div>';
       return;
     }
     el.innerHTML = `<table>
@@ -715,16 +904,12 @@ async function handleInviteDoctor(e) {
     });
     const emailMsg = emailVal ? ` Email sent to <strong>${emailVal}</strong>.` : '';
     showAlert('alert-dash', `Invitation sent! Code: <span class="invite-code">${inv.invite_code}</span>${emailMsg}`, 'ok');
-    document.getElementById('inv-name').value = '';
-    document.getElementById('inv-phone').value = '';
-    document.getElementById('inv-email').value = '';
-    document.getElementById('inv-spec').value = '';
+    ['inv-name','inv-phone','inv-email','inv-spec'].forEach(id => document.getElementById(id).value = '');
     loadHospitalDetail(currentHospitalId);
     loadStats();
   } catch (err) { showAlert('alert-dash', err.message, 'err'); }
 }
 
-// --- Resend invitation email ---
 async function resendEmail(invitationId, btn) {
   const origText = btn.textContent;
   btn.textContent = 'Sending...';
@@ -745,8 +930,48 @@ async function resendEmail(invitationId, btn) {
   }
 }
 
-// --- Auto-fill email from previous invitations ---
-// When phone loses focus, check if we already have an email on file for this doctor
+// --- Edit Invitation ---
+function showEditInvitation(id) {
+  const inv = window._invitations[id];
+  if (!inv) return;
+  document.getElementById('edit-inv-id').value = id;
+  document.getElementById('edit-inv-name').value = inv.doctor_name || '';
+  document.getElementById('edit-inv-phone').value = inv.doctor_phone || '';
+  document.getElementById('edit-inv-email').value = inv.doctor_email || '';
+  document.getElementById('edit-inv-spec').value = inv.specialisation || '';
+  document.getElementById('alert-edit-inv').innerHTML = '';
+  document.getElementById('modal-edit-invitation').classList.remove('hidden');
+}
+
+async function handleEditInvitation(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-inv-id').value;
+  const body = {
+    doctor_name: document.getElementById('edit-inv-name').value.trim(),
+    doctor_phone: document.getElementById('edit-inv-phone').value.trim(),
+    doctor_email: document.getElementById('edit-inv-email').value.trim() || null,
+    specialisation: document.getElementById('edit-inv-spec').value.trim() || null,
+  };
+  try {
+    await api(`/super-admin/invitations/${id}`, 'PUT', body);
+    document.getElementById('modal-edit-invitation').classList.add('hidden');
+    showAlert('alert-dash', 'Invitation updated!', 'ok');
+    loadHospitalInvitations(currentHospitalId);
+  } catch (err) { showAlert('alert-edit-inv', err.message, 'err'); }
+}
+
+// --- Delete/Revoke Invitation ---
+async function deleteInvitation(id) {
+  if (!confirm('Revoke this invitation? The doctor will no longer be able to use the invite code.')) return;
+  try {
+    await api(`/super-admin/invitations/${id}`, 'DELETE');
+    showAlert('alert-dash', 'Invitation revoked.', 'ok');
+    loadHospitalInvitations(currentHospitalId);
+    loadStats();
+  } catch (err) { showAlert('alert-dash', err.message, 'err'); }
+}
+
+// Auto-fill email from previous invitations
 document.addEventListener('DOMContentLoaded', () => {
   const phoneInput = document.getElementById('inv-phone');
   if (phoneInput) {

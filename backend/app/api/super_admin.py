@@ -27,7 +27,7 @@ from app.schemas.super_admin import (
 )
 from app.schemas.hospital import HospitalOut
 from app.schemas.doctor import DoctorOut
-from app.schemas.invitation import InvitationCreate, InvitationOut
+from app.schemas.invitation import InvitationCreate, InvitationUpdate, InvitationOut
 from app.api.deps import get_current_super_admin
 
 router = APIRouter(prefix="/super-admin", tags=["super-admin"])
@@ -246,6 +246,49 @@ async def resend_invitation_email(
     if email_result:
         return {"status": "sent", "to": invitation.doctor_email}
     raise HTTPException(status_code=500, detail="Failed to send email — check server logs")
+
+
+@router.put("/invitations/{invitation_id}", response_model=InvitationOut)
+async def update_invitation(
+    invitation_id: UUID,
+    data: InvitationUpdate,
+    admin: SuperAdmin = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Super admin edits an invitation's details (name, phone, email, specialisation)."""
+    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id))
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    update_fields = data.model_dump(exclude_unset=True)
+    for field, value in update_fields.items():
+        setattr(invitation, field, value)
+
+    await db.commit()
+    await db.refresh(invitation)
+    return InvitationOut.model_validate(invitation)
+
+
+@router.delete("/invitations/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_invitation(
+    invitation_id: UUID,
+    admin: SuperAdmin = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Super admin revokes/deletes a pending invitation."""
+    result = await db.execute(
+        select(Invitation).where(
+            Invitation.id == invitation_id,
+            Invitation.status == InvitationStatus.PENDING,
+        )
+    )
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found or already used")
+
+    invitation.status = InvitationStatus.REVOKED
+    await db.commit()
 
 
 @router.get("/hospitals/{hospital_id}/invitations", response_model=list[InvitationOut])
