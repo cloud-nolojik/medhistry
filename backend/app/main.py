@@ -108,7 +108,7 @@ async def health():
     return {"status": "ok", "service": settings.APP_NAME, "version": settings.APP_VERSION}
 
 
-@app.get("/admin", response_class=HTMLResponse)
+@app.get("/super-admin/login", response_class=HTMLResponse)
 async def admin_panel():
     """Serve the unified MedHistry admin dashboard."""
     html_path = Path(__file__).parent / "super_admin_panel.html"

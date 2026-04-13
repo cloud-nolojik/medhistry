@@ -41,6 +41,17 @@ remote() {
 # Push local code to server
 # ---------------------------------------------------------------------------
 push_code() {
+    # Auto-commit any changes (skip .gradle, .DS_Store, release builds)
+    if ! git diff --quiet HEAD -- . ':!mobile/.gradle' ':!mobile/.idea' ':!.DS_Store' ':!mobile/*/release' 2>/dev/null || \
+       [ -n "$(git ls-files --others --exclude-standard -- . ':!mobile/.gradle' ':!mobile/.idea' ':!.DS_Store' ':!mobile/*/release' 2>/dev/null)" ]; then
+        log "Staging changes..."
+        git add -A -- . ':!mobile/.gradle' ':!mobile/.idea' ':!.DS_Store' ':!mobile/*/release'
+        log "Committing..."
+        git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')" || warn "Nothing to commit"
+    else
+        log "No changes to commit"
+    fi
+
     log "Pushing code to GitHub..."
     git push origin main || git push origin master || err "Git push failed"
 

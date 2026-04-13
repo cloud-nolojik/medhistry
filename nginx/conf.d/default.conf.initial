@@ -24,7 +24,8 @@ server {
     }
 
     location / {
-        return 200 '{"status": "MedHistry API is running (HTTP)"}';
-        add_header Content-Type application/json;
+        root /var/www/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
     }
 }

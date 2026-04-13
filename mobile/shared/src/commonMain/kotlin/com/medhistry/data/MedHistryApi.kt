@@ -15,7 +15,7 @@ import kotlinx.serialization.json.jsonPrimitive
  * MedHistry API client — shared across Android and iOS.
  * Handles patient registration, login, QR generation/refresh, and doctor scan.
  */
-class MedHistryApi(private val baseUrl: String = "https://marcus-superb-helps-earth.trycloudflare.com/api/v1") {
+class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/v1") {
 
     private val client = HttpClient {
         install(ContentNegotiation) {

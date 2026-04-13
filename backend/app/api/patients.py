@@ -86,7 +86,7 @@ async def send_otp(data: SendOTPRequest, db: AsyncSession = Depends(get_db)):
     return SendOTPResponse(
         message="OTP sent",
         expires_in_seconds=OTP_EXPIRY_SECONDS,
-        otp=code if settings.DEBUG else None,  # autofill in dev mode
+        otp=code,  # TODO: remove once SMS integration is live — returning OTP for now so app can autofill
     )
 
 
