@@ -84,6 +84,7 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             onContinue = { screen = DoctorScreen.InviteCode },
         )
         DoctorScreen.InviteCode -> DoctorInviteCodeScreen(
+            api = api,
             onBack = { screen = DoctorScreen.Onboarding3 },
             onVerified = { _, hospital -> screen = DoctorScreen.Signup(hospital) },
         )

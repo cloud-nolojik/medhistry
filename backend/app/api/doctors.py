@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.doctor import Doctor
+from app.models.hospital import Hospital
 from app.models.invitation import Invitation, InvitationStatus
 from app.schemas.doctor import DoctorRegisterViaInvite, DoctorLogin, DoctorOut, DoctorTokenResponse
 from app.api.deps import get_current_doctor
@@ -21,6 +22,49 @@ def _ensure_aware(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+@router.get("/verify-invite/{invite_code}")
+async def verify_invite_code(invite_code: str, db: AsyncSession = Depends(get_db)):
+    """Verify an invite code is valid and return the hospital name.
+
+    Called by the doctor app before proceeding to signup.
+    """
+    result = await db.execute(
+        select(Invitation).where(
+            Invitation.invite_code == invite_code,
+            Invitation.status == InvitationStatus.PENDING,
+        )
+    )
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invitation code",
+        )
+
+    # Check not expired
+    if datetime.now(timezone.utc) > _ensure_aware(invitation.expires_at):
+        invitation.status = InvitationStatus.EXPIRED
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Invitation has expired",
+        )
+
+    # Get hospital name
+    hospital_result = await db.execute(
+        select(Hospital).where(Hospital.id == invitation.hospital_id)
+    )
+    hospital = hospital_result.scalar_one_or_none()
+    hospital_name = hospital.name if hospital else "Unknown Hospital"
+
+    return {
+        "valid": True,
+        "hospital_name": hospital_name,
+        "doctor_name": invitation.doctor_name,
+        "specialisation": invitation.specialisation,
+    }
 
 
 @router.post("/register", response_model=DoctorTokenResponse, status_code=status.HTTP_201_CREATED)

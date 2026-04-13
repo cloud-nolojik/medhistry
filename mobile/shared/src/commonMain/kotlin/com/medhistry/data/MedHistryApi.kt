@@ -283,6 +283,14 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         return response.status.value
     }
 
+    // --- Doctor Invite Verification ---
+
+    suspend fun verifyInviteCode(code: String): InviteVerifyResponse {
+        return client.get("$baseUrl/doctors/verify-invite/$code")
+            .ensureSuccess()
+            .body()
+    }
+
     // --- Doctor Auth ---
 
     suspend fun registerDoctor(request: DoctorRegisterRequest): DoctorTokenResponse {

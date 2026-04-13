@@ -17,6 +17,14 @@ data class DoctorRegisterRequest(
 )
 
 @Serializable
+data class InviteVerifyResponse(
+    val valid: Boolean,
+    @SerialName("hospital_name") val hospitalName: String,
+    @SerialName("doctor_name") val doctorName: String? = null,
+    val specialisation: String? = null,
+)
+
+@Serializable
 data class DoctorLoginRequest(
     val phone: String,
     val password: String,
