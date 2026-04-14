@@ -15,6 +15,12 @@ data class InviteVerifyResponse(
 )
 
 @Serializable
+data class DoctorVerifyInviteRequest(
+    @SerialName("invite_code") val inviteCode: String,
+    @SerialName("temp_token") val tempToken: String,
+)
+
+@Serializable
 data class DoctorSendOTPRequest(val phone: String)
 
 @Serializable
@@ -63,8 +69,15 @@ data class DoctorProfile(
     val specialisation: String? = null,
     @SerialName("license_number") val licenseNumber: String? = null,
     val email: String? = null,
+    @SerialName("has_pin") val hasPin: Boolean = false,
     @SerialName("created_at") val createdAt: String,
 )
+
+@Serializable
+data class DoctorSetPinRequest(val pin: String)
+
+@Serializable
+data class DoctorPinLoginRequest(val phone: String, val pin: String)
 
 @Serializable
 data class DoctorDashboardBriefing(
@@ -79,6 +92,7 @@ data class DoctorDashboardBriefing(
 data class DoctorDashboard(
     @SerialName("today_count") val todayCount: Int,
     @SerialName("week_count") val weekCount: Int,
+    @SerialName("all_time_count") val allTimeCount: Int = 0,
     @SerialName("avg_briefing_seconds") val avgBriefingSeconds: Int? = null,
     @SerialName("recent_briefings") val recentBriefings: List<DoctorDashboardBriefing> = emptyList(),
 )

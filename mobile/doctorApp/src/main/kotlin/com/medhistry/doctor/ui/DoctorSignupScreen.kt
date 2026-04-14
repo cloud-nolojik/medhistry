@@ -104,13 +104,14 @@ fun DoctorSignupScreen(
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(hospital, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DoctorColors.TextPrimary)
-                    Text("Hospital verified", fontSize = 11.sp, color = DoctorColors.Accent, fontWeight = FontWeight.SemiBold)
+                    Text("Invite code verified", fontSize = 11.sp, color = DoctorColors.Accent, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // Verified phone badge
+            // Phone-on-record badge (this is the number the hospital admin
+            // entered on the invitation and that you just verified via OTP)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,7 +131,7 @@ fun DoctorSignupScreen(
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(formatPhone(phoneE164), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DoctorColors.TextPrimary)
-                    Text("Phone verified", fontSize = 11.sp, color = DoctorColors.Accent, fontWeight = FontWeight.SemiBold)
+                    Text("Matches hospital record", fontSize = 11.sp, color = DoctorColors.Accent, fontWeight = FontWeight.SemiBold)
                 }
             }
 

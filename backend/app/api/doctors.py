@@ -36,13 +36,20 @@ from app.schemas.doctor import (
     DoctorSendOTPResponse,
     DoctorVerifyOTPRequest,
     DoctorVerifyOTPResponse,
+    DoctorVerifyInviteRequest,
+    DoctorVerifyInviteResponse,
     DoctorCompleteRegistration,
     DoctorOut,
     DoctorTokenResponse,
     DoctorDashboard,
     DoctorDashboardBriefing,
+    DoctorSetPinRequest,
+    DoctorPinLoginRequest,
 )
 from app.api.deps import get_current_doctor
+from app.core.security import hash_password, verify_password
+
+PIN_MAX_ATTEMPTS = 5
 
 router = APIRouter(prefix="/doctors", tags=["doctors"])
 
@@ -59,8 +66,9 @@ def _ensure_aware(dt: datetime) -> datetime:
 
 
 async def _doctor_out_with_hospital(doctor: Doctor, db: AsyncSession) -> DoctorOut:
-    """Build a DoctorOut including the hospital name."""
+    """Build a DoctorOut including the hospital name + has_pin."""
     out = DoctorOut.model_validate(doctor)
+    out.has_pin = doctor.pin_hash is not None
     hospital_result = await db.execute(
         select(Hospital).where(Hospital.id == doctor.hospital_id)
     )
@@ -110,6 +118,68 @@ async def verify_invite_code(invite_code: str, db: AsyncSession = Depends(get_db
         "specialisation": invitation.specialisation,
         "doctor_phone": invitation.doctor_phone,
     }
+
+
+@router.post("/verify-invite", response_model=DoctorVerifyInviteResponse)
+async def verify_invite_with_phone(
+    data: DoctorVerifyInviteRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify an invite code AND that it matches the OTP-verified phone.
+
+    Rejects immediately with a clear message when the hospital admin issued
+    the invite to a different phone — saves the doctor from filling out the
+    whole signup form before finding out.
+    """
+    # Decode temp_token → OTP-verified phone
+    payload = decode_token(data.temp_token)
+    if not payload or not str(payload.get("sub", "")).startswith(TEMP_TOKEN_PREFIX):
+        raise HTTPException(
+            status_code=401,
+            detail="Phone verification expired. Please re-enter your phone and OTP.",
+        )
+    verified_phone = str(payload["sub"]).replace(TEMP_TOKEN_PREFIX, "")
+
+    # Find invitation
+    result = await db.execute(
+        select(Invitation).where(
+            Invitation.invite_code == data.invite_code,
+            Invitation.status == InvitationStatus.PENDING,
+        )
+    )
+    invitation = result.scalar_one_or_none()
+    if not invitation:
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid or already-used invitation code",
+        )
+
+    if datetime.now(timezone.utc) > _ensure_aware(invitation.expires_at):
+        invitation.status = InvitationStatus.EXPIRED
+        await db.commit()
+        raise HTTPException(status_code=410, detail="Invitation has expired")
+
+    # Fail-fast: phone must match what the admin entered
+    if invitation.doctor_phone != verified_phone:
+        raise HTTPException(
+            status_code=400,
+            detail="This invite code was issued to a different phone number. "
+                   "Please check the code or contact your hospital admin.",
+        )
+
+    hospital_result = await db.execute(
+        select(Hospital).where(Hospital.id == invitation.hospital_id)
+    )
+    hospital = hospital_result.scalar_one_or_none()
+    hospital_name = hospital.name if hospital else "Unknown Hospital"
+
+    return DoctorVerifyInviteResponse(
+        valid=True,
+        hospital_name=hospital_name,
+        doctor_name=invitation.doctor_name,
+        specialisation=invitation.specialisation,
+        doctor_phone=invitation.doctor_phone,
+    )
 
 
 # ===================== OTP FLOW =====================
@@ -190,6 +260,11 @@ async def verify_otp(data: DoctorVerifyOTPRequest, db: AsyncSession = Depends(ge
     existing = doctor_result.scalar_one_or_none()
 
     if existing is not None:
+        # Successful OTP login — reset any locked-out PIN counter. If this was
+        # a Forgot-PIN flow the caller will clear the old hash via /set-pin.
+        if existing.pin_failed_attempts:
+            existing.pin_failed_attempts = 0
+            await db.commit()
         token = create_access_token(f"doctor:{existing.id}")
         return DoctorVerifyOTPResponse(
             verified=True,
@@ -289,6 +364,83 @@ async def complete_registration(
     )
 
 
+# ===================== PIN AUTH =====================
+
+
+@router.post("/set-pin", response_model=DoctorOut)
+async def set_pin(
+    data: DoctorSetPinRequest,
+    doctor: Doctor = Depends(get_current_doctor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set or replace the doctor's 6-digit PIN. Requires a valid bearer token
+    (i.e. the doctor just OTP-verified). Also called from the Forgot-PIN flow
+    after a fresh OTP — the re-OTP login gives a new token, caller then sets a
+    new PIN with it.
+    """
+    if not data.pin.isdigit() or len(data.pin) != 6:
+        raise HTTPException(status_code=400, detail="PIN must be exactly 6 digits")
+
+    doctor.pin_hash = hash_password(data.pin)
+    doctor.pin_failed_attempts = 0
+    await db.commit()
+    await db.refresh(doctor)
+
+    return await _doctor_out_with_hospital(doctor, db)
+
+
+@router.post("/pin-login", response_model=DoctorTokenResponse)
+async def pin_login(
+    data: DoctorPinLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Log a doctor in with phone + 6-digit PIN (fast path on re-open).
+
+    After PIN_MAX_ATTEMPTS wrong tries the PIN is cleared — the doctor must
+    re-verify via OTP ("Forgot PIN") and set a new one.
+    """
+    result = await db.execute(select(Doctor).where(Doctor.phone == data.phone))
+    doctor = result.scalar_one_or_none()
+
+    # Uniform error text — don't leak whether the phone exists
+    if not doctor or not doctor.pin_hash:
+        raise HTTPException(status_code=401, detail="Invalid phone or PIN")
+
+    if doctor.pin_failed_attempts >= PIN_MAX_ATTEMPTS:
+        # PIN is locked — force re-OTP recovery
+        doctor.pin_hash = None
+        doctor.pin_failed_attempts = 0
+        await db.commit()
+        raise HTTPException(
+            status_code=429,
+            detail="Too many wrong PIN attempts. Please sign in with OTP to reset your PIN.",
+        )
+
+    if not verify_password(data.pin, doctor.pin_hash):
+        doctor.pin_failed_attempts += 1
+        remaining = PIN_MAX_ATTEMPTS - doctor.pin_failed_attempts
+        await db.commit()
+        if remaining <= 0:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many wrong PIN attempts. Please sign in with OTP to reset your PIN.",
+            )
+        raise HTTPException(
+            status_code=401,
+            detail=f"Wrong PIN. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
+        )
+
+    # Success — reset counter and issue a fresh access token
+    doctor.pin_failed_attempts = 0
+    await db.commit()
+
+    token = create_access_token(f"doctor:{doctor.id}")
+    return DoctorTokenResponse(
+        access_token=token,
+        doctor=await _doctor_out_with_hospital(doctor, db),
+    )
+
+
 # ===================== PROFILE + DASHBOARD =====================
 
 
@@ -331,6 +483,14 @@ async def get_doctor_dashboard(
         )
     ).scalar_one() or 0
 
+    all_time_count = (
+        await db.execute(
+            select(func.count())
+            .select_from(PatientAccessLog)
+            .where(PatientAccessLog.doctor_id == doctor.id)
+        )
+    ).scalar_one() or 0
+
     recent_rows = (
         await db.execute(
             select(PatientAccessLog, Patient.name)
@@ -344,6 +504,7 @@ async def get_doctor_dashboard(
     return DoctorDashboard(
         today_count=today_count,
         week_count=week_count,
+        all_time_count=all_time_count,
         avg_briefing_seconds=None,
         recent_briefings=[
             DoctorDashboardBriefing(

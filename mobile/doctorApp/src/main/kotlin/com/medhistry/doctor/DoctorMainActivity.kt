@@ -10,7 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.medhistry.data.DoctorCompleteRegistrationRequest
 import com.medhistry.data.DoctorProfile
 import com.medhistry.data.MedHistryApi
@@ -22,6 +26,7 @@ import com.medhistry.doctor.ui.DoctorOnboarding2
 import com.medhistry.doctor.ui.DoctorOnboarding3
 import com.medhistry.doctor.ui.DoctorOtpScreen
 import com.medhistry.doctor.ui.DoctorPhoneEntryScreen
+import com.medhistry.doctor.ui.DoctorPinScreen
 import com.medhistry.doctor.ui.DoctorProfileScreen
 import com.medhistry.doctor.ui.DoctorScanScreen
 import com.medhistry.doctor.ui.DoctorSessionEndedScreen
@@ -47,11 +52,18 @@ class DoctorMainActivity : ComponentActivity() {
 }
 
 /**
- * Doctor app navigation flow (OTP-only auth):
+ * Doctor app navigation flow (OTP + PIN auth):
  *
- *   Splash → Onboarding1/2/3 → PhoneEntry → Otp
- *     ├─ existing doctor      → Home
- *     └─ new doctor (temp)    → InviteCode → Signup → complete-registration → Home
+ *   Cold start:
+ *     ├─ (returning doctor w/ PIN saved) → PinLogin → Home
+ *     │                                      └─ "Forgot PIN" → PhoneEntry → Otp → ...
+ *     └─ (fresh install)                  → Splash → Onboarding1/2/3 → PhoneEntry → Otp
+ *                                             ├─ existing w/ PIN     → PinLogin
+ *                                             ├─ existing w/o PIN    → PinSetup → Home
+ *                                             └─ new (temp)          → InviteCode → Signup
+ *                                                                       → PinSetup → Home
+ *
+ *   Background >5 min → PIN lock overlay → back to current location
  */
 private sealed class DoctorScreen {
     data object Splash : DoctorScreen()
@@ -61,6 +73,12 @@ private sealed class DoctorScreen {
 
     data object PhoneEntry : DoctorScreen()
     data class Otp(val phoneE164: String, val devOtp: String?) : DoctorScreen()
+
+    // PIN flow
+    /** Returning doctor — enter existing PIN to unlock. */
+    data class PinLogin(val phoneE164: String) : DoctorScreen()
+    /** After fresh OTP login (or new registration) — set the 6-digit PIN. */
+    data class PinSetup(val phoneE164: String, val session: DoctorSession) : DoctorScreen()
 
     // New-user registration leg
     data class InviteCode(val phoneE164: String, val tempToken: String) : DoctorScreen()
@@ -93,15 +111,127 @@ private fun sessionFromProfile(profile: DoctorProfile): DoctorSession = DoctorSe
     hospital = profile.hospitalName ?: "",
 )
 
+private fun prettyPhone(phoneE164: String): String =
+    if (phoneE164.startsWith("+91") && phoneE164.length == 13)
+        "+91 ${phoneE164.substring(3, 8)} ${phoneE164.substring(8)}"
+    else phoneE164
+
+/** Any screen past PIN auth — used by the background-lock gate. */
+private fun DoctorScreen.isAuthenticated(): Boolean = when (this) {
+    is DoctorScreen.Home,
+    is DoctorScreen.Scan,
+    is DoctorScreen.EnterCode,
+    is DoctorScreen.SessionEnded,
+    is DoctorScreen.Profile -> true
+    else -> false
+}
+
+/** Background lockout: require PIN again after this much idle time. */
+private const val BG_LOCK_MILLIS = 5L * 60L * 1000L
+
 @Composable
 private fun DoctorAppRoot(api: MedHistryApi) {
-    var screen: DoctorScreen by remember { mutableStateOf(DoctorScreen.Splash) }
+    val context = LocalContext.current
+    val prefs = remember { DoctorPrefs.from(context) }
     val scope = rememberCoroutineScope()
+
+    // Initial screen: returning doctor with PIN → PinLogin, else Splash.
+    var screen: DoctorScreen by remember {
+        val saved = prefs.savedPhone
+        mutableStateOf(
+            if (saved != null && prefs.hasPin) DoctorScreen.PinLogin(saved)
+            else DoctorScreen.Splash
+        )
+    }
+
+    // PIN lock overlay — shown on top of the current screen after returning
+    // from >5 min in the background. Dismissing it (PIN ok) returns us to
+    // wherever we were.
+    var pinLockActive by remember { mutableStateOf(false) }
 
     // Signup-submission state (owned here because /complete-registration lives
     // at the navigation layer: its result determines the next screen).
     var signupSubmitting by remember { mutableStateOf(false) }
     var signupError by remember { mutableStateOf<String?>(null) }
+
+    // PIN-login state (for both the PinLogin screen and the bg-lock overlay)
+    var pinLoginError by remember { mutableStateOf<String?>(null) }
+    var pinLoginLoading by remember { mutableStateOf(false) }
+
+    // PIN-setup state
+    var pinSetupError by remember { mutableStateOf<String?>(null) }
+    var pinSetupLoading by remember { mutableStateOf(false) }
+
+    // Track backgrounding so we can re-lock when the user returns.
+    var backgroundedAt by remember { mutableStateOf<Long?>(null) }
+    DisposableEffect(Unit) {
+        val owner = ProcessLifecycleOwner.get()
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    backgroundedAt = System.currentTimeMillis()
+                }
+                Lifecycle.Event.ON_START -> {
+                    val stoppedAt = backgroundedAt
+                    backgroundedAt = null
+                    if (
+                        stoppedAt != null &&
+                        System.currentTimeMillis() - stoppedAt >= BG_LOCK_MILLIS &&
+                        screen.isAuthenticated() &&
+                        prefs.savedPhone != null &&
+                        prefs.hasPin
+                    ) {
+                        pinLoginError = null
+                        pinLoginLoading = false
+                        pinLockActive = true
+                    }
+                }
+                else -> {}
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+
+    // Background-lock overlay takes over all input until PIN is entered.
+    if (pinLockActive) {
+        val lockPhone = prefs.savedPhone ?: ""
+        DoctorPinScreen(
+            mode = "login",
+            phonePretty = prettyPhone(lockPhone),
+            error = pinLoginError,
+            isLoading = pinLoginLoading,
+            onBack = null,
+            onForgot = {
+                // Forgot PIN during bg-lock: back to phone entry (OTP reset).
+                pinLockActive = false
+                pinLoginError = null
+                prefs.clearPin()
+                screen = DoctorScreen.PhoneEntry
+            },
+            onPinEntered = { pin ->
+                pinLoginLoading = true
+                pinLoginError = null
+                scope.launch {
+                    try {
+                        api.doctorPinLogin(lockPhone, pin)
+                        pinLoginLoading = false
+                        pinLockActive = false
+                    } catch (e: Exception) {
+                        pinLoginLoading = false
+                        pinLoginError = MedHistryApi.friendlyMessage(e)
+                        // If backend wiped the PIN (too many attempts), drop
+                        // back to phone entry for a fresh OTP.
+                        if (!prefs.hasPin) {
+                            pinLockActive = false
+                            screen = DoctorScreen.PhoneEntry
+                        }
+                    }
+                }
+            },
+        )
+        return
+    }
 
     when (val s = screen) {
         DoctorScreen.Splash -> DoctorSplashScreen(onContinue = { screen = DoctorScreen.Onboarding1 })
@@ -120,7 +250,13 @@ private fun DoctorAppRoot(api: MedHistryApi) {
 
         DoctorScreen.PhoneEntry -> DoctorPhoneEntryScreen(
             api = api,
-            onBack = { screen = DoctorScreen.Onboarding3 },
+            onBack = {
+                // If we have a PIN saved, bounce back to PIN login instead of
+                // stranding the user in onboarding-ville.
+                val saved = prefs.savedPhone
+                screen = if (saved != null && prefs.hasPin) DoctorScreen.PinLogin(saved)
+                        else DoctorScreen.Onboarding3
+            },
             onOtpSent = { phoneE164, devOtp ->
                 screen = DoctorScreen.Otp(phoneE164, devOtp)
             },
@@ -133,16 +269,29 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             onBack = { screen = DoctorScreen.PhoneEntry },
             onVerified = { resp ->
                 val doctor = resp.doctor
+                val tempToken = resp.tempToken
                 if (!resp.isNewUser && doctor != null) {
-                    // Existing doctor: straight to home.
-                    screen = DoctorScreen.Home(sessionFromProfile(doctor))
-                } else if (resp.isNewUser && resp.tempToken != null) {
+                    val session = sessionFromProfile(doctor)
+                    if (doctor.hasPin) {
+                        // Returning doctor with an active PIN — straight to home.
+                        prefs.setLoggedIn(s.phoneE164, hasPin = true)
+                        screen = DoctorScreen.Home(session)
+                    } else {
+                        // Existing doctor, no PIN yet (first time after this
+                        // feature shipped, or coming back from 5-wrong-tries
+                        // lockout). Force them to establish one.
+                        prefs.setLoggedIn(s.phoneE164, hasPin = false)
+                        pinSetupError = null
+                        pinSetupLoading = false
+                        screen = DoctorScreen.PinSetup(s.phoneE164, session)
+                    }
+                } else if (resp.isNewUser && tempToken != null) {
                     // New doctor: collect invite code, then profile.
                     signupSubmitting = false
                     signupError = null
                     screen = DoctorScreen.InviteCode(
                         phoneE164 = s.phoneE164,
-                        tempToken = resp.tempToken,
+                        tempToken = tempToken,
                     )
                 }
                 // Any other shape (verified=true but neither branch populated)
@@ -150,8 +299,62 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             },
         )
 
+        is DoctorScreen.PinLogin -> DoctorPinScreen(
+            mode = "login",
+            phonePretty = prettyPhone(s.phoneE164),
+            error = pinLoginError,
+            isLoading = pinLoginLoading,
+            onBack = null,
+            onForgot = {
+                // Clear the PIN flag locally — the doctor has to re-OTP to set
+                // a new one (backend will also clear hash on successful OTP-set).
+                prefs.clearPin()
+                pinLoginError = null
+                screen = DoctorScreen.PhoneEntry
+            },
+            onPinEntered = { pin ->
+                pinLoginLoading = true
+                pinLoginError = null
+                scope.launch {
+                    try {
+                        val resp = api.doctorPinLogin(s.phoneE164, pin)
+                        pinLoginLoading = false
+                        prefs.setLoggedIn(s.phoneE164, hasPin = true)
+                        screen = DoctorScreen.Home(sessionFromProfile(resp.doctor))
+                    } catch (e: Exception) {
+                        pinLoginLoading = false
+                        pinLoginError = MedHistryApi.friendlyMessage(e)
+                    }
+                }
+            },
+        )
+
+        is DoctorScreen.PinSetup -> DoctorPinScreen(
+            mode = "set",
+            phonePretty = prettyPhone(s.phoneE164),
+            error = pinSetupError,
+            isLoading = pinSetupLoading,
+            onBack = null, // forced step — can't go back
+            onPinEntered = { pin ->
+                pinSetupLoading = true
+                pinSetupError = null
+                scope.launch {
+                    try {
+                        api.setDoctorPin(pin)
+                        pinSetupLoading = false
+                        prefs.setLoggedIn(s.phoneE164, hasPin = true)
+                        screen = DoctorScreen.Home(s.session)
+                    } catch (e: Exception) {
+                        pinSetupLoading = false
+                        pinSetupError = MedHistryApi.friendlyMessage(e)
+                    }
+                }
+            },
+        )
+
         is DoctorScreen.InviteCode -> DoctorInviteCodeScreen(
             api = api,
+            tempToken = s.tempToken,
             onBack = { screen = DoctorScreen.PhoneEntry },
             onVerified = { code, hospital, doctorName, specialisation, _phone ->
                 screen = DoctorScreen.Signup(
@@ -191,7 +394,13 @@ private fun DoctorAppRoot(api: MedHistryApi) {
                             )
                         )
                         signupSubmitting = false
-                        screen = DoctorScreen.Home(sessionFromProfile(resp.doctor))
+                        val session = sessionFromProfile(resp.doctor)
+                        // Every newly registered doctor must set a PIN before
+                        // they can reach home.
+                        prefs.setLoggedIn(s.phoneE164, hasPin = false)
+                        pinSetupError = null
+                        pinSetupLoading = false
+                        screen = DoctorScreen.PinSetup(s.phoneE164, session)
                     } catch (e: Exception) {
                         signupSubmitting = false
                         signupError = MedHistryApi.friendlyMessage(e)
@@ -232,8 +441,12 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             doctorName = s.session.name,
             specialization = s.session.specialization,
             hospital = s.session.hospital,
+            api = api,
             onBack = { screen = DoctorScreen.Home(s.session) },
-            onLogout = { screen = DoctorScreen.PhoneEntry },
+            onLogout = {
+                prefs.signOut()
+                screen = DoctorScreen.PhoneEntry
+            },
         )
     }
 }

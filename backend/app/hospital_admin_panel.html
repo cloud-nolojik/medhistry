@@ -81,6 +81,12 @@ td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
   <!-- Invite Doctor -->
   <div class="card">
     <h2>Invite a Doctor</h2>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;border-radius:8px;font-size:13px;margin:10px 0 14px;line-height:1.5;">
+      <strong>Important:</strong> The phone number you enter must be the
+      <u>exact</u> number the doctor will sign in to the app with. The
+      doctor logs in with phone + OTP &mdash; if the numbers don't match,
+      the invite code will be rejected.
+    </div>
     <form onsubmit="handleInvite(event)">
       <div class="form-row">
         <div class="form-group">
@@ -88,8 +94,9 @@ td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
           <input id="inv-name" placeholder="Dr. Arun Mehta" required>
         </div>
         <div class="form-group">
-          <label>Phone Number</label>
-          <input id="inv-phone" placeholder="+919812345678" required>
+          <label>Phone Number <span style="color:#dc2626">*</span></label>
+          <input id="inv-phone" placeholder="+919812345678" required pattern="^\+91[6-9][0-9]{9}$" title="Must be +91 followed by a 10-digit Indian mobile number (e.g. +919812345678)">
+          <div style="font-size:11px;color:#64748b;margin-top:4px;">Format: <code>+91</code> then 10 digits. This is the doctor's sign-in number.</div>
         </div>
       </div>
       <div class="form-group">

@@ -12,6 +12,13 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
+ * Thrown by [MedHistryApi.ensureSuccess] when the backend returns a non-2xx
+ * response with a human-readable `detail` field. The [message] is the exact
+ * backend message and is safe to show to the user verbatim.
+ */
+class ApiException(message: String, val httpStatus: Int) : Exception(message)
+
+/**
  * MedHistry API client — shared across Android and iOS.
  * Handles patient registration, login, QR generation/refresh, and doctor scan.
  */
@@ -43,7 +50,7 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             null
         }
         val friendlyMsg = serverDetail ?: friendlyError(status.value)
-        throw Exception(friendlyMsg)
+        throw ApiException(friendlyMsg, status.value)
     }
 
     private fun friendlyError(code: Int): String = when (code) {
@@ -63,6 +70,10 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
          * Call this from UI code: `catch (e: Exception) { error = MedHistryApi.friendlyMessage(e) }`
          */
         fun friendlyMessage(e: Throwable): String {
+            // Backend-sourced errors: show the backend's `detail` verbatim —
+            // the server is the source of truth for user-facing API errors.
+            if (e is ApiException) return e.message ?: "Something went wrong. Please try again."
+
             val msg = e.message?.lowercase() ?: ""
             return when {
                 // Network / connection errors
@@ -76,11 +87,6 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
                     -> "No internet connection. Please check your network and try again."
                 "ssl" in msg || "certificate" in msg
                     -> "Secure connection failed. Please try again."
-                // Already-friendly messages from ensureSuccess() — pass through
-                msg.startsWith("your ") || msg.startsWith("our ") ||
-                msg.startsWith("too many") || msg.startsWith("something ") ||
-                msg.startsWith("you don't") || msg.startsWith("the requested")
-                    -> e.message!!
                 // Fallback
                 else -> "Something went wrong. Please try again."
             }
@@ -285,10 +291,29 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
 
     // --- Doctor Invite Verification ---
 
+    /**
+     * Legacy GET-by-code verification. Does NOT enforce phone match — prefer
+     * [verifyDoctorInvite] once the doctor has a temp_token from OTP verify.
+     */
     suspend fun verifyInviteCode(code: String): InviteVerifyResponse {
         return client.get("$baseUrl/doctors/verify-invite/$code")
             .ensureSuccess()
             .body()
+    }
+
+    /**
+     * Verify the invite AND that it was issued to the same phone the doctor
+     * just OTP-verified. Backend returns 400 with a user-facing message when
+     * the numbers don't match — bubble the message up to the UI verbatim.
+     */
+    suspend fun verifyDoctorInvite(
+        inviteCode: String,
+        tempToken: String,
+    ): InviteVerifyResponse {
+        return client.post("$baseUrl/doctors/verify-invite") {
+            contentType(ContentType.Application.Json)
+            setBody(DoctorVerifyInviteRequest(inviteCode, tempToken))
+        }.ensureSuccess().body()
     }
 
     // --- Doctor Auth (OTP-based) ---
@@ -333,6 +358,33 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         return client.get("$baseUrl/doctors/me") {
             bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
         }.ensureSuccess().body()
+    }
+
+    /**
+     * Set (or replace) the doctor's 6-digit PIN. Requires a valid doctor
+     * bearer token — call this right after first OTP login, or after a
+     * Forgot-PIN re-OTP flow.
+     */
+    suspend fun setDoctorPin(pin: String): DoctorProfile {
+        return client.post("$baseUrl/doctors/set-pin") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+            setBody(DoctorSetPinRequest(pin))
+        }.ensureSuccess().body()
+    }
+
+    /**
+     * Fast-path sign in with phone + 6-digit PIN on app open. Backend returns
+     * a fresh access token; store it on this client just like verify-otp.
+     */
+    suspend fun doctorPinLogin(phone: String, pin: String): DoctorTokenResponse {
+        val response = client.post("$baseUrl/doctors/pin-login") {
+            contentType(ContentType.Application.Json)
+            setBody(DoctorPinLoginRequest(phone, pin))
+        }.ensureSuccess()
+        val result = response.body<DoctorTokenResponse>()
+        doctorToken = result.accessToken
+        return result
     }
 
     suspend fun getDoctorDashboard(): DoctorDashboard {

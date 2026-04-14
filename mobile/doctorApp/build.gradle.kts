@@ -38,6 +38,8 @@ dependencies {
     implementation(libs.compose.tooling)
     implementation(libs.compose.activity)
     implementation(libs.lifecycle.viewmodel)
+    implementation(libs.lifecycle.process)
+    implementation(libs.lifecycle.runtime)
 
     // QR code scanning (doctor app)
     implementation(libs.camerax.core)

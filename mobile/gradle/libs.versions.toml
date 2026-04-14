@@ -40,6 +40,8 @@ compose-material3 = { module = "androidx.compose.material3:material3", version.r
 compose-tooling = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
 compose-activity = { module = "androidx.activity:activity-compose", version.ref = "composeActivity" }
 lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodel" }
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycleViewmodel" }
+lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleViewmodel" }
 
 # QR code
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }

@@ -27,11 +27,16 @@ import kotlinx.coroutines.launch
 
 /**
  * Doctor onboarding: enter 8-character hospital invite code.
- * Calls the backend to verify the code and returns the hospital name.
+ *
+ * Calls the backend to verify the code AND that it was issued to the phone
+ * the doctor OTP-verified. Backend will 400 with a user-facing message when
+ * the phones don't match, which is shown inline so the doctor can fix it
+ * before filling out the signup form.
  */
 @Composable
 fun DoctorInviteCodeScreen(
     api: MedHistryApi,
+    tempToken: String,
     onBack: () -> Unit,
     onVerified: (code: String, hospital: String, doctorName: String, specialisation: String, phone: String) -> Unit,
 ) {
@@ -160,7 +165,7 @@ fun DoctorInviteCodeScreen(
                         error = null
                         scope.launch {
                             try {
-                                val result = api.verifyInviteCode(code)
+                                val result = api.verifyDoctorInvite(code, tempToken)
                                 onVerified(code, result.hospitalName, result.doctorName ?: "", result.specialisation ?: "", result.doctorPhone ?: "")
                             } catch (e: Exception) {
                                 error = MedHistryApi.friendlyMessage(e)
@@ -181,6 +186,28 @@ fun DoctorInviteCodeScreen(
                 } else {
                     Text("Verify Code", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // Escape hatch: if the hospital invited a different number, the
+            // doctor can go back to the phone entry and re-verify a new OTP.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    "Wrong phone number? ",
+                    fontSize = 14.sp,
+                    color = DoctorColors.TextSecondary,
+                )
+                Text(
+                    "Change it",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DoctorColors.Primary,
+                    modifier = Modifier.clickable(enabled = !loading) { onBack() },
+                )
             }
         }
     }

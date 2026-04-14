@@ -41,6 +41,9 @@ class DoctorOut(BaseModel):
     specialisation: str | None = None
     license_number: str | None = None
     email: str | None = None
+    # Computed — tells the app whether to show PIN prompt or PIN setup after
+    # OTP login. True = /pin-login flow; False = send to set-pin screen.
+    has_pin: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -54,6 +57,22 @@ class DoctorVerifyOTPResponse(BaseModel):
     doctor: DoctorOut | None = None
     # Populated for new users; used in complete-registration.
     temp_token: str | None = None
+
+
+class DoctorVerifyInviteRequest(BaseModel):
+    invite_code: str = Field(..., min_length=4, max_length=16)
+    temp_token: str = Field(
+        ...,
+        description="Short-lived token from verify-otp. Used to enforce phone match with the invitation.",
+    )
+
+
+class DoctorVerifyInviteResponse(BaseModel):
+    valid: bool
+    hospital_name: str
+    doctor_name: str | None = None
+    specialisation: str | None = None
+    doctor_phone: str
 
 
 class DoctorCompleteRegistration(BaseModel):
@@ -72,6 +91,20 @@ class DoctorTokenResponse(BaseModel):
     doctor: DoctorOut
 
 
+# ---- PIN auth (after OTP + registration) ----
+
+class DoctorSetPinRequest(BaseModel):
+    """Set a 6-digit PIN. Requires an authenticated doctor (bearer token).
+    Used right after first OTP-login to establish a PIN for subsequent opens."""
+    pin: str = Field(..., min_length=6, max_length=6, examples=["123456"])
+
+
+class DoctorPinLoginRequest(BaseModel):
+    """Existing doctor on same device re-authenticates with PIN."""
+    phone: str = Field(..., min_length=10, max_length=15)
+    pin: str = Field(..., min_length=6, max_length=6)
+
+
 class DoctorDashboardBriefing(BaseModel):
     id: UUID
     patient_id: UUID
@@ -83,5 +116,6 @@ class DoctorDashboardBriefing(BaseModel):
 class DoctorDashboard(BaseModel):
     today_count: int
     week_count: int
+    all_time_count: int = 0
     avg_briefing_seconds: int | None = None
     recent_briefings: list[DoctorDashboardBriefing] = []

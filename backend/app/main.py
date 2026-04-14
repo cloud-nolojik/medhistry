@@ -44,6 +44,12 @@ async def lifespan(app: FastAPI):
         await conn.execute(text(
             "ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_phone_verified BOOLEAN DEFAULT FALSE"
         ))
+        await conn.execute(text(
+            "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(128)"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS pin_failed_attempts INTEGER NOT NULL DEFAULT 0"
+        ))
 
     # Seed default super admin if not exists
     async with async_session() as session:
