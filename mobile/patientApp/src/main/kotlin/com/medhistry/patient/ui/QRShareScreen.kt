@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import com.medhistry.data.FamilyListResponse
 import com.medhistry.data.MedHistryApi
 import com.medhistry.data.ShareCodeGenerateResponse
 import com.medhistry.domain.QRSessionManager
@@ -32,8 +33,12 @@ enum class ShareMode { QR, CODE }
  * Unified share screen with two modes: QR (the fast path) and 6-digit Code
  * (the fallback for when the camera fails or the doctor is on the phone).
  *
- * Patient picks the target (self or a dependent) on the Home screen, so
- * both modes accept an optional [patientId].
+ * The screen owns a "Sharing for" selector at the top so the patient can
+ * switch between themselves and any dependent without leaving the screen.
+ *
+ * Both QR and 6-digit Code modes support primary + dependents — the
+ * backend resolves the target patient via /qr/generate (and
+ * /qr/generate-code), validating that the primary manages the dependent.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +50,12 @@ fun ShareScreen(
     onClose: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(initialMode) }
+    var family by remember { mutableStateOf<FamilyListResponse?>(null) }
+    var selectedPatientId by remember { mutableStateOf(patientId) }
+
+    LaunchedEffect(Unit) {
+        runCatching { api.listFamily() }.onSuccess { family = it }
+    }
 
     Scaffold(
         containerColor = MedHistryColors.Background,
@@ -70,11 +81,117 @@ fun ShareScreen(
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            SharingForSelector(
+                family = family,
+                selectedPatientId = selectedPatientId,
+                onSelect = { selectedPatientId = it },
+            )
+            Spacer(Modifier.height(16.dp))
+
             ModeTabs(mode = mode, onModeChange = { mode = it })
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
+
             when (mode) {
-                ShareMode.QR -> QRMode(sessionManager)
-                ShareMode.CODE -> CodeMode(api, patientId)
+                ShareMode.QR -> QRMode(sessionManager, selectedPatientId)
+                ShareMode.CODE -> CodeMode(api, selectedPatientId)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SharingForSelector(
+    family: FamilyListResponse?,
+    selectedPatientId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val activeName: String = when {
+        selectedPatientId == null -> family?.primary?.name?.takeIf { it.isNotBlank() } ?: "Me"
+        else -> family?.dependents?.firstOrNull { it.id == selectedPatientId }?.name ?: "—"
+    }
+    val activeRelationship: String? = if (selectedPatientId == null) {
+        "You"
+    } else {
+        family?.dependents?.firstOrNull { it.id == selectedPatientId }?.relationship
+    }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MedHistryColors.Surface)
+                .border(1.dp, MedHistryColors.PrimaryLight, RoundedCornerShape(14.dp))
+                .clickable(enabled = family != null) { expanded = true }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Sharing for",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MedHistryColors.TextLight,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    activeName,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MedHistryColors.TextPrimary,
+                )
+                activeRelationship?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        it,
+                        fontSize = 12.sp,
+                        color = MedHistryColors.TextSecondary,
+                    )
+                }
+            }
+            Text(
+                if (expanded) "\u25B2" else "\u25BC",
+                fontSize = 12.sp,
+                color = MedHistryColors.Primary,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(
+                            family?.primary?.name?.takeIf { it.isNotBlank() } ?: "Me",
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text("You", fontSize = 11.sp, color = MedHistryColors.TextSecondary)
+                    }
+                },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+            )
+            family?.dependents?.forEach { dep ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(dep.name, fontWeight = FontWeight.SemiBold)
+                            dep.relationship?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, fontSize = 11.sp, color = MedHistryColors.TextSecondary)
+                            }
+                        }
+                    },
+                    onClick = {
+                        onSelect(dep.id)
+                        expanded = false
+                    },
+                )
             }
         }
     }
@@ -117,11 +234,16 @@ private fun TabButton(label: String, selected: Boolean, modifier: Modifier, onCl
 // ---------- QR mode ----------
 
 @Composable
-private fun QRMode(sessionManager: QRSessionManager) {
+private fun QRMode(sessionManager: QRSessionManager, patientId: String?) {
     val state by sessionManager.state.collectAsState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) { sessionManager.startSession() }
+    // Restart the session whenever the active "Sharing for" target changes,
+    // so the QR code rotates to the correct patient/dependent.
+    LaunchedEffect(patientId) {
+        sessionManager.endSession()
+        sessionManager.startSession(patientId)
+    }
     DisposableEffect(Unit) {
         onDispose { scope.launch { sessionManager.endSession() } }
     }
@@ -200,7 +322,7 @@ private fun QRMode(sessionManager: QRSessionManager) {
             is QRSessionState.Error -> {
                 Text(s.message, color = MedHistryColors.Danger, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = { scope.launch { sessionManager.startSession() } }) {
+                Button(onClick = { scope.launch { sessionManager.startSession(patientId) } }) {
                     Text("Retry")
                 }
             }
@@ -217,9 +339,11 @@ private fun CodeMode(api: MedHistryApi, patientId: String?) {
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Re-generate when the active patient changes.
     LaunchedEffect(patientId) {
         isLoading = true
         error = null
+        code = null
         try {
             code = api.generateShareCode(patientId)
         } catch (e: Exception) {

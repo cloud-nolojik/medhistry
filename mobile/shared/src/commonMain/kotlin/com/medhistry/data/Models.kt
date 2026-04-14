@@ -181,11 +181,18 @@ data class PatientProfile(
 )
 
 @Serializable
+data class QRGenerateRequest(
+    @SerialName("patient_id") val patientId: String? = null,
+)
+
+@Serializable
 data class QRGenerateResponse(
     @SerialName("session_id") val sessionId: String,
     @SerialName("qr_token") val qrToken: String,
     @SerialName("token_version") val tokenVersion: Int,
     @SerialName("expires_at") val expiresAt: String,
+    @SerialName("patient_id") val patientId: String = "",
+    @SerialName("patient_name") val patientName: String = "",
 )
 
 @Serializable

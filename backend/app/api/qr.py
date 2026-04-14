@@ -12,7 +12,8 @@ from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.medical_document import MedicalDocument
 from app.schemas.qr import (
-    QRGenerateResponse, QRRefreshResponse, QRScanRequest, PatientBriefing,
+    QRGenerateRequest, QRGenerateResponse, QRRefreshResponse, QRScanRequest,
+    PatientBriefing,
     ShareCodeGenerateRequest, ShareCodeGenerateResponse, ShareCodeRedeemRequest,
 )
 from app.services.qr_service import (
@@ -41,33 +42,57 @@ def _calculate_age(dob_str: str | None) -> str | None:
 
 @router.post("/generate", response_model=QRGenerateResponse)
 async def generate_qr(
-    patient: Patient = Depends(get_current_patient),
+    data: QRGenerateRequest = QRGenerateRequest(),
+    primary: Patient = Depends(get_current_patient),
     db: AsyncSession = Depends(get_db),
 ):
     """Start a new QR sharing session. Patient calls this to begin showing QR.
 
+    If `patient_id` is omitted, the QR session covers the primary's records.
+    If `patient_id` is a dependent managed by the primary, it covers that
+    dependent's records — same auth model as /generate-code.
+
     Returns the encrypted QR token to be encoded into a QR code on the client.
     """
-    session = await start_qr_session(patient.id, db)
+    target_id = data.patient_id or primary.id
+    target = await resolve_patient_context(target_id, primary, db)
+    session = await start_qr_session(target.id, db)
     return QRGenerateResponse(
         session_id=session.id,
         qr_token=session.current_token,
         token_version=session.token_version,
         expires_at=session.expires_at,
+        patient_id=target.id,
+        patient_name=target.name,
     )
 
 
 @router.post("/refresh/{session_id}", response_model=QRRefreshResponse)
 async def refresh_qr(
     session_id: UUID,
-    patient: Patient = Depends(get_current_patient),
+    primary: Patient = Depends(get_current_patient),
     db: AsyncSession = Depends(get_db),
 ):
     """Rotate the QR token for an active session.
 
     Called every 60 seconds by the patient app. The old token becomes invalid.
+    Works for sessions on the primary's own records OR a dependent's, as
+    long as the primary manages the dependent.
     """
-    session = await refresh_qr_token(session_id, patient.id, db)
+    # Look up the session and verify the caller has rights to its patient.
+    sess_result = await db.execute(
+        select(QRSession).where(QRSession.id == session_id, QRSession.is_active == True)
+    )
+    existing = sess_result.scalar_one_or_none()
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found, expired, or inactive",
+        )
+    # Authorize: primary owns this session's patient (self or dependent).
+    await resolve_patient_context(existing.patient_id, primary, db)
+
+    session = await refresh_qr_token(session_id, existing.patient_id, db)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -212,11 +237,25 @@ async def redeem_code(
 @router.post("/end/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def end_session(
     session_id: UUID,
-    patient: Patient = Depends(get_current_patient),
+    primary: Patient = Depends(get_current_patient),
     db: AsyncSession = Depends(get_db),
 ):
-    """Patient manually ends a QR sharing session."""
-    ended = await end_qr_session(session_id, patient.id, db)
+    """Patient manually ends a QR sharing session.
+
+    Works for sessions on the primary's own records or a managed dependent's.
+    """
+    sess_result = await db.execute(
+        select(QRSession).where(QRSession.id == session_id, QRSession.is_active == True)
+    )
+    existing = sess_result.scalar_one_or_none()
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active session found",
+        )
+    await resolve_patient_context(existing.patient_id, primary, db)
+
+    ended = await end_qr_session(session_id, existing.patient_id, db)
     if not ended:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

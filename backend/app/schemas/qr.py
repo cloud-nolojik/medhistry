@@ -5,11 +5,20 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
+class QRGenerateRequest(BaseModel):
+    patient_id: UUID | None = Field(
+        None,
+        description="Target patient — self if omitted, or a dependent id for family members",
+    )
+
+
 class QRGenerateResponse(BaseModel):
     session_id: UUID
     qr_token: str
     token_version: int
     expires_at: datetime
+    patient_id: UUID
+    patient_name: str
 
 
 class QRRefreshResponse(BaseModel):

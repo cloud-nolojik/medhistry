@@ -17,5 +17,5 @@ class MedHistryDoctorApp : Application() {
 }
 
 val doctorAppModule = module {
-    single { MedHistryApi(baseUrl = "https://motivation-trails-announcements-keno.trycloudflare.com/api/v1") }
+    single { MedHistryApi(baseUrl = "https://app.medhistry.com/api/v1") }
 }

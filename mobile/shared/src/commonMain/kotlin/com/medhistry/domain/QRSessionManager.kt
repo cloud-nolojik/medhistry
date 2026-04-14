@@ -22,15 +22,16 @@ class QRSessionManager(private val api: MedHistryApi) {
     private var refreshJob: Job? = null
     private var currentSessionId: String? = null
 
-    suspend fun startSession() {
+    suspend fun startSession(patientId: String? = null) {
         _state.value = QRSessionState.Loading
         try {
-            val response = api.generateQR()
+            val response = api.generateQR(patientId)
             currentSessionId = response.sessionId
             _state.value = QRSessionState.Active(
                 qrToken = response.qrToken,
                 tokenVersion = response.tokenVersion,
                 expiresAt = response.expiresAt,
+                patientName = response.patientName,
             )
             startAutoRefresh(response.sessionId)
         } catch (e: Exception) {
@@ -45,10 +46,12 @@ class QRSessionManager(private val api: MedHistryApi) {
                 delay(55_000) // Refresh 5s before expiry (60s token lifetime)
                 try {
                     val response = api.refreshQR(sessionId)
+                    val current = _state.value as? QRSessionState.Active
                     _state.value = QRSessionState.Active(
                         qrToken = response.qrToken,
                         tokenVersion = response.tokenVersion,
                         expiresAt = response.expiresAt,
+                        patientName = current?.patientName ?: "",
                     )
                 } catch (e: Exception) {
                     _state.value = QRSessionState.Error("QR refresh failed: ${e.message}")
@@ -80,6 +83,7 @@ sealed class QRSessionState {
         val qrToken: String,
         val tokenVersion: Int,
         val expiresAt: String,
+        val patientName: String = "",
     ) : QRSessionState()
     data class Error(val message: String) : QRSessionState()
 }

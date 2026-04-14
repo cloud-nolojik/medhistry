@@ -161,9 +161,11 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
 
     // --- QR Session ---
 
-    suspend fun generateQR(): QRGenerateResponse {
+    suspend fun generateQR(patientId: String? = null): QRGenerateResponse {
         return client.post("$baseUrl/qr/generate") {
+            contentType(ContentType.Application.Json)
             bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(QRGenerateRequest(patientId))
         }.body()
     }
 

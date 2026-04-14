@@ -92,12 +92,24 @@ fun PatientHomeScreen(
             Spacer(Modifier.height(16.dp))
         }
 
-        // Quick actions
+        // Quick actions — Upload + the two ways to share with a doctor.
+        // The "Share Code" tile lets the doctor type a 6-digit code when the
+        // QR camera path doesn't work (poor light, phone consult, etc.).
+        //
+        // When a dependent is the active "Sharing as" choice, the share button
+        // labels echo their first name so the user can't accidentally share
+        // their own records.
+        val activeName: String? = activePatientId?.let { id ->
+            family?.dependents?.firstOrNull { it.id == id }?.name?.split(" ")?.firstOrNull()
+        }
+        val qrLabel = activeName?.let { "Show ${it}'s QR" } ?: "Show QR"
+        val codeLabel = activeName?.let { "Share ${it}'s Code" } ?: "Share Code"
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             QuickAction(
                 label = "Upload Record",
@@ -107,11 +119,18 @@ fun PatientHomeScreen(
                 onClick = onUpload,
             )
             QuickAction(
-                label = "Show QR Code",
+                label = qrLabel,
                 emoji = "\uD83D\uDCF2",
                 bg = Color(0xFFF0FDF4),
                 modifier = Modifier.weight(1f),
                 onClick = { onShareQR(activePatientId) },
+            )
+            QuickAction(
+                label = codeLabel,
+                emoji = "\uD83D\uDD22",
+                bg = Color(0xFFFFF7ED),
+                modifier = Modifier.weight(1f),
+                onClick = { onShareCode(activePatientId) },
             )
         }
 
