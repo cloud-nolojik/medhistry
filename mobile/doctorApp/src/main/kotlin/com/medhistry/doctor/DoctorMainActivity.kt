@@ -1,12 +1,17 @@
 package com.medhistry.doctor
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,6 +198,80 @@ private fun DoctorAppRoot(api: MedHistryApi) {
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+
+    // "Log out / exit app?" confirmation. Shown when the user presses the
+    // system back button on a top-level / entry screen (Home, PinLogin,
+    // Splash, etc.) where there's nowhere else to go.
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // System back button / gesture handler.
+    //
+    // Rule: every screen should go back to a sensible parent. Only the
+    // root entry screens ask "are you logging off?" — everything else
+    // navigates to its parent. This replaces the old behaviour where back
+    // would slam-dunk the user out of the app from anywhere.
+    BackHandler(enabled = !pinLockActive) {
+        when (val s = screen) {
+            DoctorScreen.Splash,
+            is DoctorScreen.PinLogin -> showExitDialog = true
+            is DoctorScreen.Home -> showExitDialog = true
+            // Forced / interstitial states — swallow back so the user
+            // can't accidentally bail out mid-flow.
+            is DoctorScreen.PinSetup -> { /* can't leave — must set PIN */ }
+            // Onboarding chain
+            DoctorScreen.Onboarding1 -> showExitDialog = true
+            DoctorScreen.Onboarding2 -> screen = DoctorScreen.Onboarding1
+            DoctorScreen.Onboarding3 -> screen = DoctorScreen.Onboarding2
+            // Auth chain
+            DoctorScreen.PhoneEntry -> {
+                val saved = prefs.savedPhone
+                screen = if (saved != null && prefs.hasPin) DoctorScreen.PinLogin(saved)
+                        else DoctorScreen.Onboarding3
+            }
+            is DoctorScreen.Otp -> screen = DoctorScreen.PhoneEntry
+            is DoctorScreen.InviteCode -> screen = DoctorScreen.PhoneEntry
+            is DoctorScreen.Signup -> {
+                signupError = null
+                screen = DoctorScreen.InviteCode(s.phoneE164, s.tempToken)
+            }
+            // Post-login child screens — all parent to Home.
+            is DoctorScreen.Scan -> screen = DoctorScreen.Home(s.session)
+            is DoctorScreen.EnterCode -> screen = DoctorScreen.Home(s.session)
+            is DoctorScreen.AllPatients -> screen = DoctorScreen.Home(s.session)
+            is DoctorScreen.SessionEnded -> screen = DoctorScreen.Home(s.session)
+            is DoctorScreen.Profile -> screen = DoctorScreen.Home(s.session)
+        }
+    }
+
+    if (showExitDialog) {
+        val isLoggedIn = screen is DoctorScreen.Home
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(if (isLoggedIn) "Log out?" else "Exit app?") },
+            text = {
+                Text(
+                    if (isLoggedIn) "Are you sure you want to log out of MedHistry?"
+                    else "Are you sure you want to close the app?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    if (isLoggedIn) {
+                        prefs.signOut()
+                        screen = DoctorScreen.PhoneEntry
+                    } else {
+                        (context as? Activity)?.finish()
+                    }
+                }) {
+                    Text(if (isLoggedIn) "Yes, log out" else "Exit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 
     // Background-lock overlay takes over all input until PIN is entered.

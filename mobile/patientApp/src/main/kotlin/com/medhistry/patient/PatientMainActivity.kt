@@ -1,5 +1,6 @@
 package com.medhistry.patient
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -14,6 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.medhistry.patient.ui.AccessHistoryScreen
 import com.medhistry.patient.ui.FamilyMembersScreen
@@ -110,6 +112,71 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
     var pinError by remember { mutableStateOf<String?>(null) }
     var pinLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // "Log out / exit app?" dialog shown when the user presses back on a
+    // top-level entry screen (Home, PinLogin, Splash) where there's
+    // nowhere else to go.
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // System back button / gesture dispatch.
+    //
+    // Rule: every screen goes to its parent (dashboard if no obvious
+    // parent). Only top-level entry points confirm with a dialog —
+    // everything else just navigates. The PatientShell's own BackHandler
+    // (inside Home) handles Home-tab exit; we leave that alone and only
+    // cover the screens it doesn't own.
+    BackHandler(enabled = screen !is Screen.Home) {
+        when (val s = screen) {
+            Screen.Splash -> showExitDialog = true
+            Screen.Onboarding1 -> screen = Screen.Splash
+            Screen.Onboarding2 -> screen = Screen.Onboarding1
+            Screen.Onboarding3 -> screen = Screen.Onboarding2
+            Screen.Signup -> screen = Screen.Onboarding3
+            Screen.Login -> screen = Screen.Splash
+            is Screen.Otp -> screen = if (s.fromLogin) Screen.Login else Screen.Signup
+            is Screen.NewUserProfile -> screen = Screen.Signup
+            is Screen.SetPin -> screen = Screen.NewUserProfile(s.phone, s.tempToken)
+            is Screen.PinLogin -> showExitDialog = true
+            is Screen.Share -> screen = Screen.Home(s.session)
+            is Screen.Family -> screen = Screen.Home(s.session)
+            is Screen.Profile -> screen = Screen.Home(s.session)
+            is Screen.AccessHistory -> screen = Screen.Profile(s.session)
+            is Screen.DocumentDetail -> screen = Screen.Home(s.session, PatientTab.Timeline)
+            is Screen.Upload -> screen = Screen.Home(s.session, PatientTab.Home)
+            is Screen.Home -> { /* handled by PatientShell */ }
+        }
+    }
+
+    if (showExitDialog) {
+        val isLoggedIn = screen is Screen.PinLogin
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(if (isLoggedIn) "Log out?" else "Exit app?") },
+            text = {
+                Text(
+                    if (isLoggedIn) "Are you sure you want to log out of MedHistry?"
+                    else "Are you sure you want to close the app?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    if (isLoggedIn) {
+                        authStore.clear()
+                        screen = Screen.Splash
+                    } else {
+                        (context as? Activity)?.finish()
+                    }
+                }) {
+                    Text(if (isLoggedIn) "Yes, log out" else "Exit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     when (val s = screen) {
         Screen.Splash -> SplashScreen(
