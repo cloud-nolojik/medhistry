@@ -323,19 +323,27 @@ async def doctor_view_document_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     now = datetime.now(timezone.utc)
-    # Active session for this patient?
+    # Live (non-expired) session for this patient. We deliberately do NOT
+    # filter on `is_active` — qr_service flips that flag to False the moment
+    # the doctor scans/redeems (single-use replay protection), but the
+    # briefing we already handed them is valid until `expires_at`. File
+    # access must mirror briefing access — tied to expiry, not to the
+    # active flag. Pick the most recently-created one in case there are
+    # multiple within-window rows.
     sess_result = await db.execute(
-        select(QRSession).where(
+        select(QRSession)
+        .where(
             QRSession.patient_id == doc.patient_id,
-            QRSession.is_active == True,
             QRSession.expires_at > now,
         )
+        .order_by(QRSession.created_at.desc())
+        .limit(1)
     )
     session = sess_result.scalar_one_or_none()
     if not session:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No active sharing session for this patient",
+            detail="Sharing session has expired",
         )
 
     # Doctor accessed this patient within this session? Gate off the session's
