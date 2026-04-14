@@ -31,6 +31,31 @@ services:
     volumes:
       - uploads:/code/uploads
 
+  pgweb:
+    # Web-based Postgres browser. Read-only by default, protected by basic auth.
+    # Accessible at https://medhistry.com/db/ via nginx proxy.
+    image: sosedoff/pgweb:latest
+    container_name: medhistry-pgweb
+    restart: always
+    environment:
+      DATABASE_URL: "postgres://medhistry:${POSTGRES_PASSWORD:-medhistry_prod_2026}@db:5432/medhistry?sslmode=disable"
+      # Basic auth — override DB_VIEWER_USER / DB_VIEWER_PASS in backend/.env.prod
+      AUTH_USER: ${DB_VIEWER_USER:-medadmin}
+      AUTH_PASS: ${DB_VIEWER_PASS:-change-me-in-env}
+    command: >
+      pgweb
+      --bind=0.0.0.0
+      --listen=8081
+      --readonly
+      --lock-session
+      --sessions
+      --prefix=db/
+      --auth-user=${DB_VIEWER_USER:-medadmin}
+      --auth-pass=${DB_VIEWER_PASS:-change-me-in-env}
+    depends_on:
+      db:
+        condition: service_healthy
+
   nginx:
     image: nginx:alpine
     container_name: medhistry-nginx
@@ -47,6 +72,7 @@ services:
       - certbot-www:/var/www/certbot
     depends_on:
       - api
+      - pgweb
 
   certbot:
     image: certbot/certbot

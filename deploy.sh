@@ -148,14 +148,28 @@ cmd_deploy() {
     # Push latest code
     push_code
 
-    # Rebuild API
-    log "Rebuilding API container..."
-    remote "$COMPOSE build api"
+    # Ensure DB viewer credentials exist on server (auto-generate if missing)
+    log "Checking DB viewer credentials..."
+    remote "grep -q DB_VIEWER_USER .env 2>/dev/null || {
+        echo 'DB_VIEWER_USER=medadmin' >> .env;
+        echo \"DB_VIEWER_PASS=\$(openssl rand -hex 16)\" >> .env;
+        echo '[OK] Generated DB_VIEWER_PASS in /opt/medhistry/.env';
+    }"
 
-    # Restart
-    log "Restarting services..."
-    remote "$COMPOSE up -d api && $COMPOSE restart nginx"
+    # Rebuild API — force a clean build so new code actually ships.
+    # Without --no-cache, Docker can reuse a cached `COPY . .` layer when
+    # mtimes look similar, and old bytecode/venv layers get baked in.
+    log "Rebuilding API container (no cache)..."
+    remote "$COMPOSE build --no-cache --pull api"
+
+    # Restart — force-recreate so the running container is replaced even if
+    # the image digest hash looks unchanged to compose.
+    log "Restarting services (force recreate)..."
+    remote "$COMPOSE up -d --force-recreate --no-deps api && $COMPOSE restart nginx"
     sleep 5
+
+    # Prune dangling images from previous builds so disk doesn't balloon
+    remote "docker image prune -f >/dev/null 2>&1 || true"
 
     # Init DB (in case new models)
     log "Checking database..."
@@ -216,6 +230,64 @@ cmd_renew() {
 }
 
 # ---------------------------------------------------------------------------
+# DB VIEWER — run admin queries against the production database
+# ---------------------------------------------------------------------------
+# Usage:
+#   ./deploy.sh db list                — list all patients
+#   ./deploy.sh db show <name>         — show full record for patient(s) matching name
+#   ./deploy.sh db export <name>       — dump matching patient(s) to JSON + scp to ./
+#   ./deploy.sh db doctors             — list all doctors
+#   ./deploy.sh db counts              — row counts per table
+cmd_db() {
+    local sub="${1:-list}"; shift || true
+    local arg="$*"
+    log "Running db_viewer.py $sub $arg ..."
+    # Run inside the API container so it has DATABASE_URL from env
+    remote "$COMPOSE exec -T api python -m scripts.db_viewer $sub $arg"
+
+    # If this was an export, pull the JSON back to the Mac
+    if [ "$sub" = "export" ] && [ -n "$arg" ]; then
+        log "Fetching exported JSON to local ./ ..."
+        # Copy the most recent export file
+        ssh -o StrictHostKeyChecking=no "$SERVER" \
+            "docker compose -f $SERVER_DIR/docker-compose.prod.yml exec -T api sh -c 'ls -t /tmp/patient_export_*.json 2>/dev/null | head -1'" \
+            | while read -r REMOTE_FILE; do
+                [ -z "$REMOTE_FILE" ] && continue
+                LOCAL_NAME="$(basename "$REMOTE_FILE")"
+                ssh -o StrictHostKeyChecking=no "$SERVER" \
+                    "docker compose -f $SERVER_DIR/docker-compose.prod.yml exec -T api cat '$REMOTE_FILE'" \
+                    > "./$LOCAL_NAME"
+                log "Saved to ./$LOCAL_NAME"
+            done
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# DB-WEB — print web DB viewer URL + auth credentials
+# ---------------------------------------------------------------------------
+cmd_db_web() {
+    echo ""
+    echo "======================================"
+    echo "  Web DB Viewer (pgweb)"
+    echo "======================================"
+    local creds
+    creds=$(ssh -o StrictHostKeyChecking=no "$SERVER" "grep -E 'DB_VIEWER_(USER|PASS)' $SERVER_DIR/.env 2>/dev/null")
+    if [ -z "$creds" ]; then
+        warn "No DB viewer credentials yet on server."
+        warn "Run ./deploy.sh deploy once — it auto-generates them."
+        return
+    fi
+    echo ""
+    echo "URL:      https://$DOMAIN/db/"
+    echo ""
+    echo "$creds" | sed 's/^/  /'
+    echo ""
+    echo "Opens a Postgres browser with read-only access to the medhistry DB."
+    echo "Browse tables, run SELECT queries, export rows to CSV/JSON."
+    echo ""
+}
+
+# ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
 case "${1:-help}" in
@@ -225,17 +297,25 @@ case "${1:-help}" in
     logs)   cmd_logs ;;
     ssh)    cmd_ssh ;;
     renew)  cmd_renew ;;
+    db)     shift; cmd_db "$@" ;;
+    db-web) cmd_db_web ;;
     *)
         echo "MedHistry Deploy (runs from your Mac)"
         echo ""
         echo "Usage: ./deploy.sh <command>"
         echo ""
         echo "Commands:"
-        echo "  setup   — First-time: push + SSL + full deploy"
-        echo "  deploy  — Push code + rebuild + restart"
-        echo "  status  — Check service health"
-        echo "  logs    — Tail API logs"
-        echo "  ssh     — Open SSH session to server"
-        echo "  renew   — Renew SSL certificate"
+        echo "  setup          — First-time: push + SSL + full deploy"
+        echo "  deploy         — Push code + rebuild + restart"
+        echo "  status         — Check service health"
+        echo "  logs           — Tail API logs"
+        echo "  ssh            — Open SSH session to server"
+        echo "  renew          — Renew SSL certificate"
+        echo "  db list        — List all patients in prod DB"
+        echo "  db show <name> — Show records for patient matching name"
+        echo "  db export <name> — Export patient to JSON + download"
+        echo "  db doctors     — List all doctors"
+        echo "  db counts      — Row counts per table"
+        echo "  db-web         — Print web DB viewer URL + credentials"
         ;;
 esac
