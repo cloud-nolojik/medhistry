@@ -43,7 +43,6 @@ services:
       AUTH_USER: ${DB_VIEWER_USER:-medadmin}
       AUTH_PASS: ${DB_VIEWER_PASS:-change-me-in-env}
     command: >
-      pgweb
       --bind=0.0.0.0
       --listen=8081
       --readonly

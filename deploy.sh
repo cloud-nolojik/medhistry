@@ -169,7 +169,12 @@ cmd_deploy() {
     # Restart — force-recreate so the running container is replaced even if
     # the image digest hash looks unchanged to compose.
     log "Restarting services (force recreate)..."
-    remote "$COMPOSE up -d --force-recreate --no-deps api && $COMPOSE restart nginx"
+    # Bring up api (force), then ensure pgweb is up (uses latest image), then
+    # restart nginx. Order matters: nginx resolver can't find pgweb if pgweb
+    # isn't up yet.
+    remote "$COMPOSE up -d --force-recreate --no-deps api"
+    remote "$COMPOSE up -d pgweb"
+    remote "$COMPOSE restart nginx"
     sleep 5
 
     # Prune dangling images from previous builds so disk doesn't balloon
