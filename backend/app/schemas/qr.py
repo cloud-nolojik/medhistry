@@ -60,6 +60,31 @@ class PatientAccessLogEntry(BaseModel):
     accessed_at: datetime
 
 
+class DocumentNote(BaseModel):
+    """A single document's distilled clinical content, surfaced to the doctor.
+
+    Each Gemini-extracted document already contains a doctor-targeted
+    `clinical_summary`, an `overall_status`, optional `follow_up`, etc.
+    The briefing builder previously dropped all of this — only the patient-
+    level aggregated `medical_summary` and the lab/med/dx arrays were shown.
+    Now we pass the per-document notes through so the doctor can actually
+    read what each visit/report said.
+    """
+    document_id: UUID
+    doc_type: str | None = None
+    document_date: str | None = None  # YYYY-MM-DD
+    hospital_name: str | None = None
+    doctor_name: str | None = None
+    doctor_specialisation: str | None = None
+    clinical_summary: str | None = None  # for the doctor (technical)
+    patient_summary: str | None = None   # for the patient (plain language)
+    overall_status: str | None = None    # "normal" | "attention_needed" | "urgent"
+    overall_status_message: str | None = None
+    follow_up: str | None = None
+    symptoms: list[str] = Field(default_factory=list)
+    vitals: list[dict] = Field(default_factory=list)
+
+
 class PatientBriefing(BaseModel):
     """What the doctor sees after scanning — the 30-second briefing card."""
     patient_id: UUID
@@ -72,5 +97,6 @@ class PatientBriefing(BaseModel):
     medications: list[dict] = Field(default_factory=list)
     diagnoses: list[str] = Field(default_factory=list)
     critical_labs: list[dict] = Field(default_factory=list)
+    document_notes: list[DocumentNote] = Field(default_factory=list)
     total_documents: int = 0
     session_expires_at: datetime

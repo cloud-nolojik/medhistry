@@ -276,8 +276,29 @@ data class PatientBriefing(
     val medications: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
     val diagnoses: List<String> = emptyList(),
     @SerialName("critical_labs") val criticalLabs: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
+    @SerialName("document_notes") val documentNotes: List<DocumentNote> = emptyList(),
     @SerialName("total_documents") val totalDocuments: Int = 0,
     @SerialName("session_expires_at") val sessionExpiresAt: String,
+)
+
+/** Per-document distilled clinical content (one row per uploaded document).
+ *  Surfaces the doctor-targeted `clinical_summary` Gemini extracts for each
+ *  document — previously dropped on the floor by the briefing builder. */
+@Serializable
+data class DocumentNote(
+    @SerialName("document_id") val documentId: String,
+    @SerialName("doc_type") val docType: String? = null,
+    @SerialName("document_date") val documentDate: String? = null,
+    @SerialName("hospital_name") val hospitalName: String? = null,
+    @SerialName("doctor_name") val doctorName: String? = null,
+    @SerialName("doctor_specialisation") val doctorSpecialisation: String? = null,
+    @SerialName("clinical_summary") val clinicalSummary: String? = null,
+    @SerialName("patient_summary") val patientSummary: String? = null,
+    @SerialName("overall_status") val overallStatus: String? = null,
+    @SerialName("overall_status_message") val overallStatusMessage: String? = null,
+    @SerialName("follow_up") val followUp: String? = null,
+    val symptoms: List<String> = emptyList(),
+    val vitals: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
 )
 
 // --- Document Upload (Azure SAS flow) ---

@@ -13,7 +13,7 @@ from app.models.patient import Patient
 from app.models.medical_document import MedicalDocument
 from app.schemas.qr import (
     QRGenerateRequest, QRGenerateResponse, QRRefreshResponse, QRScanRequest,
-    PatientBriefing,
+    PatientBriefing, DocumentNote,
     ShareCodeGenerateRequest, ShareCodeGenerateResponse, ShareCodeRedeemRequest,
 )
 from app.services.qr_service import (
@@ -122,6 +122,7 @@ async def _build_briefing(
     all_meds = []
     all_diagnoses = []
     critical_labs = []
+    document_notes: list[DocumentNote] = []
     for doc in docs:
         data = doc.extracted_data or {}
         all_diagnoses.extend(data.get("diagnoses", []))
@@ -129,6 +130,27 @@ async def _build_briefing(
         for lab in data.get("lab_results", []):
             if lab.get("status") in ("high", "low", "critical"):
                 critical_labs.append(lab)
+
+        # Surface the per-document clinical content the doctor needs.
+        # Skip docs with no useful narrative (e.g. extraction still in progress).
+        clinical = data.get("clinical_summary")
+        patient_sum = data.get("patient_summary")
+        if clinical or patient_sum:
+            document_notes.append(DocumentNote(
+                document_id=doc.id,
+                doc_type=doc.doc_type,
+                document_date=doc.document_date or data.get("document_date"),
+                hospital_name=doc.hospital_name or data.get("hospital_name"),
+                doctor_name=doc.doctor_name or data.get("doctor_name"),
+                doctor_specialisation=data.get("doctor_specialisation"),
+                clinical_summary=clinical,
+                patient_summary=patient_sum,
+                overall_status=data.get("overall_status"),
+                overall_status_message=data.get("overall_status_message"),
+                follow_up=data.get("follow_up"),
+                symptoms=data.get("symptoms", []) or [],
+                vitals=data.get("vitals", []) or [],
+            ))
 
     return PatientBriefing(
         patient_id=patient.id,
@@ -141,6 +163,7 @@ async def _build_briefing(
         medications=all_meds,
         diagnoses=list(set(all_diagnoses)),
         critical_labs=critical_labs,
+        document_notes=document_notes,
         total_documents=len(docs),
         session_expires_at=session.expires_at,
     )

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.medhistry.data.DocumentNote
 import com.medhistry.data.PatientBriefing
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -68,6 +69,11 @@ fun PatientBriefingCard(
 
         SectionLabel("RECENT LAB VALUES")
         LabValuesCard(briefing.criticalLabs)
+
+        if (briefing.documentNotes.isNotEmpty()) {
+            SectionLabel("DOCUMENT NOTES")
+            DocumentNotesCard(briefing.documentNotes)
+        }
 
         SectionLabel("DOCUMENTS ON FILE")
         SurfaceCard {
@@ -341,6 +347,125 @@ private fun MedicationsCard(medications: List<Map<String, JsonElement>>) = Surfa
     }
 }
 
+/** Render the per-document clinical narrative. One card per uploaded doc with:
+ *   - Header chip: doc_type · date · hospital · doctor + specialisation
+ *   - Status banner if `overall_status` is "attention_needed" or "urgent"
+ *   - The doctor-targeted `clinical_summary`
+ *   - Optional follow-up line and symptoms chips
+ */
+@Composable
+private fun DocumentNotesCard(notes: List<DocumentNote>) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        notes.forEach { note ->
+            SurfaceCard {
+                // Header line — type / date / source
+                val headerBits = listOfNotNull(
+                    note.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() },
+                    note.documentDate,
+                    note.hospitalName,
+                ).filter { it.isNotBlank() }
+                if (headerBits.isNotEmpty()) {
+                    Text(
+                        headerBits.joinToString("  \u00B7  "),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DoctorColors.TextLight,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+                val byLine = listOfNotNull(
+                    note.doctorName?.let { "Dr. $it" },
+                    note.doctorSpecialisation,
+                ).joinToString(" \u00B7 ")
+                if (byLine.isNotBlank()) {
+                    Text(byLine, fontSize = 11.sp, color = DoctorColors.TextLight)
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // Status banner
+                val status = note.overallStatus?.lowercase()
+                if (status == "attention_needed" || status == "urgent") {
+                    val (bg, fg) = if (status == "urgent")
+                        Color(0xFFFEE2E2) to DoctorColors.Danger
+                    else
+                        Color(0xFFFFEDD5) to DoctorColors.Warn
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(bg)
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(if (status == "urgent") "\u26A0\uFE0F" else "\u2139\uFE0F", fontSize = 14.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            note.overallStatusMessage ?: status.uppercase().replace("_", " "),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = fg,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // The actual doctor-targeted summary
+                note.clinicalSummary?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        it,
+                        fontSize = 13.sp,
+                        color = DoctorColors.TextPrimary,
+                    )
+                }
+
+                // Symptoms chips
+                if (note.symptoms.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "SYMPTOMS",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DoctorColors.TextLight,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        note.symptoms.forEach { sym ->
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(DoctorColors.PrimaryLight)
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                            ) {
+                                Text(sym, fontSize = 11.sp, color = DoctorColors.PrimaryDark)
+                            }
+                        }
+                    }
+                }
+
+                // Follow-up
+                note.followUp?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DoctorColors.PrimaryLight)
+                            .padding(10.dp),
+                    ) {
+                        Text("\uD83D\uDCC5 ", fontSize = 12.sp)
+                        Text(
+                            it,
+                            fontSize = 12.sp,
+                            color = DoctorColors.PrimaryDark,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun LabValuesCard(labs: List<Map<String, JsonElement>>) = SurfaceCard {
     if (labs.isEmpty()) {
@@ -349,7 +474,9 @@ private fun LabValuesCard(labs: List<Map<String, JsonElement>>) = SurfaceCard {
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         labs.forEach { lab ->
-            val name = lab.str("name") ?: lab.str("test") ?: "Lab"
+            // Backend extraction stores `test_name` (Gemini schema). Older docs
+            // may use `name`/`test`, so fall back through all of them.
+            val name = lab.str("test_name") ?: lab.str("name") ?: lab.str("test") ?: "Lab"
             val value = lab.str("value")
             val unit = lab.str("unit")
             val status = lab.str("status")?.lowercase()
