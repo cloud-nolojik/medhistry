@@ -41,7 +41,6 @@ fun PatientHomeScreen(
     api: MedHistryApi,
     onUpload: () -> Unit,
     onShareQR: (patientId: String?) -> Unit,
-    onShareCode: (patientId: String?) -> Unit,
     onManageFamily: () -> Unit,
     onProfile: () -> Unit,
     onNavigateToMedicines: () -> Unit = {},
@@ -92,18 +91,17 @@ fun PatientHomeScreen(
             Spacer(Modifier.height(16.dp))
         }
 
-        // Quick actions — Upload + the two ways to share with a doctor.
-        // The "Share Code" tile lets the doctor type a 6-digit code when the
-        // QR camera path doesn't work (poor light, phone consult, etc.).
+        // Quick actions — Upload + a single Share tile. The Share screen now
+        // hosts both QR and 6-digit Code modes via tabs, plus its own
+        // "Sharing for" selector, so we don't need separate home buttons.
         //
-        // When a dependent is the active "Sharing as" choice, the share button
-        // labels echo their first name so the user can't accidentally share
+        // When a dependent is the active "Sharing as" choice, the share label
+        // echoes their first name so the user can't accidentally share
         // their own records.
         val activeName: String? = activePatientId?.let { id ->
             family?.dependents?.firstOrNull { it.id == id }?.name?.split(" ")?.firstOrNull()
         }
-        val qrLabel = activeName?.let { "Show ${it}'s QR" } ?: "Show QR"
-        val codeLabel = activeName?.let { "Share ${it}'s Code" } ?: "Share Code"
+        val shareLabel = activeName?.let { "Share ${it}'s Records" } ?: "Share Records"
 
         Row(
             modifier = Modifier
@@ -119,18 +117,11 @@ fun PatientHomeScreen(
                 onClick = onUpload,
             )
             QuickAction(
-                label = qrLabel,
+                label = shareLabel,
                 emoji = "\uD83D\uDCF2",
                 bg = Color(0xFFF0FDF4),
                 modifier = Modifier.weight(1f),
                 onClick = { onShareQR(activePatientId) },
-            )
-            QuickAction(
-                label = codeLabel,
-                emoji = "\uD83D\uDD22",
-                bg = Color(0xFFFFF7ED),
-                modifier = Modifier.weight(1f),
-                onClick = { onShareCode(activePatientId) },
             )
         }
 

@@ -17,5 +17,5 @@ class MedHistryDoctorApp : Application() {
 }
 
 val doctorAppModule = module {
-    single { MedHistryApi(baseUrl = "https://app.medhistry.com/api/v1") }
+    single { MedHistryApi() }
 }
