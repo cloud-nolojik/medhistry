@@ -18,12 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
  * Doctor signup. Hospital is pre-filled (verified) from the prior invite code step.
- * Collects name, specialization, medical registration number and phone.
+ * Collects name, specialization, medical registration number, phone and a password.
  */
 @Composable
 fun DoctorSignupScreen(
@@ -33,7 +35,7 @@ fun DoctorSignupScreen(
     prefillPhone: String = "",
     onBack: () -> Unit,
     onLogin: () -> Unit,
-    onContinue: (name: String, specialization: String, regNumber: String, phone: String) -> Unit,
+    onContinue: (name: String, specialization: String, regNumber: String, phone: String, password: String) -> Unit,
 ) {
     var name by remember { mutableStateOf(prefillName) }
     var specialization by remember { mutableStateOf(prefillSpecialisation) }
@@ -43,6 +45,8 @@ fun DoctorSignupScreen(
         val stripped = prefillPhone.removePrefix("+91").removePrefix("91").trim()
         mutableStateOf(stripped)
     }
+    var password by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -114,18 +118,31 @@ fun DoctorSignupScreen(
             DoctorField("MEDICAL REGISTRATION NO.", regNumber, "Registration number") { regNumber = it }
             Spacer(Modifier.height(16.dp))
             DoctorPhoneField(phone) { phone = it }
+            Spacer(Modifier.height(16.dp))
+            DoctorPasswordField(
+                value = password,
+                visible = showPassword,
+                onValueChange = { password = it },
+                onToggleVisibility = { showPassword = !showPassword },
+            )
+            Text(
+                "At least 6 characters",
+                fontSize = 11.sp,
+                color = DoctorColors.TextLight,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             Spacer(Modifier.height(32.dp))
 
             val enabled = name.isNotBlank() && specialization.isNotBlank() &&
-                regNumber.isNotBlank() && phone.length == 10
+                regNumber.isNotBlank() && phone.length == 10 && password.length >= 6
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (enabled) DoctorColors.Primary else DoctorColors.Border)
                     .clickable(enabled = enabled) {
-                        onContinue(name.trim(), specialization.trim(), regNumber.trim(), phone)
+                        onContinue(name.trim(), specialization.trim(), regNumber.trim(), phone, password)
                     }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center,
@@ -186,6 +203,56 @@ private fun DoctorField(
                     fontSize = 15.sp,
                 ),
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DoctorPasswordField(
+    value: String,
+    visible: Boolean,
+    onValueChange: (String) -> Unit,
+    onToggleVisibility: () -> Unit,
+) {
+    Column {
+        Text(
+            "PASSWORD",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = DoctorColors.TextLight,
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(DoctorColors.Surface)
+                .border(1.dp, DoctorColors.Border, RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                if (value.isEmpty()) {
+                    Text("Create a password", fontSize = 15.sp, color = DoctorColors.TextLight)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                    textStyle = TextStyle(color = DoctorColors.TextPrimary, fontSize = 15.sp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (visible) "Hide" else "Show",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = DoctorColors.Primary,
+                modifier = Modifier.clickable { onToggleVisibility() },
             )
         }
     }

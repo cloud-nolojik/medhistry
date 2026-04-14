@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.medhistry.data.DoctorProfile
 import com.medhistry.data.MedHistryApi
 import com.medhistry.doctor.ui.DoctorBottomNav
 import com.medhistry.doctor.ui.DoctorHomeScreen
@@ -49,8 +50,22 @@ private sealed class DoctorScreen {
     data object Onboarding2 : DoctorScreen()
     data object Onboarding3 : DoctorScreen()
     data object InviteCode : DoctorScreen()
-    data class Signup(val hospital: String, val doctorName: String = "", val specialisation: String = "", val phone: String = "") : DoctorScreen()
-    data class Otp(val phone: String, val hospital: String, val name: String, val specialization: String) : DoctorScreen()
+    data class Signup(
+        val inviteCode: String,
+        val hospital: String,
+        val doctorName: String = "",
+        val specialisation: String = "",
+        val phone: String = "",
+    ) : DoctorScreen()
+    data class Otp(
+        val inviteCode: String,
+        val hospital: String,
+        val name: String,
+        val specialization: String,
+        val regNumber: String,
+        val phone: String,
+        val password: String,
+    ) : DoctorScreen()
     data object Login : DoctorScreen()
     data class Home(val session: DoctorSession, val tab: DoctorTab = DoctorTab.Home) : DoctorScreen()
     data class Scan(val session: DoctorSession) : DoctorScreen()
@@ -59,11 +74,12 @@ private sealed class DoctorScreen {
     data class Profile(val session: DoctorSession) : DoctorScreen()
 }
 
-/** Lightweight session info carried between screens. */
+/** Lightweight session info carried between screens. Everything is sourced
+ *  from the backend — no mock defaults. */
 data class DoctorSession(
     val name: String,
-    val specialization: String = "Internal Medicine",
-    val hospital: String = "Jadeva Hospital",
+    val specialization: String,
+    val hospital: String,
 )
 
 @Composable
@@ -87,7 +103,7 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             api = api,
             onBack = { screen = DoctorScreen.Onboarding3 },
             onVerified = { code, hospital, doctorName, specialisation, phone ->
-                screen = DoctorScreen.Signup(hospital, doctorName, specialisation, phone)
+                screen = DoctorScreen.Signup(code, hospital, doctorName, specialisation, phone)
             },
         )
         is DoctorScreen.Signup -> DoctorSignupScreen(
@@ -97,24 +113,59 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             prefillPhone = s.phone,
             onBack = { screen = DoctorScreen.InviteCode },
             onLogin = { screen = DoctorScreen.Login },
-            onContinue = { name, spec, _, phone ->
-                screen = DoctorScreen.Otp(phone, s.hospital, name, spec)
+            onContinue = { name, spec, regNumber, phone, password ->
+                screen = DoctorScreen.Otp(
+                    inviteCode = s.inviteCode,
+                    hospital = s.hospital,
+                    name = name,
+                    specialization = spec,
+                    regNumber = regNumber,
+                    phone = phone,
+                    password = password,
+                )
             },
         )
         is DoctorScreen.Otp -> DoctorOtpScreen(
+            api = api,
             phoneNumber = s.phone,
-            onBack = { screen = DoctorScreen.Signup(s.hospital) },
-            onVerified = {
+            inviteCode = s.inviteCode,
+            name = s.name,
+            specialization = s.specialization,
+            regNumber = s.regNumber,
+            password = s.password,
+            onBack = {
+                screen = DoctorScreen.Signup(
+                    inviteCode = s.inviteCode,
+                    hospital = s.hospital,
+                    doctorName = s.name,
+                    specialisation = s.specialization,
+                    phone = s.phone,
+                )
+            },
+            onRegistered = { profile ->
                 screen = DoctorScreen.Home(
-                    DoctorSession(name = s.name, specialization = s.specialization, hospital = s.hospital)
+                    DoctorSession(
+                        name = profile.name,
+                        specialization = profile.specialisation ?: s.specialization,
+                        hospital = profile.hospitalName ?: s.hospital,
+                    )
                 )
             },
         )
         DoctorScreen.Login -> DoctorLoginScreen(
             api = api,
-            onLoggedIn = { name -> screen = DoctorScreen.Home(DoctorSession(name = name)) },
+            onLoggedIn = { profile: DoctorProfile ->
+                screen = DoctorScreen.Home(
+                    DoctorSession(
+                        name = profile.name,
+                        specialization = profile.specialisation ?: "",
+                        hospital = profile.hospitalName ?: "",
+                    )
+                )
+            },
         )
         is DoctorScreen.Home -> DoctorHomeWithNav(
+            api = api,
             session = s.session,
             currentTab = s.tab,
             onTab = { tab ->
@@ -153,6 +204,7 @@ private fun DoctorAppRoot(api: MedHistryApi) {
 
 @Composable
 private fun DoctorHomeWithNav(
+    api: MedHistryApi,
     session: DoctorSession,
     currentTab: DoctorTab,
     onTab: (DoctorTab) -> Unit,
@@ -163,6 +215,7 @@ private fun DoctorHomeWithNav(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)) {
             DoctorHomeScreen(
+                api = api,
                 doctorName = session.name,
                 onScanQR = onScanQR,
                 onEnterCode = onEnterCode,

@@ -1,10 +1,10 @@
 """Doctor registration (via invitation), login, and profile endpoints."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -12,7 +12,16 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.models.doctor import Doctor
 from app.models.hospital import Hospital
 from app.models.invitation import Invitation, InvitationStatus
-from app.schemas.doctor import DoctorRegisterViaInvite, DoctorLogin, DoctorOut, DoctorTokenResponse
+from app.models.patient import Patient
+from app.models.patient_access_log import PatientAccessLog
+from app.schemas.doctor import (
+    DoctorRegisterViaInvite,
+    DoctorLogin,
+    DoctorOut,
+    DoctorTokenResponse,
+    DoctorDashboard,
+    DoctorDashboardBriefing,
+)
 from app.api.deps import get_current_doctor
 
 router = APIRouter(prefix="/doctors", tags=["doctors"])
@@ -22,6 +31,19 @@ def _ensure_aware(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+async def _doctor_out_with_hospital(doctor: Doctor, db: AsyncSession) -> DoctorOut:
+    """Build a DoctorOut response including the hospital name (join avoided
+    on the fly to keep the API surface simple)."""
+    out = DoctorOut.model_validate(doctor)
+    hospital_result = await db.execute(
+        select(Hospital).where(Hospital.id == doctor.hospital_id)
+    )
+    hospital = hospital_result.scalar_one_or_none()
+    if hospital:
+        out.hospital_name = hospital.name
+    return out
 
 
 @router.get("/verify-invite/{invite_code}")
@@ -134,7 +156,7 @@ async def register_doctor(data: DoctorRegisterViaInvite, db: AsyncSession = Depe
     token = create_access_token(f"doctor:{doctor.id}")
     return DoctorTokenResponse(
         access_token=token,
-        doctor=DoctorOut.model_validate(doctor),
+        doctor=await _doctor_out_with_hospital(doctor, db),
     )
 
 
@@ -152,11 +174,75 @@ async def login_doctor(data: DoctorLogin, db: AsyncSession = Depends(get_db)):
     token = create_access_token(f"doctor:{doctor.id}")
     return DoctorTokenResponse(
         access_token=token,
-        doctor=DoctorOut.model_validate(doctor),
+        doctor=await _doctor_out_with_hospital(doctor, db),
     )
 
 
 @router.get("/me", response_model=DoctorOut)
-async def get_doctor_profile(doctor: Doctor = Depends(get_current_doctor)):
-    """Get the current doctor's profile."""
-    return DoctorOut.model_validate(doctor)
+async def get_doctor_profile(
+    doctor: Doctor = Depends(get_current_doctor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current doctor's profile (including hospital name)."""
+    return await _doctor_out_with_hospital(doctor, db)
+
+
+@router.get("/me/dashboard", response_model=DoctorDashboard)
+async def get_doctor_dashboard(
+    doctor: Doctor = Depends(get_current_doctor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Live dashboard data for the doctor home screen.
+
+    Returns counts for today and this week, and the most recent briefings
+    (patient_access_log rows joined to patient names).
+    """
+    now = datetime.now(timezone.utc)
+    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    start_of_week = start_of_today - timedelta(days=start_of_today.weekday())
+
+    today_count_result = await db.execute(
+        select(func.count())
+        .select_from(PatientAccessLog)
+        .where(
+            PatientAccessLog.doctor_id == doctor.id,
+            PatientAccessLog.accessed_at >= start_of_today,
+        )
+    )
+    today_count = today_count_result.scalar_one() or 0
+
+    week_count_result = await db.execute(
+        select(func.count())
+        .select_from(PatientAccessLog)
+        .where(
+            PatientAccessLog.doctor_id == doctor.id,
+            PatientAccessLog.accessed_at >= start_of_week,
+        )
+    )
+    week_count = week_count_result.scalar_one() or 0
+
+    recent_result = await db.execute(
+        select(PatientAccessLog, Patient.name)
+        .join(Patient, Patient.id == PatientAccessLog.patient_id)
+        .where(PatientAccessLog.doctor_id == doctor.id)
+        .order_by(PatientAccessLog.accessed_at.desc())
+        .limit(10)
+    )
+    recent_rows = recent_result.all()
+    recent_briefings = [
+        DoctorDashboardBriefing(
+            id=log.id,
+            patient_id=log.patient_id,
+            patient_name=patient_name,
+            method=log.method,
+            accessed_at=log.accessed_at,
+        )
+        for log, patient_name in recent_rows
+    ]
+
+    return DoctorDashboard(
+        today_count=today_count,
+        week_count=week_count,
+        avg_briefing_seconds=None,  # not tracked yet
+        recent_briefings=recent_briefings,
+    )

@@ -33,9 +33,9 @@ import com.medhistry.data.PatientBriefing
  *   - Pending Investigations warn-coloured rows
  *   - Done button
  *
- * Most of the detail fields on PatientBriefing are optional / not yet wired
- * up on the backend, so this file also supplies realistic placeholders so the
- * UI looks right during development.
+ * Detail sections (conditions, medications, labs, last visit, pending
+ * investigations) show empty-state text until the backend exposes
+ * structured data for each — no mock values are rendered.
  */
 @Composable
 fun PatientBriefingCard(

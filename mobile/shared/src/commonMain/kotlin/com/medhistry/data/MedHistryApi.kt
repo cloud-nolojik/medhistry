@@ -313,6 +313,18 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         return result
     }
 
+    suspend fun getDoctorProfile(): DoctorProfile {
+        return client.get("$baseUrl/doctors/me") {
+            bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun getDoctorDashboard(): DoctorDashboard {
+        return client.get("$baseUrl/doctors/me/dashboard") {
+            bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+        }.ensureSuccess().body()
+    }
+
     // --- Doctor Scan (requires doctor auth) ---
 
     suspend fun scanQR(qrToken: String): PatientBriefing {

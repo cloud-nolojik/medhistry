@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,20 +15,73 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.medhistry.data.DoctorProfile
+import com.medhistry.data.DoctorRegisterRequest
+import com.medhistry.data.MedHistryApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * Doctor OTP verification — 6-box display + on-screen numeric keypad.
- * Auto-fires [onVerified] when 6 digits are entered.
+ * Doctor OTP "verification" + account creation.
+ *
+ * OTP is cosmetic for now (the backend does not require a phone challenge for
+ * doctor registration — the hospital admin already vetted the phone via the
+ * invitation). Once the user enters 6 digits we fire off the real
+ * [MedHistryApi.registerDoctor] call with the data collected in the prior
+ * signup step, then hand the resulting [DoctorProfile] back to the caller.
  */
 @Composable
 fun DoctorOtpScreen(
+    api: MedHistryApi,
     phoneNumber: String,
+    inviteCode: String,
+    name: String,
+    specialization: String,
+    regNumber: String,
+    password: String,
     onBack: () -> Unit,
-    onVerified: () -> Unit,
+    onRegistered: (DoctorProfile) -> Unit,
 ) {
-    var code by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(code) { if (code.length == 6) onVerified() }
+    var code by remember { mutableStateOf("") }
+    var registering by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    // DEV: Auto-fill OTP after a short delay (no real OTP backend for doctors).
+    LaunchedEffect(Unit) {
+        delay(800)
+        code = "123456"
+    }
+
+    // When 6 digits are entered, kick off registration (idempotent via registering flag).
+    LaunchedEffect(code) {
+        if (code.length == 6 && !registering && error == null) {
+            registering = true
+            scope.launch {
+                try {
+                    val phoneWithCountry = if (phoneNumber.startsWith("+")) phoneNumber
+                    else "+91${phoneNumber.removePrefix("91").trim()}"
+                    val resp = api.registerDoctor(
+                        DoctorRegisterRequest(
+                            inviteCode = inviteCode,
+                            phone = phoneWithCountry,
+                            name = name,
+                            password = password,
+                            specialisation = specialization.ifBlank { null },
+                            licenseNumber = regNumber.ifBlank { null },
+                        )
+                    )
+                    onRegistered(resp.doctor)
+                } catch (e: Exception) {
+                    error = MedHistryApi.friendlyMessage(e)
+                    registering = false
+                    // Clear code so the user can see the error and retry by re-entering.
+                    code = ""
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -44,7 +98,7 @@ fun DoctorOtpScreen(
                 "\u2039",
                 fontSize = 28.sp,
                 color = DoctorColors.TextPrimary,
-                modifier = Modifier.clickable { onBack() },
+                modifier = Modifier.clickable(enabled = !registering) { onBack() },
             )
         }
         Column(modifier = Modifier.padding(horizontal = 28.dp)) {
@@ -88,17 +142,50 @@ fun DoctorOtpScreen(
             }
 
             Spacer(Modifier.height(20.dp))
-            Text(
-                "Resend code in 45s",
-                fontSize = 13.sp,
-                color = DoctorColors.TextLight,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
+
+            if (registering) {
+                Row(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(
+                        color = DoctorColors.Primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Creating your account…",
+                        fontSize = 13.sp,
+                        color = DoctorColors.TextSecondary,
+                    )
+                }
+            } else if (error != null) {
+                Text(
+                    error!!,
+                    fontSize = 13.sp,
+                    color = DoctorColors.Danger,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Tap the keypad to try again",
+                    fontSize = 12.sp,
+                    color = DoctorColors.TextLight,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            } else {
+                Text(
+                    "Resend code in 45s",
+                    fontSize = 13.sp,
+                    color = DoctorColors.TextLight,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
         }
 
         Spacer(Modifier.weight(1f))
 
-        // Keypad
+        // Keypad (disabled while registering)
         val rows = listOf(
             listOf("1", "2", "3"),
             listOf("4", "5", "6"),
@@ -116,7 +203,9 @@ fun DoctorOtpScreen(
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (key.isNotEmpty()) DoctorColors.Surface else Color.Transparent)
-                                .clickable(enabled = key.isNotEmpty()) {
+                                .clickable(enabled = key.isNotEmpty() && !registering) {
+                                    // Clear previous error on any keypad input.
+                                    if (error != null) error = null
                                     when (key) {
                                         "\u232B" -> if (code.isNotEmpty()) code = code.dropLast(1)
                                         else -> if (code.length < 6) code += key
@@ -126,7 +215,7 @@ fun DoctorOtpScreen(
                         ) {
                             Text(
                                 key,
-                                fontSize = if (key == "\u232B") 22.sp else 22.sp,
+                                fontSize = 22.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DoctorColors.TextPrimary,
                             )

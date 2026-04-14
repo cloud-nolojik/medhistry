@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,24 +18,48 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.medhistry.data.DoctorDashboard
+import com.medhistry.data.DoctorDashboardBriefing
+import com.medhistry.data.MedHistryApi
+import kotlinx.coroutines.launch
 
 /**
- * Doctor dashboard home.
+ * Doctor dashboard home. Fully API-centric — no mock data:
  *   - Greeting + profile avatar
  *   - Gradient "Scan Patient QR" hero card
- *   - "Today's Patients" list of recent briefings (mock)
- *   - "This Week" stats (patients viewed, avg briefing time)
+ *   - "Today's Patients" populated from /doctors/me/dashboard
+ *   - "This Week" stats populated from /doctors/me/dashboard
  */
 @Composable
 fun DoctorHomeScreen(
+    api: MedHistryApi,
     doctorName: String,
     onScanQR: () -> Unit,
     onEnterCode: () -> Unit,
     onProfile: () -> Unit,
     onPatientTap: (briefingId: String) -> Unit = {},
 ) {
-    val firstName = doctorName.split(" ").firstOrNull() ?: doctorName
-    val initials = doctorName.split(" ")
+    val scope = rememberCoroutineScope()
+    var dashboard by remember { mutableStateOf<DoctorDashboard?>(null) }
+    var dashboardError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                dashboard = api.getDoctorDashboard()
+            } catch (e: Exception) {
+                dashboardError = MedHistryApi.friendlyMessage(e)
+            }
+        }
+    }
+    // Strip any leading "Dr"/"Dr." so we don't end up showing "Dr. Dr"
+    val cleanName = doctorName
+        .trim()
+        .removePrefix("Dr.").removePrefix("Dr").removePrefix("DR.").removePrefix("DR")
+        .removePrefix("dr.").removePrefix("dr")
+        .trim()
+    val firstName = cleanName.split(" ").firstOrNull()?.takeIf { it.isNotBlank() } ?: cleanName
+    val initials = cleanName.split(" ")
         .take(2)
         .mapNotNull { it.firstOrNull()?.uppercase() }
         .joinToString("")
@@ -146,36 +170,43 @@ fun DoctorHomeScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Today's Patients
-        SectionHeader("Today's Patients", trailing = "See all")
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                "No patients seen today",
-                fontSize = 15.sp,
-                color = DoctorColors.TextSecondary,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Scan a patient QR to get started",
-                fontSize = 13.sp,
-                color = DoctorColors.TextLight,
-            )
-        }
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (false) { // Placeholder — will be populated from API
+        // Today's Patients — driven by /doctors/me/dashboard
+        SectionHeader("Today's Patients", trailing = if (dashboard?.recentBriefings?.isNotEmpty() == true) "See all" else null)
+
+        val briefings = dashboard?.recentBriefings.orEmpty()
+        if (briefings.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    dashboardError ?: "No patients seen today",
+                    fontSize = 15.sp,
+                    color = DoctorColors.TextSecondary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Scan a patient QR to get started",
+                    fontSize = 13.sp,
+                    color = DoctorColors.TextLight,
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                briefings.forEach { b ->
+                    PatientRow(
+                        p = b.toQuickRow(),
+                        onClick = { onPatientTap(b.id) },
+                    )
+                }
             }
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // This Week stats
+        // This Week stats — live from API
         SectionHeader("This Week")
         Row(
             modifier = Modifier
@@ -183,12 +214,39 @@ fun DoctorHomeScreen(
                 .padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            StatCard("0", "Patients viewed", Modifier.weight(1f))
-            StatCard("--", "Avg. briefing time", Modifier.weight(1f))
+            val patientsViewed = dashboard?.weekCount?.toString() ?: "—"
+            val avgTime = dashboard?.avgBriefingSeconds?.let { secs ->
+                val mins = secs / 60
+                if (mins > 0) "${mins}m" else "${secs}s"
+            } ?: "—"
+            StatCard(patientsViewed, "Patients viewed", Modifier.weight(1f))
+            StatCard(avgTime, "Avg. briefing time", Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(16.dp))
     }
+}
+
+private fun DoctorDashboardBriefing.toQuickRow(): PatientQuickRow {
+    val initials = patientName.split(" ")
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercase() }
+        .joinToString("")
+        .ifEmpty { "?" }
+    // Shorten the ISO timestamp to HH:mm (best effort — keep whole thing if malformed)
+    val time = accessedAt.substringAfter('T', "").take(5).ifEmpty { accessedAt }
+    val methodLabel = when (method) {
+        "qr_scan" -> "QR scan"
+        "share_code" -> "Share code"
+        else -> method
+    }
+    return PatientQuickRow(
+        initials = initials,
+        bg = DoctorColors.Surface,
+        name = patientName,
+        meta = methodLabel,
+        time = time,
+    )
 }
 
 private data class PatientQuickRow(

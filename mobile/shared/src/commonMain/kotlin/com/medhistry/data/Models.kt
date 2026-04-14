@@ -42,12 +42,30 @@ data class DoctorTokenResponse(
 data class DoctorProfile(
     val id: String,
     @SerialName("hospital_id") val hospitalId: String,
+    @SerialName("hospital_name") val hospitalName: String? = null,
     val phone: String,
     val name: String,
     val specialisation: String? = null,
     @SerialName("license_number") val licenseNumber: String? = null,
     val email: String? = null,
     @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class DoctorDashboardBriefing(
+    val id: String,
+    @SerialName("patient_id") val patientId: String,
+    @SerialName("patient_name") val patientName: String,
+    val method: String,
+    @SerialName("accessed_at") val accessedAt: String,
+)
+
+@Serializable
+data class DoctorDashboard(
+    @SerialName("today_count") val todayCount: Int,
+    @SerialName("week_count") val weekCount: Int,
+    @SerialName("avg_briefing_seconds") val avgBriefingSeconds: Int? = null,
+    @SerialName("recent_briefings") val recentBriefings: List<DoctorDashboardBriefing> = emptyList(),
 )
 
 // --- Patient OTP + PIN Auth Models ---

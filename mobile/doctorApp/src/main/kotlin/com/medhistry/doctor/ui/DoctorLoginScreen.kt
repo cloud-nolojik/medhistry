@@ -13,6 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.medhistry.data.DoctorProfile
 import com.medhistry.data.MedHistryApi
 import kotlinx.coroutines.launch
 
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DoctorLoginScreen(
     api: MedHistryApi,
-    onLoggedIn: (doctorName: String) -> Unit,
+    onLoggedIn: (doctor: DoctorProfile) -> Unit,
 ) {
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -81,7 +82,7 @@ fun DoctorLoginScreen(
                         error = null
                         try {
                             val res = api.loginDoctor(phone.trim(), password)
-                            onLoggedIn(res.doctor.name)
+                            onLoggedIn(res.doctor)
                         } catch (e: Exception) {
                             error = e.message ?: "Sign-in failed"
                         } finally {

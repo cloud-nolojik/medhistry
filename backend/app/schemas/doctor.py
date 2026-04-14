@@ -23,6 +23,7 @@ class DoctorLogin(BaseModel):
 class DoctorOut(BaseModel):
     id: UUID
     hospital_id: UUID
+    hospital_name: str | None = None
     phone: str
     name: str
     specialisation: str | None = None
@@ -37,3 +38,18 @@ class DoctorTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     doctor: DoctorOut
+
+
+class DoctorDashboardBriefing(BaseModel):
+    id: UUID
+    patient_id: UUID
+    patient_name: str
+    method: str
+    accessed_at: datetime
+
+
+class DoctorDashboard(BaseModel):
+    today_count: int
+    week_count: int
+    avg_briefing_seconds: int | None = None
+    recent_briefings: list[DoctorDashboardBriefing] = []
