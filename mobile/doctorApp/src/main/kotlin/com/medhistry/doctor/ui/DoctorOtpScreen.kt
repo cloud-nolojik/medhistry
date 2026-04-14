@@ -15,72 +15,71 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.medhistry.data.DoctorProfile
-import com.medhistry.data.DoctorRegisterRequest
+import com.medhistry.data.DoctorVerifyOTPResponse
 import com.medhistry.data.MedHistryApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Doctor OTP "verification" + account creation.
+ * Doctor OTP verification screen.
  *
- * OTP is cosmetic for now (the backend does not require a phone challenge for
- * doctor registration — the hospital admin already vetted the phone via the
- * invitation). Once the user enters 6 digits we fire off the real
- * [MedHistryApi.registerDoctor] call with the data collected in the prior
- * signup step, then hand the resulting [DoctorProfile] back to the caller.
+ * Given a phone number already sent an OTP via [MedHistryApi.sendDoctorOTP],
+ * the user enters 4 digits which are verified against the backend.
+ *
+ * The returned [DoctorVerifyOTPResponse] is handed up via [onVerified]:
+ *  - existing doctor (`isNewUser == false`) → response carries `accessToken`
+ *    and `doctor` so the caller can go straight to Home.
+ *  - new doctor (`isNewUser == true`) → response carries `tempToken` which
+ *    must be passed to /doctors/complete-registration after invite + signup.
+ *
+ * [devOtpForAutofill] is the dev-only OTP returned by /send-otp. When set,
+ * the screen autofills the code for convenience while SMS isn't wired up.
  */
 @Composable
 fun DoctorOtpScreen(
     api: MedHistryApi,
-    phoneNumber: String,
-    inviteCode: String,
-    name: String,
-    specialization: String,
-    regNumber: String,
-    password: String,
+    phoneE164: String,
+    devOtpForAutofill: String?,
     onBack: () -> Unit,
-    onRegistered: (DoctorProfile) -> Unit,
+    onVerified: (DoctorVerifyOTPResponse) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
 
     var code by remember { mutableStateOf("") }
-    var registering by remember { mutableStateOf(false) }
+    var verifying by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // DEV: Auto-fill OTP after a short delay (no real OTP backend for doctors).
-    LaunchedEffect(Unit) {
-        delay(800)
-        code = "123456"
+    // DEV: autofill OTP returned by /send-otp so the user doesn't have to
+    // look at the server log. Remove this once SMS is wired up.
+    LaunchedEffect(devOtpForAutofill) {
+        if (!devOtpForAutofill.isNullOrBlank() && code.isEmpty()) {
+            delay(600)
+            code = devOtpForAutofill.take(4)
+        }
     }
 
-    // When 6 digits are entered, kick off registration (idempotent via registering flag).
+    // Auto-submit when 4 digits are entered.
     LaunchedEffect(code) {
-        if (code.length == 6 && !registering && error == null) {
-            registering = true
+        if (code.length == 4 && !verifying && error == null) {
+            verifying = true
             scope.launch {
                 try {
-                    val phoneWithCountry = if (phoneNumber.startsWith("+")) phoneNumber
-                    else "+91${phoneNumber.removePrefix("91").trim()}"
-                    val resp = api.registerDoctor(
-                        DoctorRegisterRequest(
-                            inviteCode = inviteCode,
-                            phone = phoneWithCountry,
-                            name = name,
-                            password = password,
-                            specialisation = specialization.ifBlank { null },
-                            licenseNumber = regNumber.ifBlank { null },
-                        )
-                    )
-                    onRegistered(resp.doctor)
+                    val resp = api.verifyDoctorOTP(phoneE164, code)
+                    onVerified(resp)
                 } catch (e: Exception) {
                     error = MedHistryApi.friendlyMessage(e)
-                    registering = false
-                    // Clear code so the user can see the error and retry by re-entering.
+                    verifying = false
                     code = ""
                 }
             }
         }
+    }
+
+    // Pretty display of the phone for the subtitle: "+91 98765 43210"
+    val prettyPhone = remember(phoneE164) {
+        if (phoneE164.startsWith("+91") && phoneE164.length == 13) {
+            "+91 ${phoneE164.substring(3, 8)} ${phoneE164.substring(8)}"
+        } else phoneE164
     }
 
     Column(
@@ -98,14 +97,19 @@ fun DoctorOtpScreen(
                 "\u2039",
                 fontSize = 28.sp,
                 color = DoctorColors.TextPrimary,
-                modifier = Modifier.clickable(enabled = !registering) { onBack() },
+                modifier = Modifier.clickable(enabled = !verifying) { onBack() },
             )
         }
         Column(modifier = Modifier.padding(horizontal = 28.dp)) {
-            Text("Verify Phone", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = DoctorColors.TextPrimary)
+            Text(
+                "Verify Phone",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = DoctorColors.TextPrimary,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
-                "We sent a 6-digit code to +91 $phoneNumber",
+                "We sent a 4-digit code to $prettyPhone",
                 fontSize = 14.sp,
                 color = DoctorColors.TextSecondary,
             )
@@ -114,26 +118,26 @@ fun DoctorOtpScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                repeat(6) { i ->
+                repeat(4) { i ->
                     val ch = code.getOrNull(i)?.toString() ?: ""
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .height(62.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(DoctorColors.Surface)
                             .border(
                                 1.5.dp,
                                 if (ch.isNotEmpty()) DoctorColors.Primary else DoctorColors.Border,
-                                RoundedCornerShape(10.dp),
+                                RoundedCornerShape(12.dp),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             ch,
-                            fontSize = 22.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = DoctorColors.TextPrimary,
                         )
@@ -143,7 +147,7 @@ fun DoctorOtpScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            if (registering) {
+            if (verifying) {
                 Row(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically,
@@ -154,7 +158,7 @@ fun DoctorOtpScreen(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "Creating your account…",
+                        "Verifying…",
                         fontSize = 13.sp,
                         color = DoctorColors.TextSecondary,
                     )
@@ -175,7 +179,7 @@ fun DoctorOtpScreen(
                 )
             } else {
                 Text(
-                    "Resend code in 45s",
+                    "Didn't get a code? Go back and try again.",
                     fontSize = 13.sp,
                     color = DoctorColors.TextLight,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -185,7 +189,7 @@ fun DoctorOtpScreen(
 
         Spacer(Modifier.weight(1f))
 
-        // Keypad (disabled while registering)
+        // Keypad (disabled while verifying)
         val rows = listOf(
             listOf("1", "2", "3"),
             listOf("4", "5", "6"),
@@ -203,12 +207,12 @@ fun DoctorOtpScreen(
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (key.isNotEmpty()) DoctorColors.Surface else Color.Transparent)
-                                .clickable(enabled = key.isNotEmpty() && !registering) {
-                                    // Clear previous error on any keypad input.
+                                .clickable(enabled = key.isNotEmpty() && !verifying) {
+                                    // Clear any prior error on keypad input
                                     if (error != null) error = null
                                     when (key) {
                                         "\u232B" -> if (code.isNotEmpty()) code = code.dropLast(1)
-                                        else -> if (code.length < 6) code += key
+                                        else -> if (code.length < 4) code += key
                                     }
                                 },
                             contentAlignment = Alignment.Center,

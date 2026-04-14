@@ -11,16 +11,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.medhistry.data.DoctorCompleteRegistrationRequest
 import com.medhistry.data.DoctorProfile
 import com.medhistry.data.MedHistryApi
 import com.medhistry.doctor.ui.DoctorBottomNav
 import com.medhistry.doctor.ui.DoctorHomeScreen
 import com.medhistry.doctor.ui.DoctorInviteCodeScreen
-import com.medhistry.doctor.ui.DoctorLoginScreen
 import com.medhistry.doctor.ui.DoctorOnboarding1
 import com.medhistry.doctor.ui.DoctorOnboarding2
 import com.medhistry.doctor.ui.DoctorOnboarding3
 import com.medhistry.doctor.ui.DoctorOtpScreen
+import com.medhistry.doctor.ui.DoctorPhoneEntryScreen
 import com.medhistry.doctor.ui.DoctorProfileScreen
 import com.medhistry.doctor.ui.DoctorScanScreen
 import com.medhistry.doctor.ui.DoctorSessionEndedScreen
@@ -29,6 +30,7 @@ import com.medhistry.doctor.ui.DoctorSplashScreen
 import com.medhistry.doctor.ui.DoctorTab
 import com.medhistry.doctor.ui.EnterShareCodeScreen
 import com.medhistry.doctor.ui.MedHistryDoctorTheme
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class DoctorMainActivity : ComponentActivity() {
@@ -44,29 +46,33 @@ class DoctorMainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Doctor app navigation flow (OTP-only auth):
+ *
+ *   Splash → Onboarding1/2/3 → PhoneEntry → Otp
+ *     ├─ existing doctor      → Home
+ *     └─ new doctor (temp)    → InviteCode → Signup → complete-registration → Home
+ */
 private sealed class DoctorScreen {
     data object Splash : DoctorScreen()
     data object Onboarding1 : DoctorScreen()
     data object Onboarding2 : DoctorScreen()
     data object Onboarding3 : DoctorScreen()
-    data object InviteCode : DoctorScreen()
+
+    data object PhoneEntry : DoctorScreen()
+    data class Otp(val phoneE164: String, val devOtp: String?) : DoctorScreen()
+
+    // New-user registration leg
+    data class InviteCode(val phoneE164: String, val tempToken: String) : DoctorScreen()
     data class Signup(
+        val phoneE164: String,
+        val tempToken: String,
         val inviteCode: String,
         val hospital: String,
         val doctorName: String = "",
         val specialisation: String = "",
-        val phone: String = "",
     ) : DoctorScreen()
-    data class Otp(
-        val inviteCode: String,
-        val hospital: String,
-        val name: String,
-        val specialization: String,
-        val regNumber: String,
-        val phone: String,
-        val password: String,
-    ) : DoctorScreen()
-    data object Login : DoctorScreen()
+
     data class Home(val session: DoctorSession, val tab: DoctorTab = DoctorTab.Home) : DoctorScreen()
     data class Scan(val session: DoctorSession) : DoctorScreen()
     data class EnterCode(val session: DoctorSession) : DoctorScreen()
@@ -74,96 +80,126 @@ private sealed class DoctorScreen {
     data class Profile(val session: DoctorSession) : DoctorScreen()
 }
 
-/** Lightweight session info carried between screens. Everything is sourced
- *  from the backend — no mock defaults. */
+/** Lightweight session info carried between screens. Everything sourced from the backend. */
 data class DoctorSession(
     val name: String,
     val specialization: String,
     val hospital: String,
 )
 
+private fun sessionFromProfile(profile: DoctorProfile): DoctorSession = DoctorSession(
+    name = profile.name,
+    specialization = profile.specialisation ?: "",
+    hospital = profile.hospitalName ?: "",
+)
+
 @Composable
 private fun DoctorAppRoot(api: MedHistryApi) {
     var screen: DoctorScreen by remember { mutableStateOf(DoctorScreen.Splash) }
+    val scope = rememberCoroutineScope()
+
+    // Signup-submission state (owned here because /complete-registration lives
+    // at the navigation layer: its result determines the next screen).
+    var signupSubmitting by remember { mutableStateOf(false) }
+    var signupError by remember { mutableStateOf<String?>(null) }
 
     when (val s = screen) {
         DoctorScreen.Splash -> DoctorSplashScreen(onContinue = { screen = DoctorScreen.Onboarding1 })
+
         DoctorScreen.Onboarding1 -> DoctorOnboarding1(
-            onSkip = { screen = DoctorScreen.InviteCode },
+            onSkip = { screen = DoctorScreen.PhoneEntry },
             onContinue = { screen = DoctorScreen.Onboarding2 },
         )
         DoctorScreen.Onboarding2 -> DoctorOnboarding2(
-            onSkip = { screen = DoctorScreen.InviteCode },
+            onSkip = { screen = DoctorScreen.PhoneEntry },
             onContinue = { screen = DoctorScreen.Onboarding3 },
         )
         DoctorScreen.Onboarding3 -> DoctorOnboarding3(
-            onContinue = { screen = DoctorScreen.InviteCode },
+            onContinue = { screen = DoctorScreen.PhoneEntry },
         )
-        DoctorScreen.InviteCode -> DoctorInviteCodeScreen(
+
+        DoctorScreen.PhoneEntry -> DoctorPhoneEntryScreen(
             api = api,
             onBack = { screen = DoctorScreen.Onboarding3 },
-            onVerified = { code, hospital, doctorName, specialisation, phone ->
-                screen = DoctorScreen.Signup(code, hospital, doctorName, specialisation, phone)
+            onOtpSent = { phoneE164, devOtp ->
+                screen = DoctorScreen.Otp(phoneE164, devOtp)
             },
         )
-        is DoctorScreen.Signup -> DoctorSignupScreen(
-            hospital = s.hospital,
-            prefillName = s.doctorName,
-            prefillSpecialisation = s.specialisation,
-            prefillPhone = s.phone,
-            onBack = { screen = DoctorScreen.InviteCode },
-            onLogin = { screen = DoctorScreen.Login },
-            onContinue = { name, spec, regNumber, phone, password ->
-                screen = DoctorScreen.Otp(
-                    inviteCode = s.inviteCode,
-                    hospital = s.hospital,
-                    name = name,
-                    specialization = spec,
-                    regNumber = regNumber,
-                    phone = phone,
-                    password = password,
-                )
-            },
-        )
+
         is DoctorScreen.Otp -> DoctorOtpScreen(
             api = api,
-            phoneNumber = s.phone,
-            inviteCode = s.inviteCode,
-            name = s.name,
-            specialization = s.specialization,
-            regNumber = s.regNumber,
-            password = s.password,
-            onBack = {
-                screen = DoctorScreen.Signup(
-                    inviteCode = s.inviteCode,
-                    hospital = s.hospital,
-                    doctorName = s.name,
-                    specialisation = s.specialization,
-                    phone = s.phone,
-                )
-            },
-            onRegistered = { profile ->
-                screen = DoctorScreen.Home(
-                    DoctorSession(
-                        name = profile.name,
-                        specialization = profile.specialisation ?: s.specialization,
-                        hospital = profile.hospitalName ?: s.hospital,
+            phoneE164 = s.phoneE164,
+            devOtpForAutofill = s.devOtp,
+            onBack = { screen = DoctorScreen.PhoneEntry },
+            onVerified = { resp ->
+                val doctor = resp.doctor
+                if (!resp.isNewUser && doctor != null) {
+                    // Existing doctor: straight to home.
+                    screen = DoctorScreen.Home(sessionFromProfile(doctor))
+                } else if (resp.isNewUser && resp.tempToken != null) {
+                    // New doctor: collect invite code, then profile.
+                    signupSubmitting = false
+                    signupError = null
+                    screen = DoctorScreen.InviteCode(
+                        phoneE164 = s.phoneE164,
+                        tempToken = resp.tempToken,
                     )
-                )
+                }
+                // Any other shape (verified=true but neither branch populated)
+                // is treated as a no-op; the user can retry.
             },
         )
-        DoctorScreen.Login -> DoctorLoginScreen(
+
+        is DoctorScreen.InviteCode -> DoctorInviteCodeScreen(
             api = api,
-            onLoggedIn = { profile: DoctorProfile ->
-                screen = DoctorScreen.Home(
-                    DoctorSession(
-                        name = profile.name,
-                        specialization = profile.specialisation ?: "",
-                        hospital = profile.hospitalName ?: "",
-                    )
+            onBack = { screen = DoctorScreen.PhoneEntry },
+            onVerified = { code, hospital, doctorName, specialisation, _phone ->
+                screen = DoctorScreen.Signup(
+                    phoneE164 = s.phoneE164,
+                    tempToken = s.tempToken,
+                    inviteCode = code,
+                    hospital = hospital,
+                    doctorName = doctorName,
+                    specialisation = specialisation,
                 )
             },
         )
+
+        is DoctorScreen.Signup -> DoctorSignupScreen(
+            hospital = s.hospital,
+            phoneE164 = s.phoneE164,
+            prefillName = s.doctorName,
+            prefillSpecialisation = s.specialisation,
+            submitting = signupSubmitting,
+            errorMessage = signupError,
+            onBack = {
+                signupError = null
+                screen = DoctorScreen.InviteCode(s.phoneE164, s.tempToken)
+            },
+            onContinue = { name, spec, regNumber ->
+                signupError = null
+                signupSubmitting = true
+                scope.launch {
+                    try {
+                        val resp = api.completeDoctorRegistration(
+                            DoctorCompleteRegistrationRequest(
+                                tempToken = s.tempToken,
+                                inviteCode = s.inviteCode,
+                                name = name,
+                                specialisation = spec,
+                                licenseNumber = regNumber,
+                            )
+                        )
+                        signupSubmitting = false
+                        screen = DoctorScreen.Home(sessionFromProfile(resp.doctor))
+                    } catch (e: Exception) {
+                        signupSubmitting = false
+                        signupError = MedHistryApi.friendlyMessage(e)
+                    }
+                }
+            },
+        )
+
         is DoctorScreen.Home -> DoctorHomeWithNav(
             api = api,
             session = s.session,
@@ -197,7 +233,7 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             specialization = s.session.specialization,
             hospital = s.session.hospital,
             onBack = { screen = DoctorScreen.Home(s.session) },
-            onLogout = { screen = DoctorScreen.Login },
+            onLogout = { screen = DoctorScreen.PhoneEntry },
         )
     }
 }

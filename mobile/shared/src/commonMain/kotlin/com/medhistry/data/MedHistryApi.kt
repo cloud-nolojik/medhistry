@@ -291,22 +291,38 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             .body()
     }
 
-    // --- Doctor Auth ---
+    // --- Doctor Auth (OTP-based) ---
 
-    suspend fun registerDoctor(request: DoctorRegisterRequest): DoctorTokenResponse {
-        val response = client.post("$baseUrl/doctors/register") {
+    suspend fun sendDoctorOTP(phone: String): DoctorSendOTPResponse {
+        return client.post("$baseUrl/doctors/send-otp") {
             contentType(ContentType.Application.Json)
-            setBody(request)
+            setBody(DoctorSendOTPRequest(phone))
+        }.ensureSuccess().body()
+    }
+
+    /**
+     * Verify doctor OTP. If [DoctorVerifyOTPResponse.isNewUser] is false, the
+     * doctor is logged in — the access token is stored on this client so
+     * subsequent calls are authenticated. If [isNewUser] is true, the caller
+     * must collect an invite code and call [completeDoctorRegistration] with
+     * the [tempToken].
+     */
+    suspend fun verifyDoctorOTP(phone: String, otp: String): DoctorVerifyOTPResponse {
+        val response = client.post("$baseUrl/doctors/verify-otp") {
+            contentType(ContentType.Application.Json)
+            setBody(DoctorVerifyOTPRequest(phone, otp))
         }.ensureSuccess()
-        val result = response.body<DoctorTokenResponse>()
-        doctorToken = result.accessToken
+        val result = response.body<DoctorVerifyOTPResponse>()
+        result.accessToken?.let { doctorToken = it }
         return result
     }
 
-    suspend fun loginDoctor(phone: String, password: String): DoctorTokenResponse {
-        val response = client.post("$baseUrl/doctors/login") {
+    suspend fun completeDoctorRegistration(
+        request: DoctorCompleteRegistrationRequest,
+    ): DoctorTokenResponse {
+        val response = client.post("$baseUrl/doctors/complete-registration") {
             contentType(ContentType.Application.Json)
-            setBody(DoctorLoginRequest(phone, password))
+            setBody(request)
         }.ensureSuccess()
         val result = response.body<DoctorTokenResponse>()
         doctorToken = result.accessToken

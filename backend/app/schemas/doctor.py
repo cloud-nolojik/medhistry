@@ -1,23 +1,35 @@
-"""Pydantic schemas for doctor registration (via invitation), login, and profile."""
+"""Pydantic schemas for doctor auth.
+
+Doctor auth is OTP-based (like patients):
+  1. POST /doctors/send-otp        → generates 4-digit OTP for phone
+  2. POST /doctors/verify-otp      → verifies OTP
+        - returning doctor: returns access_token + doctor profile (logged in)
+        - new doctor:       returns temp_token for use during registration
+  3. POST /doctors/complete-registration (new users only):
+        temp_token + invite_code + optional profile overrides → account created
+
+A doctor must have a valid pending invitation from a hospital admin for step 3.
+"""
 
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-class DoctorRegisterViaInvite(BaseModel):
-    invite_code: str = Field(..., description="Invitation code received from hospital admin")
+class DoctorSendOTPRequest(BaseModel):
     phone: str = Field(..., min_length=10, max_length=15, examples=["+919812345678"])
-    name: str = Field(..., min_length=1, max_length=100, examples=["Dr. Arun Mehta"])
-    password: str = Field(..., min_length=6, max_length=128)
-    specialisation: str | None = Field(None, examples=["General Medicine"])
-    license_number: str | None = Field(None, examples=["KA-MCI-12345"])
-    email: str | None = Field(None, examples=["arun.mehta@jadeva.in"])
 
 
-class DoctorLogin(BaseModel):
+class DoctorSendOTPResponse(BaseModel):
+    message: str
+    expires_in_seconds: int
+    # DEV ONLY — returned so the app can autofill while SMS is not wired up.
+    otp: str | None = None
+
+
+class DoctorVerifyOTPRequest(BaseModel):
     phone: str = Field(..., min_length=10, max_length=15)
-    password: str = Field(..., min_length=6)
+    otp: str = Field(..., min_length=4, max_length=4)
 
 
 class DoctorOut(BaseModel):
@@ -32,6 +44,26 @@ class DoctorOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DoctorVerifyOTPResponse(BaseModel):
+    verified: bool
+    is_new_user: bool
+    # Populated when the doctor already exists (i.e. login). Empty for new users.
+    access_token: str | None = None
+    doctor: DoctorOut | None = None
+    # Populated for new users; used in complete-registration.
+    temp_token: str | None = None
+
+
+class DoctorCompleteRegistration(BaseModel):
+    temp_token: str = Field(..., description="Short-lived token from verify-otp")
+    invite_code: str = Field(..., min_length=4, max_length=16)
+    # Optional overrides — if not supplied, values from the invitation are used.
+    name: str | None = Field(None, min_length=1, max_length=100)
+    specialisation: str | None = None
+    license_number: str | None = None
+    email: str | None = None
 
 
 class DoctorTokenResponse(BaseModel):

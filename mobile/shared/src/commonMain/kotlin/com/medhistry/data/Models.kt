@@ -3,18 +3,7 @@ package com.medhistry.data
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// --- Doctor Auth Models ---
-
-@Serializable
-data class DoctorRegisterRequest(
-    @SerialName("invite_code") val inviteCode: String,
-    val phone: String,
-    val name: String,
-    val password: String,
-    val specialisation: String? = null,
-    @SerialName("license_number") val licenseNumber: String? = null,
-    val email: String? = null,
-)
+// --- Doctor Auth Models (OTP-based) ---
 
 @Serializable
 data class InviteVerifyResponse(
@@ -26,9 +15,35 @@ data class InviteVerifyResponse(
 )
 
 @Serializable
-data class DoctorLoginRequest(
-    val phone: String,
-    val password: String,
+data class DoctorSendOTPRequest(val phone: String)
+
+@Serializable
+data class DoctorSendOTPResponse(
+    val message: String,
+    @SerialName("expires_in_seconds") val expiresInSeconds: Int,
+    val otp: String? = null, // DEV ONLY — autofill
+)
+
+@Serializable
+data class DoctorVerifyOTPRequest(val phone: String, val otp: String)
+
+@Serializable
+data class DoctorVerifyOTPResponse(
+    val verified: Boolean,
+    @SerialName("is_new_user") val isNewUser: Boolean,
+    @SerialName("access_token") val accessToken: String? = null,
+    val doctor: DoctorProfile? = null,
+    @SerialName("temp_token") val tempToken: String? = null,
+)
+
+@Serializable
+data class DoctorCompleteRegistrationRequest(
+    @SerialName("temp_token") val tempToken: String,
+    @SerialName("invite_code") val inviteCode: String,
+    val name: String? = null,
+    val specialisation: String? = null,
+    @SerialName("license_number") val licenseNumber: String? = null,
+    val email: String? = null,
 )
 
 @Serializable
