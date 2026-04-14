@@ -150,11 +150,13 @@ cmd_deploy() {
 
     # Ensure DB viewer credentials exist on server (auto-generate if missing)
     log "Checking DB viewer credentials..."
-    remote "grep -q DB_VIEWER_USER .env 2>/dev/null || {
-        echo 'DB_VIEWER_USER=medadmin' >> .env;
-        echo \"DB_VIEWER_PASS=\$(openssl rand -hex 16)\" >> .env;
-        echo '[OK] Generated DB_VIEWER_PASS in /opt/medhistry/.env';
-    }"
+    remote "touch .env && if ! grep -q DB_VIEWER_USER .env; then
+        echo 'DB_VIEWER_USER=medadmin' >> .env
+        echo \"DB_VIEWER_PASS=\$(openssl rand -hex 16)\" >> .env
+        echo '[OK] Generated DB viewer credentials in /opt/medhistry/.env'
+    else
+        echo '[OK] DB viewer credentials already exist'
+    fi"
 
     # Rebuild API — force a clean build so new code actually ships.
     # Without --no-cache, Docker can reuse a cached `COPY . .` layer when
@@ -270,8 +272,12 @@ cmd_db_web() {
     echo "======================================"
     echo "  Web DB Viewer (pgweb)"
     echo "======================================"
+    # Disable set -e temporarily — ssh/grep may legitimately return non-zero
+    # when the .env doesn't yet have credentials.
+    set +e
     local creds
     creds=$(ssh -o StrictHostKeyChecking=no "$SERVER" "grep -E 'DB_VIEWER_(USER|PASS)' $SERVER_DIR/.env 2>/dev/null")
+    set -e
     if [ -z "$creds" ]; then
         warn "No DB viewer credentials yet on server."
         warn "Run ./deploy.sh deploy once — it auto-generates them."
