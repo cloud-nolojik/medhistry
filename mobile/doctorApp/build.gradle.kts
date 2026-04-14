@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.serialization.json)
 
     // Compose
     implementation(libs.compose.ui)

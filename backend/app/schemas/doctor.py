@@ -119,3 +119,10 @@ class DoctorDashboard(BaseModel):
     all_time_count: int = 0
     avg_briefing_seconds: int | None = None
     recent_briefings: list[DoctorDashboardBriefing] = []
+
+
+class DoctorBriefingsList(BaseModel):
+    """Paginated list of the doctor's patient briefings (access-log rows)."""
+    briefings: list[DoctorDashboardBriefing] = []
+    total: int = 0
+    has_more: bool = False

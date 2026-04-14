@@ -3,6 +3,9 @@ package com.medhistry.data
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -30,6 +33,21 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
                 ignoreUnknownKeys = true
                 isLenient = true
             })
+        }
+        // Full request/response logging — method, URL, headers, body in & out,
+        // plus response status. Shows up in Android logcat under tag
+        // `MedHistryApi` (filter: `adb logcat *:S MedHistryApi:V`).
+        install(Logging) {
+            level = LogLevel.ALL
+            logger = object : Logger {
+                override fun log(message: String) {
+                    // println goes to System.out → logcat tag "System.out".
+                    // Prefix every line so it's grep-able.
+                    message.lineSequence().forEach { line ->
+                        println("MedHistryApi >> $line")
+                    }
+                }
+            }
         }
     }
 
@@ -392,6 +410,29 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
     suspend fun getDoctorDashboard(): DoctorDashboard {
         return client.get("$baseUrl/doctors/me/dashboard") {
             bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    /**
+     * Paginated + filterable list of the doctor's briefings (access-log rows).
+     * @param days     null = all time, otherwise last N days
+     * @param method   "qr_scan", "share_code", or null for both
+     * @param search   substring on patient name (case-insensitive)
+     */
+    suspend fun listDoctorBriefings(
+        days: Int? = null,
+        method: String? = null,
+        search: String? = null,
+        limit: Int = 50,
+        offset: Int = 0,
+    ): DoctorBriefingsList {
+        return client.get("$baseUrl/doctors/me/briefings") {
+            bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+            days?.let { parameter("days", it) }
+            method?.let { parameter("method", it) }
+            search?.takeIf { it.isNotBlank() }?.let { parameter("search", it) }
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.ensureSuccess().body()
     }
 

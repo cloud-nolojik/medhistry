@@ -94,6 +94,7 @@ private sealed class DoctorScreen {
     data class Home(val session: DoctorSession, val tab: DoctorTab = DoctorTab.Home) : DoctorScreen()
     data class Scan(val session: DoctorSession) : DoctorScreen()
     data class EnterCode(val session: DoctorSession) : DoctorScreen()
+    data class AllPatients(val session: DoctorSession) : DoctorScreen()
     data class SessionEnded(val session: DoctorSession, val patientName: String) : DoctorScreen()
     data class Profile(val session: DoctorSession) : DoctorScreen()
 }
@@ -121,6 +122,7 @@ private fun DoctorScreen.isAuthenticated(): Boolean = when (this) {
     is DoctorScreen.Home,
     is DoctorScreen.Scan,
     is DoctorScreen.EnterCode,
+    is DoctorScreen.AllPatients,
     is DoctorScreen.SessionEnded,
     is DoctorScreen.Profile -> true
     else -> false
@@ -423,6 +425,7 @@ private fun DoctorAppRoot(api: MedHistryApi) {
             onScanQR = { screen = DoctorScreen.Scan(s.session) },
             onEnterCode = { screen = DoctorScreen.EnterCode(s.session) },
             onProfile = { screen = DoctorScreen.Profile(s.session) },
+            onSeeAllPatients = { screen = DoctorScreen.AllPatients(s.session) },
         )
         is DoctorScreen.Scan -> DoctorScanScreen(
             api = api,
@@ -431,6 +434,12 @@ private fun DoctorAppRoot(api: MedHistryApi) {
         is DoctorScreen.EnterCode -> EnterShareCodeScreen(
             api = api,
             onBack = { screen = DoctorScreen.Home(s.session) },
+        )
+        is DoctorScreen.AllPatients -> AllPatientsWithSheet(
+            api = api,
+            onBack = { screen = DoctorScreen.Home(s.session) },
+            onScanQR = { screen = DoctorScreen.Scan(s.session) },
+            onEnterCode = { screen = DoctorScreen.EnterCode(s.session) },
         )
         is DoctorScreen.SessionEnded -> DoctorSessionEndedScreen(
             patientName = s.patientName,
@@ -460,7 +469,12 @@ private fun DoctorHomeWithNav(
     onScanQR: () -> Unit,
     onEnterCode: () -> Unit,
     onProfile: () -> Unit,
+    onSeeAllPatients: () -> Unit,
 ) {
+    // The last-access info sheet is owned at this level so tapping a row on
+    // either the Home screen or the All Patients screen opens the same UX.
+    var tapped by remember { mutableStateOf<com.medhistry.data.DoctorDashboardBriefing?>(null) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)) {
             DoctorHomeScreen(
@@ -469,10 +483,52 @@ private fun DoctorHomeWithNav(
                 onScanQR = onScanQR,
                 onEnterCode = onEnterCode,
                 onProfile = onProfile,
+                onSeeAllPatients = onSeeAllPatients,
+                onPatientTap = { tapped = it },
             )
         }
         Box(modifier = Modifier.align(Alignment.BottomCenter)) {
             DoctorBottomNav(current = currentTab, onSelect = onTab)
+        }
+
+        tapped?.let { b ->
+            com.medhistry.doctor.ui.PatientLastAccessSheet(
+                patientName = b.patientName,
+                accessedAtIso = b.accessedAt,
+                method = b.method,
+                onScanQR = onScanQR,
+                onEnterCode = onEnterCode,
+                onDismiss = { tapped = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AllPatientsWithSheet(
+    api: MedHistryApi,
+    onBack: () -> Unit,
+    onScanQR: () -> Unit,
+    onEnterCode: () -> Unit,
+) {
+    var tapped by remember { mutableStateOf<com.medhistry.data.DoctorDashboardBriefing?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        com.medhistry.doctor.ui.AllPatientsScreen(
+            api = api,
+            onBack = onBack,
+            onPatientTap = { tapped = it },
+        )
+
+        tapped?.let { b ->
+            com.medhistry.doctor.ui.PatientLastAccessSheet(
+                patientName = b.patientName,
+                accessedAtIso = b.accessedAt,
+                method = b.method,
+                onScanQR = onScanQR,
+                onEnterCode = onEnterCode,
+                onDismiss = { tapped = null },
+            )
         }
     }
 }

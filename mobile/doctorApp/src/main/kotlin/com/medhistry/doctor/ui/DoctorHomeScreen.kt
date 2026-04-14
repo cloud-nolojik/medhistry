@@ -22,6 +22,9 @@ import com.medhistry.data.DoctorDashboard
 import com.medhistry.data.DoctorDashboardBriefing
 import com.medhistry.data.MedHistryApi
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Doctor dashboard home. Fully API-centric — no mock data:
@@ -37,7 +40,8 @@ fun DoctorHomeScreen(
     onScanQR: () -> Unit,
     onEnterCode: () -> Unit,
     onProfile: () -> Unit,
-    onPatientTap: (briefingId: String) -> Unit = {},
+    onSeeAllPatients: () -> Unit = {},
+    onPatientTap: (DoctorDashboardBriefing) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var dashboard by remember { mutableStateOf<DoctorDashboard?>(null) }
@@ -148,22 +152,32 @@ fun DoctorHomeScreen(
                 )
                 Spacer(Modifier.height(18.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Primary: Open Scanner
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color.White.copy(alpha = 0.2f))
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .clickable { onScanQR() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         Text("\uD83D\uDCF7  Open Scanner", color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        "or enter code",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { onEnterCode() },
-                    )
+                    // Secondary: Enter Code (now a proper pill button)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.5.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+                            .clickable { onEnterCode() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Text(
+                            "\u2328\uFE0F  Enter Code",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
@@ -171,7 +185,11 @@ fun DoctorHomeScreen(
         Spacer(Modifier.height(24.dp))
 
         // Today's Patients — driven by /doctors/me/dashboard
-        SectionHeader("Today's Patients", trailing = if (dashboard?.recentBriefings?.isNotEmpty() == true) "See all" else null)
+        SectionHeader(
+            title = "Today's Patients",
+            trailing = if (dashboard?.recentBriefings?.isNotEmpty() == true) "See all" else null,
+            onTrailingClick = onSeeAllPatients,
+        )
 
         val briefings = dashboard?.recentBriefings.orEmpty()
         if (briefings.isEmpty()) {
@@ -198,7 +216,7 @@ fun DoctorHomeScreen(
                 briefings.forEach { b ->
                     PatientRow(
                         p = b.toQuickRow(),
-                        onClick = { onPatientTap(b.id) },
+                        onClick = { onPatientTap(b) },
                     )
                 }
             }
@@ -207,7 +225,7 @@ fun DoctorHomeScreen(
         Spacer(Modifier.height(20.dp))
 
         // This Week stats — live from API
-        SectionHeader("This Week")
+        SectionHeader(title = "This Week")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -227,14 +245,23 @@ fun DoctorHomeScreen(
     }
 }
 
+private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
 private fun DoctorDashboardBriefing.toQuickRow(): PatientQuickRow {
     val initials = patientName.split(" ")
         .take(2)
         .mapNotNull { it.firstOrNull()?.uppercase() }
         .joinToString("")
         .ifEmpty { "?" }
-    // Shorten the ISO timestamp to HH:mm (best effort — keep whole thing if malformed)
-    val time = accessedAt.substringAfter('T', "").take(5).ifEmpty { accessedAt }
+    // Format the UTC ISO timestamp as HH:mm in the device's local timezone.
+    // Falls back to the original string if parsing fails.
+    val time = runCatching {
+        Instant.parse(accessedAt)
+            .atZone(ZoneId.systemDefault())
+            .format(TIME_FORMATTER)
+    }.getOrElse {
+        accessedAt.substringAfter('T', "").take(5).ifEmpty { accessedAt }
+    }
     val methodLabel = when (method) {
         "qr_scan" -> "QR scan"
         "share_code" -> "Share code"
@@ -290,7 +317,11 @@ private fun PatientRow(p: PatientQuickRow, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, trailing: String? = null) {
+private fun SectionHeader(
+    title: String,
+    trailing: String? = null,
+    onTrailingClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -299,8 +330,22 @@ private fun SectionHeader(title: String, trailing: String? = null) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DoctorColors.TextPrimary)
-        trailing?.let {
-            Text(it, fontSize = 13.sp, color = DoctorColors.Primary, fontWeight = FontWeight.SemiBold)
+        trailing?.let { label ->
+            val trailingModifier = if (onTrailingClick != null) {
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onTrailingClick() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            } else {
+                Modifier
+            }
+            Text(
+                label,
+                fontSize = 13.sp,
+                color = DoctorColors.Primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = trailingModifier,
+            )
         }
     }
 }

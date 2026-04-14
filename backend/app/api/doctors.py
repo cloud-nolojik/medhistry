@@ -19,7 +19,7 @@ Also exposes:
 import random
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +43,7 @@ from app.schemas.doctor import (
     DoctorTokenResponse,
     DoctorDashboard,
     DoctorDashboardBriefing,
+    DoctorBriefingsList,
     DoctorSetPinRequest,
     DoctorPinLoginRequest,
 )
@@ -516,4 +517,76 @@ async def get_doctor_dashboard(
             )
             for log, name in recent_rows
         ],
+    )
+
+
+@router.get("/me/briefings", response_model=DoctorBriefingsList)
+async def list_doctor_briefings(
+    days: int | None = Query(
+        default=None,
+        ge=1,
+        le=3650,
+        description="Limit to briefings in the last N days. Omit for all-time.",
+    ),
+    method: str | None = Query(
+        default=None,
+        description="Filter by method ('qr_scan' or 'share_code'). Omit for both.",
+    ),
+    search: str | None = Query(
+        default=None,
+        max_length=120,
+        description="Case-insensitive substring match on patient name.",
+    ),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    doctor: Doctor = Depends(get_current_doctor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Paginated + filterable list of the doctor's briefings.
+
+    Powers the "All Patients" screen with timeline/grouping on the client.
+    Filters by date window, method, and patient-name search.
+    """
+    now = datetime.now(timezone.utc)
+
+    filters = [PatientAccessLog.doctor_id == doctor.id]
+    if days is not None:
+        filters.append(PatientAccessLog.accessed_at >= now - timedelta(days=days))
+    if method:
+        filters.append(PatientAccessLog.method == method)
+
+    base_stmt = (
+        select(PatientAccessLog, Patient.name)
+        .join(Patient, Patient.id == PatientAccessLog.patient_id)
+        .where(*filters)
+    )
+    if search:
+        base_stmt = base_stmt.where(Patient.name.ilike(f"%{search.strip()}%"))
+
+    # total count (with same filters)
+    count_stmt = select(func.count()).select_from(base_stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar_one() or 0
+
+    rows = (
+        await db.execute(
+            base_stmt
+            .order_by(PatientAccessLog.accessed_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+    ).all()
+
+    return DoctorBriefingsList(
+        briefings=[
+            DoctorDashboardBriefing(
+                id=log.id,
+                patient_id=log.patient_id,
+                patient_name=name,
+                method=log.method,
+                accessed_at=log.accessed_at,
+            )
+            for log, name in rows
+        ],
+        total=total,
+        has_more=(offset + len(rows)) < total,
     )

@@ -20,22 +20,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.medhistry.data.PatientBriefing
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Rich patient briefing shown after a QR scan or code redeem.
  * Renders (top to bottom):
  *   - Patient header card with gradient avatar + live session badge
  *   - CRITICAL allergy banner
- *   - Active Conditions chips (active / monitoring states)
- *   - Current Medications rows with OD/BD/TDS frequency badges
- *   - Recent Lab Values with normal/high/low coloring
- *   - Last Visit summary
- *   - Pending Investigations warn-coloured rows
+ *   - Active Conditions chips (from briefing.diagnoses)
+ *   - Current Medications rows with frequency/timing badges (from briefing.medications)
+ *   - Recent Lab Values with normal/high/low coloring (from briefing.criticalLabs)
+ *   - Total documents summary
  *   - Done button
- *
- * Detail sections (conditions, medications, labs, last visit, pending
- * investigations) show empty-state text until the backend exposes
- * structured data for each — no mock values are rendered.
  */
 @Composable
 fun PatientBriefingCard(
@@ -55,20 +53,32 @@ fun PatientBriefingCard(
 
         CriticalAllergyBanner(briefing.allergies ?: "No known allergies")
 
+        briefing.medicalSummary?.takeIf { it.isNotBlank() }?.let {
+            SectionLabel("SUMMARY")
+            SurfaceCard {
+                Text(it, fontSize = 14.sp, color = DoctorColors.TextPrimary)
+            }
+        }
+
         SectionLabel("ACTIVE CONDITIONS")
-        ActiveConditionsCard()
+        ActiveConditionsCard(briefing.diagnoses)
 
         SectionLabel("CURRENT MEDICATIONS")
-        MedicationsCard()
+        MedicationsCard(briefing.medications)
 
         SectionLabel("RECENT LAB VALUES")
-        LabValuesCard()
+        LabValuesCard(briefing.criticalLabs)
 
-        SectionLabel("LAST VISIT")
-        LastVisitCard()
-
-        SectionLabel("PENDING INVESTIGATIONS")
-        PendingInvestigationsCard()
+        SectionLabel("DOCUMENTS ON FILE")
+        SurfaceCard {
+            Text(
+                if (briefing.totalDocuments > 0)
+                    "${briefing.totalDocuments} document${if (briefing.totalDocuments == 1) "" else "s"} shared"
+                else "No documents shared",
+                fontSize = 14.sp,
+                color = DoctorColors.TextPrimary,
+            )
+        }
 
         Text(
             "Session expires: ${briefing.sessionExpiresAt}",
@@ -218,27 +228,160 @@ private fun SurfaceCard(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
-@Composable
-private fun ActiveConditionsCard() = SurfaceCard {
-    Text("No conditions recorded", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+/** Safely pull a string from a JSON map whose values are JsonElements. */
+private fun Map<String, JsonElement>.str(key: String): String? {
+    val v = this[key] ?: return null
+    if (v is JsonPrimitive) {
+        if (v.isString) return v.content
+        // numbers / booleans — render as content too
+        return v.content.takeIf { it != "null" }
+    }
+    return runCatching { v.jsonPrimitive.content }.getOrNull()?.takeIf { it != "null" }
 }
 
 @Composable
-private fun MedicationsCard() = SurfaceCard {
-    Text("No medications recorded", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+private fun ActiveConditionsCard(diagnoses: List<String>) = SurfaceCard {
+    if (diagnoses.isEmpty()) {
+        Text("No conditions recorded", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+        return@SurfaceCard
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        diagnoses.forEach { dx ->
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DoctorColors.PrimaryLight)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    dx,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DoctorColors.PrimaryDark,
+                )
+            }
+        }
+    }
 }
 
 @Composable
-private fun LabValuesCard() = SurfaceCard {
-    Text("No lab results available", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+private fun MedicationsCard(medications: List<Map<String, JsonElement>>) = SurfaceCard {
+    if (medications.isEmpty()) {
+        Text("No medications recorded", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+        return@SurfaceCard
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        medications.forEachIndexed { idx, med ->
+            if (idx > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(DoctorColors.Border)
+                )
+            }
+            val name = med.str("name") ?: "Unknown"
+            val brand = med.str("brand_name")
+            val dosage = med.str("dosage")
+            val frequency = med.str("frequency")
+            val duration = med.str("duration")
+            val instructions = med.str("instructions")
+            val purpose = med.str("purpose")
+
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DoctorColors.TextPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (frequency != null) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(DoctorColors.PrimaryLight)
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                frequency,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DoctorColors.PrimaryDark,
+                            )
+                        }
+                    }
+                }
+                if (brand != null) {
+                    Text(
+                        brand,
+                        fontSize = 11.sp,
+                        color = DoctorColors.TextLight,
+                    )
+                }
+                val metaLine = listOfNotNull(dosage, duration).joinToString(" \u00B7 ")
+                if (metaLine.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(metaLine, fontSize = 12.sp, color = DoctorColors.TextSecondary)
+                }
+                if (!instructions.isNullOrBlank()) {
+                    Text(
+                        instructions,
+                        fontSize = 11.sp,
+                        color = DoctorColors.TextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                if (!purpose.isNullOrBlank()) {
+                    Text(purpose, fontSize = 11.sp, color = DoctorColors.TextLight)
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun LastVisitCard() = SurfaceCard {
-    Text("No previous visits recorded", fontSize = 14.sp, color = DoctorColors.TextSecondary)
-}
-
-@Composable
-private fun PendingInvestigationsCard() = SurfaceCard {
-    Text("No pending investigations", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+private fun LabValuesCard(labs: List<Map<String, JsonElement>>) = SurfaceCard {
+    if (labs.isEmpty()) {
+        Text("No critical lab results", fontSize = 14.sp, color = DoctorColors.TextSecondary)
+        return@SurfaceCard
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        labs.forEach { lab ->
+            val name = lab.str("name") ?: lab.str("test") ?: "Lab"
+            val value = lab.str("value")
+            val unit = lab.str("unit")
+            val status = lab.str("status")?.lowercase()
+            val color = when (status) {
+                "critical", "high" -> DoctorColors.Danger
+                "low" -> DoctorColors.Warn
+                else -> DoctorColors.TextPrimary
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    name,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DoctorColors.TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    listOfNotNull(value, unit).joinToString(" "),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                )
+                if (status != null) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        status.uppercase(),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = color,
+                    )
+                }
+            }
+        }
+    }
 }

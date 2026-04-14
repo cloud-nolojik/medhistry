@@ -97,6 +97,13 @@ data class DoctorDashboard(
     @SerialName("recent_briefings") val recentBriefings: List<DoctorDashboardBriefing> = emptyList(),
 )
 
+@Serializable
+data class DoctorBriefingsList(
+    val briefings: List<DoctorDashboardBriefing> = emptyList(),
+    val total: Int = 0,
+    @SerialName("has_more") val hasMore: Boolean = false,
+)
+
 // --- Patient OTP + PIN Auth Models ---
 
 @Serializable
@@ -266,6 +273,10 @@ data class PatientBriefing(
     @SerialName("blood_group") val bloodGroup: String? = null,
     val allergies: String? = null,
     @SerialName("medical_summary") val medicalSummary: String? = null,
+    val medications: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
+    val diagnoses: List<String> = emptyList(),
+    @SerialName("critical_labs") val criticalLabs: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
+    @SerialName("total_documents") val totalDocuments: Int = 0,
     @SerialName("session_expires_at") val sessionExpiresAt: String,
 )
 
