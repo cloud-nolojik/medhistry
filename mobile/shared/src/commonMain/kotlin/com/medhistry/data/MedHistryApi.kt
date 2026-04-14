@@ -453,4 +453,14 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             setBody(ShareCodeRedeemRequest(shareCode))
         }.body()
     }
+
+    /** Doctor-side: fetch a short-lived read SAS URL for an original document.
+     *  The backend validates there's a live session for the patient AND the
+     *  doctor has a recent access log for them — so this only works while the
+     *  briefing is still "open". */
+    suspend fun doctorGetDocumentFileUrl(documentId: String): FileUrlResponse {
+        return client.get("$baseUrl/qr/documents/$documentId/file") {
+            bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
+        }.ensureSuccess().body()
+    }
 }

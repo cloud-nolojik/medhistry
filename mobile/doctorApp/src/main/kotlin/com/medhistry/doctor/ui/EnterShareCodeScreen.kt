@@ -1,5 +1,8 @@
 package com.medhistry.doctor.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -11,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -34,6 +38,7 @@ fun EnterShareCodeScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var briefing by remember { mutableStateOf<PatientBriefing?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = DoctorColors.Background,
@@ -62,6 +67,22 @@ fun EnterShareCodeScreen(
             PatientBriefingCard(
                 briefing = b,
                 onDone = { briefing = null; code = ""; onBack() },
+                onViewDocument = { docId ->
+                    scope.launch {
+                        try {
+                            val resp = api.doctorGetDocumentFileUrl(docId)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(resp.url))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                e.message ?: "Could not open document",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)

@@ -1,6 +1,6 @@
 """QR code session endpoints: generate, refresh, scan, end, and remote share codes."""
 
-from datetime import date
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,18 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.medical_document import MedicalDocument
+from app.models.patient_access_log import PatientAccessLog
 from app.schemas.qr import (
     QRGenerateRequest, QRGenerateResponse, QRRefreshResponse, QRScanRequest,
     PatientBriefing, DocumentNote,
     ShareCodeGenerateRequest, ShareCodeGenerateResponse, ShareCodeRedeemRequest,
 )
+from app.schemas.document import FileUrlResponse
 from app.services.qr_service import (
     start_qr_session, refresh_qr_token, verify_scanned_qr, end_qr_session,
     start_share_code_session, redeem_share_code, log_patient_access,
 )
+from app.services import azure_storage_service
 from app.api.deps import get_current_patient, get_current_doctor, resolve_patient_context
 from app.models.doctor import Doctor
 from app.models.qr_session import QRSession
@@ -123,6 +127,12 @@ async def _build_briefing(
     all_diagnoses = []
     critical_labs = []
     document_notes: list[DocumentNote] = []
+    # Cap notes at 5 so the doctor's scroll stays readable when a patient has
+    # dozens of documents. The aggregated `medical_summary` + diagnoses/meds
+    # lists still reflect ALL docs — this cap is only on per-document cards.
+    # `docs` is already ordered newest-first, so we simply stop adding once
+    # we have five notes, which naturally preserves "latest reports shown".
+    MAX_DOC_NOTES = 5
     for doc in docs:
         data = doc.extracted_data or {}
         all_diagnoses.extend(data.get("diagnoses", []))
@@ -133,6 +143,8 @@ async def _build_briefing(
 
         # Surface the per-document clinical content the doctor needs.
         # Skip docs with no useful narrative (e.g. extraction still in progress).
+        if len(document_notes) >= MAX_DOC_NOTES:
+            continue
         clinical = data.get("clinical_summary")
         patient_sum = data.get("patient_summary")
         if clinical or patient_sum:
@@ -284,3 +296,78 @@ async def end_session(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No active session found",
         )
+
+
+@router.get("/documents/{document_id}/file", response_model=FileUrlResponse)
+async def doctor_view_document_file(
+    document_id: UUID,
+    doctor: Doctor = Depends(get_current_doctor),
+    db: AsyncSession = Depends(get_db),
+):
+    """Doctor-side: fetch a short-lived SAS URL for an original document.
+
+    Authorization:
+      - doctor must be authenticated
+      - the document's patient must have an active, non-expired QR/share-code
+        session AND
+      - the doctor must have a recent access log entry for that patient
+        (i.e. they're the one who scanned/redeemed the current session).
+    This keeps file access tied to a live briefing — once the session
+    expires, follow-up file fetches stop working.
+    """
+    doc_result = await db.execute(
+        select(MedicalDocument).where(MedicalDocument.id == document_id)
+    )
+    doc = doc_result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    now = datetime.now(timezone.utc)
+    # Active session for this patient?
+    sess_result = await db.execute(
+        select(QRSession).where(
+            QRSession.patient_id == doc.patient_id,
+            QRSession.is_active == True,
+            QRSession.expires_at > now,
+        )
+    )
+    session = sess_result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No active sharing session for this patient",
+        )
+
+    # Doctor accessed this patient within this session? Gate off the session's
+    # own expiry so we don't accidentally honour logs from long-dead sessions.
+    log_result = await db.execute(
+        select(PatientAccessLog).where(
+            PatientAccessLog.patient_id == doc.patient_id,
+            PatientAccessLog.doctor_id == doctor.id,
+            PatientAccessLog.accessed_at >= session.created_at,
+        ).limit(1)
+    )
+    if not log_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You have not been granted access to this patient in the current session",
+        )
+
+    if not doc.file_path:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="File not available")
+
+    if not (settings.USE_AZURE_STORAGE and doc.file_path.startswith("patients/")):
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="This document is not stored in Azure and cannot be served via SAS URL.",
+        )
+
+    try:
+        url = azure_storage_service.generate_read_sas(doc.file_path)
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+
+    return FileUrlResponse(
+        url=url,
+        expires_in_seconds=settings.AZURE_SAS_READ_TTL_MINUTES * 60,
+    )

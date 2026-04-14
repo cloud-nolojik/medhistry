@@ -2,6 +2,7 @@ package com.medhistry.doctor.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -40,6 +41,7 @@ import kotlinx.serialization.json.jsonPrimitive
 fun PatientBriefingCard(
     briefing: PatientBriefing,
     onDone: () -> Unit,
+    onViewDocument: (documentId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -71,18 +73,22 @@ fun PatientBriefingCard(
         LabValuesCard(briefing.criticalLabs)
 
         if (briefing.documentNotes.isNotEmpty()) {
-            SectionLabel("DOCUMENT NOTES")
-            DocumentNotesCard(briefing.documentNotes)
+            SectionLabel("RECENT REPORTS")
+            DocumentNotesCard(
+                notes = briefing.documentNotes,
+                totalDocuments = briefing.totalDocuments,
+                onViewDocument = onViewDocument,
+            )
         }
 
         SectionLabel("DOCUMENTS ON FILE")
         SurfaceCard {
             Text(
                 if (briefing.totalDocuments > 0)
-                    "${briefing.totalDocuments} document${if (briefing.totalDocuments == 1) "" else "s"} shared"
+                    "${briefing.totalDocuments} document${if (briefing.totalDocuments == 1) "" else "s"} shared — tap any report above to open the original"
                 else "No documents shared",
-                fontSize = 14.sp,
-                color = DoctorColors.TextPrimary,
+                fontSize = 13.sp,
+                color = DoctorColors.TextSecondary,
             )
         }
 
@@ -352,12 +358,24 @@ private fun MedicationsCard(medications: List<Map<String, JsonElement>>) = Surfa
  *   - Status banner if `overall_status` is "attention_needed" or "urgent"
  *   - The doctor-targeted `clinical_summary`
  *   - Optional follow-up line and symptoms chips
+ *
+ *  The backend caps this list at 5 most-recent reports even when the patient
+ *  has many more documents. If there are older ones, we show a "+N older
+ *  reports" footer so the doctor knows the full history is summarised into
+ *  the top-level SUMMARY / conditions / meds sections above.
+ *
+ *  Each card is tappable — the caller resolves a SAS URL and opens the
+ *  original document (PDF / image) in the system viewer.
  */
 @Composable
-private fun DocumentNotesCard(notes: List<DocumentNote>) {
+private fun DocumentNotesCard(
+    notes: List<DocumentNote>,
+    totalDocuments: Int,
+    onViewDocument: (String) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         notes.forEach { note ->
-            SurfaceCard {
+            SurfaceCardClickable(onClick = { onViewDocument(note.documentId) }) {
                 // Header line — type / date / source
                 val headerBits = listOfNotNull(
                     note.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() },
@@ -382,29 +400,24 @@ private fun DocumentNotesCard(notes: List<DocumentNote>) {
                     Spacer(Modifier.height(8.dp))
                 }
 
-                // Status banner
+                // Status pill (clinical, terse). We intentionally do NOT render
+                // `overall_status_message` because Gemini writes that field in
+                // patient-facing language ("Your blood tests are normal…")
+                // which is wrong for a doctor audience — the clinical summary
+                // below already conveys the same info in medical terms.
                 val status = note.overallStatus?.lowercase()
                 if (status == "attention_needed" || status == "urgent") {
-                    val (bg, fg) = if (status == "urgent")
-                        Color(0xFFFEE2E2) to DoctorColors.Danger
+                    val (bg, fg, label) = if (status == "urgent")
+                        Triple(Color(0xFFFEE2E2), DoctorColors.Danger, "URGENT")
                     else
-                        Color(0xFFFFEDD5) to DoctorColors.Warn
+                        Triple(Color(0xFFFFEDD5), DoctorColors.Warn, "ATTENTION NEEDED")
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(6.dp))
                             .background(bg)
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
                     ) {
-                        Text(if (status == "urgent") "\u26A0\uFE0F" else "\u2139\uFE0F", fontSize = 14.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            note.overallStatusMessage ?: status.uppercase().replace("_", " "),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = fg,
-                        )
+                        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = fg)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -461,9 +474,56 @@ private fun DocumentNotesCard(notes: List<DocumentNote>) {
                         )
                     }
                 }
+
+                // Footer prompt — makes it obvious the card is tappable.
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Tap to view original \u2192",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DoctorColors.Primary,
+                )
+            }
+        }
+        // Scalability: when there are more documents than we showed notes for,
+        // tell the doctor the history above is a summary of ALL of them.
+        val olderCount = (totalDocuments - notes.size).coerceAtLeast(0)
+        if (olderCount > 0) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DoctorColors.PrimaryLight)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("\uD83D\uDCDA ", fontSize = 14.sp)
+                Text(
+                    "+ $olderCount older report${if (olderCount == 1) "" else "s"} — " +
+                        "factored into the summary and condition/medication lists above.",
+                    fontSize = 12.sp,
+                    color = DoctorColors.PrimaryDark,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun SurfaceCardClickable(
+    onClick: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(DoctorColors.Surface)
+            .border(1.dp, DoctorColors.Border, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        content = content,
+    )
 }
 
 @Composable
