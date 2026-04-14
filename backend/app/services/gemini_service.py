@@ -334,7 +334,15 @@ Return ONLY the summary text, no JSON or formatting."""
     url = f"{GEMINI_API_URL}/{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+        "generationConfig": {
+            "temperature": 0.2,
+            # Gemini 2.5 Flash/Pro are thinking models: thinking tokens count toward
+            # maxOutputTokens, so a low ceiling truncates the user-visible text
+            # mid-sentence. Disable thinking for simple summary generation and give
+            # a generous token ceiling.
+            "maxOutputTokens": 2048,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -342,9 +350,33 @@ Return ONLY the summary text, no JSON or formatting."""
         response.raise_for_status()
         result = response.json()
 
+    return _extract_summary_text(result, context="aggregated")
+
+
+def _extract_summary_text(result: dict, *, context: str) -> str:
+    """Pull the text out of a Gemini generateContent response and warn on truncation.
+
+    Gemini returns finishReason=MAX_TOKENS when it ran out of output budget mid-way
+    (including thinking tokens on 2.5 models). If we see that, we log a warning so
+    truncated summaries don't silently ship to doctors.
+    """
     try:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
+        candidate = result["candidates"][0]
+        finish_reason = candidate.get("finishReason")
+        text = candidate["content"]["parts"][0]["text"]
+        if finish_reason and finish_reason != "STOP":
+            logger.warning(
+                "Gemini %s summary finished with reason=%s (text len=%d). "
+                "Consider raising maxOutputTokens or checking safety filters.",
+                context,
+                finish_reason,
+                len(text or ""),
+            )
+        return text
     except (KeyError, IndexError):
+        logger.exception("Failed to parse Gemini %s summary response: %s", context, result)
+        if context == "incremental":
+            raise ValueError("Failed to parse Gemini incremental summary response")
         return "Unable to generate summary. Please review individual documents."
 
 
@@ -384,7 +416,14 @@ Return ONLY the updated summary text, no JSON or formatting."""
     url = f"{GEMINI_API_URL}/{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 500},
+        "generationConfig": {
+            "temperature": 0.2,
+            # See note in _gemini_aggregated_summary — disable thinking for plain
+            # paragraph-writing tasks to prevent thinking tokens from starving the
+            # output budget and truncating the summary mid-sentence.
+            "maxOutputTokens": 2048,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -392,10 +431,6 @@ Return ONLY the updated summary text, no JSON or formatting."""
         response.raise_for_status()
         result = response.json()
 
-    try:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        # Incremental failed — caller will fall back to full rebuild
-        raise ValueError("Failed to parse Gemini incremental summary response")
+    return _extract_summary_text(result, context="incremental")
 
 
