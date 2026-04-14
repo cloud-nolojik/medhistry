@@ -42,13 +42,16 @@ services:
       # Basic auth — override DB_VIEWER_USER / DB_VIEWER_PASS in backend/.env.prod
       AUTH_USER: ${DB_VIEWER_USER:-medadmin}
       AUTH_PASS: ${DB_VIEWER_PASS:-change-me-in-env}
+    # NOTE: no --sessions flag. With --sessions pgweb shows the connection form
+    # on every visit; without it, pgweb auto-connects using --url and --lock-session
+    # means the user cannot switch to a different database.
     command: >
       --bind=0.0.0.0
       --listen=8081
       --readonly
       --lock-session
-      --sessions
       --prefix=db/
+      --url=postgres://medhistry:${POSTGRES_PASSWORD:-medhistry_prod_2026}@db:5432/medhistry?sslmode=disable
       --auth-user=${DB_VIEWER_USER:-medadmin}
       --auth-pass=${DB_VIEWER_PASS:-change-me-in-env}
     depends_on:
