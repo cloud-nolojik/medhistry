@@ -57,7 +57,9 @@ push_code() {
     git push origin "${BRANCH}:main" || err "Git push failed"
 
     log "Pulling code on server..."
-    remote "git stash -q 2>/dev/null; git pull origin main; git stash drop -q 2>/dev/null"
+    # Use `|| true` on stash ops — they return non-zero when there's nothing
+    # to stash/drop, which with `set -e` was silently killing the deploy.
+    remote "git stash -q 2>/dev/null || true; git pull origin main; git stash drop -q 2>/dev/null || true"
     log "Server code updated"
 }
 
