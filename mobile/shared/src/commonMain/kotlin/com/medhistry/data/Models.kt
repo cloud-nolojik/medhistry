@@ -273,11 +273,19 @@ data class PatientBriefing(
     @SerialName("blood_group") val bloodGroup: String? = null,
     val allergies: String? = null,
     @SerialName("medical_summary") val medicalSummary: String? = null,
+    // When the aggregated summary was last refreshed (ISO-8601). Backend
+    // uses the newest completed-doc's created_at as a proxy since summaries
+    // are regenerated on every upload. Null if the patient has no documents.
+    @SerialName("medical_summary_updated_at") val medicalSummaryUpdatedAt: String? = null,
     val medications: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
     val diagnoses: List<String> = emptyList(),
     @SerialName("critical_labs") val criticalLabs: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
     @SerialName("document_notes") val documentNotes: List<DocumentNote> = emptyList(),
     @SerialName("total_documents") val totalDocuments: Int = 0,
+    // Set when the briefing is for a dependent — "father", "spouse", "son"
+    // etc. Null for primary accounts. The doctor UI shows this next to the
+    // patient name so it's obvious whose records they're looking at.
+    val relationship: String? = null,
     @SerialName("session_expires_at") val sessionExpiresAt: String,
 )
 

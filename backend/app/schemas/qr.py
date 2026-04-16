@@ -106,11 +106,27 @@ class PatientBriefing(BaseModel):
     age: str | None = None
     gender: str | None = None
     blood_group: str | None = None
+    # `allergies` is the union of (a) the patient's manually-entered
+    # allergies field and (b) allergies Gemini extracted from uploaded
+    # documents (allergies_mentioned). Merged server-side so the doctor
+    # can't miss a newly-documented allergy just because the patient
+    # hasn't typed it into their profile.
     allergies: str | None = None
     medical_summary: str | None = None
+    # When the aggregated medical_summary was last refreshed. We use the
+    # newest completed-document's created_at as a proxy (summaries are
+    # regenerated on every upload). Null if no documents yet — lets the
+    # doctor judge "is this briefing current?" at a glance.
+    medical_summary_updated_at: datetime | None = None
     medications: list[dict] = Field(default_factory=list)
     diagnoses: list[str] = Field(default_factory=list)
     critical_labs: list[dict] = Field(default_factory=list)
     document_notes: list[DocumentNote] = Field(default_factory=list)
     total_documents: int = 0
+    # Set when the briefing is for a dependent (e.g. "father", "spouse",
+    # "son"). The primary account holder may share their father's records
+    # via the family-account flow, and the doctor needs to know "whose
+    # records am I looking at?" Null when the patient is a primary viewing
+    # their own data.
+    relationship: str | None = None
     session_expires_at: datetime

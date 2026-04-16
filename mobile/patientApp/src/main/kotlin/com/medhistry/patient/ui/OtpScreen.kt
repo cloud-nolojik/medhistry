@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,7 +87,19 @@ fun OtpScreen(
             .padding(horizontal = 24.dp),
     ) {
         Spacer(Modifier.height(40.dp))
-        Text("\u2039 Back", color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onBack() },
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Back", color = MedHistryColors.TextPrimary)
+        }
         Spacer(Modifier.height(16.dp))
         Text(
             "Verify your number",
@@ -97,6 +111,12 @@ fun OtpScreen(
             "Enter the 4-digit code sent to +91 $phoneNumber",
             fontSize = 14.sp,
             color = MedHistryColors.TextSecondary,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Check SMS or WhatsApp",
+            fontSize = 12.sp,
+            color = MedHistryColors.TextLight,
         )
         Spacer(Modifier.height(32.dp))
 
@@ -161,7 +181,7 @@ fun OtpScreen(
             horizontalArrangement = Arrangement.Center,
         ) {
             if (resendTimer > 0) {
-                Text("Resend code in ", color = MedHistryColors.TextSecondary, fontSize = 14.sp)
+                Text("Resend available in ", color = MedHistryColors.TextSecondary, fontSize = 14.sp)
                 Text(
                     "0:${resendTimer.toString().padStart(2, '0')}",
                     color = MedHistryColors.Primary,

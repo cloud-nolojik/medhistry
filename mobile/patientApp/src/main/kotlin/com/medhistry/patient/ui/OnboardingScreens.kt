@@ -6,6 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -25,6 +31,9 @@ import com.medhistry.patient.R
  */
 @Composable
 fun SplashScreen(onGetStarted: () -> Unit, onLogin: () -> Unit) {
+    // Match the status bar to the navy background so the top bar doesn't
+    // show up as a light strip above the dark splash.
+    StatusBarColor(color = MedHistryColors.NavyDark, darkIcons = false)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +89,8 @@ fun SplashScreen(onGetStarted: () -> Unit, onLogin: () -> Unit) {
 
 @Composable
 private fun OnboardingShell(
-    emoji: String,
+    icon: ImageVector,
+    iconTint: Color,
     bubbleBg: Color,
     title: String,
     subtitle: String,
@@ -95,14 +105,22 @@ private fun OnboardingShell(
             .background(MedHistryColors.Background)
             .padding(24.dp),
     ) {
-        Text(
-            "\u2039 Back",
-            color = MedHistryColors.TextSecondary,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .clickable { onBack() }
                 .padding(4.dp),
-        )
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Back", color = MedHistryColors.TextSecondary)
+        }
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -114,7 +132,12 @@ private fun OnboardingShell(
                     .background(bubbleBg),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(emoji, fontSize = 64.sp)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(64.dp),
+                )
             }
             Spacer(Modifier.height(40.dp))
             Text(
@@ -162,25 +185,32 @@ private fun OnboardingShell(
 
 @Composable
 fun Onboarding1(onBack: () -> Unit, onNext: () -> Unit) = OnboardingShell(
-    emoji = "\uD83D\uDCCB",
+    icon = Icons.Outlined.Description,
+    iconTint = MedHistryColors.Primary,
     bubbleBg = MedHistryColors.PrimaryLight,
-    title = "Upload your\nmedical records",
-    subtitle = "Take photos of prescriptions, lab reports, and old records. We'll read and organize everything for you.",
+    title = "Keep your\nmedical records",
+    // Subtitle covers three things the app does with scanned records:
+    // organize, flag follow-ups, and answer questions. Surfacing chat
+    // + follow-up tracking here primes users to look for those features
+    // once they're in the app — otherwise they go unnoticed.
+    subtitle = "Take photos of prescriptions, lab reports, and old records. We'll organize everything, flag follow-up dates, and let you ask questions about any report.",
     step = 1, ctaLabel = "Next", onBack = onBack, onNext = onNext,
 )
 
 @Composable
 fun Onboarding2(onBack: () -> Unit, onNext: () -> Unit) = OnboardingShell(
-    emoji = "\uD83E\uDE7A",
+    icon = Icons.Outlined.MedicalServices,
+    iconTint = MedHistryColors.AccentDark,
     bubbleBg = Color(0xFFF0FDF4),
     title = "Share with your\ndoctor instantly",
-    subtitle = "Show a QR code to your doctor. They scan it and see your health summary in 30 seconds — no digging through paper files.",
+    subtitle = "Show a QR code to your doctor. They scan it and see your health summary instantly — no digging through paper files.",
     step = 2, ctaLabel = "Next", onBack = onBack, onNext = onNext,
 )
 
 @Composable
 fun Onboarding3(onBack: () -> Unit, onNext: () -> Unit) = OnboardingShell(
-    emoji = "\uD83D\uDD12",
+    icon = Icons.Outlined.Lock,
+    iconTint = MedHistryColors.Danger,
     bubbleBg = Color(0xFFFEF2F2),
     title = "You're always\nin control",
     subtitle = "Your health data is encrypted and private. Only you decide which doctor sees it, and access expires automatically.",

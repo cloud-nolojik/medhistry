@@ -8,12 +8,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +54,12 @@ fun PatientProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("\u2039", fontSize = 28.sp, color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(24.dp).clickable { onBack() },
+            )
             Spacer(Modifier.width(16.dp))
             Text("Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
@@ -73,18 +89,20 @@ fun PatientProfileScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        SettingsRow("\uD83D\uDC64", "Personal Details", "Name, phone, date of birth", onClick = {})
-        SettingsRow("\uD83D\uDC6A", "Family Members", "Manage dependents you share for", onClick = onManageFamily)
-        SettingsRow("\uD83D\uDD12", "Privacy & Consent", "Manage who sees your data", onClick = onAccessHistory)
-        SettingsRow("\uD83C\uDF10", "Language", "English", onClick = {})
-        SettingsRow("\uD83D\uDCDE", "Help & Support", "FAQs, contact us", onClick = {})
-        SettingsRow("\uD83D\uDEAA", "Log Out", null, onClick = onLogout, danger = true)
+        SettingsRow(Icons.Outlined.Person, "Personal Details", "Name, phone, date of birth", onClick = {})
+        SettingsRow(Icons.Outlined.People, "Family Members", "Manage the family this account covers", onClick = onManageFamily)
+        // Renamed from "Privacy & Consent" — patients know "who can see my
+        // records" immediately, whereas "consent" reads like a legal form.
+        SettingsRow(Icons.Outlined.Lock, "Who can see my records", "Review access and sharing", onClick = onAccessHistory)
+        SettingsRow(Icons.Outlined.Language, "Language", "English", onClick = {})
+        SettingsRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support", "FAQs, contact us", onClick = {})
+        SettingsRow(Icons.AutoMirrored.Outlined.Logout, "Log Out", null, onClick = onLogout, danger = true)
     }
 }
 
 @Composable
 private fun SettingsRow(
-    icon: String,
+    icon: ImageVector,
     title: String,
     subtitle: String?,
     onClick: () -> Unit = {},
@@ -101,7 +119,13 @@ private fun SettingsRow(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(icon, fontSize = 20.sp, modifier = Modifier.width(40.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (danger) MedHistryColors.Danger else MedHistryColors.Primary,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
@@ -113,6 +137,13 @@ private fun SettingsRow(
                 Text(it, fontSize = 12.sp, color = MedHistryColors.TextSecondary)
             }
         }
-        if (!danger) Text("\u203A", fontSize = 18.sp, color = MedHistryColors.TextLight)
+        if (!danger) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MedHistryColors.TextLight,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }

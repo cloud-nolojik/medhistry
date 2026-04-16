@@ -12,7 +12,7 @@ android {
         applicationId = "com.medhistry.patient"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        versionCode = 2
         versionName = "0.1.0"
     }
 
@@ -38,6 +38,9 @@ dependencies {
     // Compose
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    // Material Symbols (vector icons) — used in bottom nav and elsewhere
+    // so we don't have to rely on emoji that render differently per-OEM.
+    implementation(libs.compose.icons.extended)
     implementation(libs.compose.tooling)
     implementation(libs.compose.activity)
     implementation(libs.lifecycle.viewmodel)

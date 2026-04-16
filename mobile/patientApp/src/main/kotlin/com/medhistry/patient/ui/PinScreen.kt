@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,6 +63,12 @@ fun PinScreen(
         "Enter your 4-digit PIN to continue"
     }
 
+    // Blend the system status bar with the dark gradient at the top of the
+    // screen — otherwise the default light theme paints a harsh white strip
+    // above our navy background. Light icons (darkIcons=false) keep the
+    // time/battery legible against navy.
+    StatusBarColor(color = MedHistryColors.NavyDark, darkIcons = false)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -77,11 +85,22 @@ fun PinScreen(
         Spacer(Modifier.height(48.dp))
         if (onBack != null) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "\u2039 Back",
-                    color = Color.White.copy(alpha = 0.7f),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onBack() },
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Back",
+                        color = Color.White.copy(alpha = 0.7f),
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
         }

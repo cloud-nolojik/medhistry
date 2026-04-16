@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +41,19 @@ fun PatientSignupScreen(
             .padding(horizontal = 24.dp),
     ) {
         Spacer(Modifier.height(40.dp))
-        Text("\u2039 Back", color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onBack() },
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Back", color = MedHistryColors.TextPrimary, fontSize = 14.sp)
+        }
         Spacer(Modifier.height(16.dp))
         Text(
             "Create your account",
@@ -154,7 +168,19 @@ fun PatientLoginScreen(
             .padding(horizontal = 24.dp),
     ) {
         Spacer(Modifier.height(40.dp))
-        Text("\u2039 Back", color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onBack() },
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Back", color = MedHistryColors.TextPrimary, fontSize = 14.sp)
+        }
         Spacer(Modifier.height(16.dp))
         Text("Welcome back", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         Text("Log in to your MedHistry account", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
@@ -199,7 +225,7 @@ fun PatientLoginScreen(
                 .fillMaxWidth()
                 .height(52.dp),
         ) {
-            Text("Send OTP", color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text("Send verification code", color = Color.White, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -215,11 +241,20 @@ fun PatientLoginScreen(
     }
 }
 
+/**
+ * Field label used above text inputs.
+ *
+ * Originally rendered as ALL-CAPS 12sp (the SmallCaps look). UX review flagged
+ * that all-caps labels feel formal/hospital-y and harder to scan at a glance —
+ * switched to sentence case at 13sp to read more like a natural prompt. Name
+ * is retained (instead of FieldLabel) so we don't churn every callsite, even
+ * though the label is no longer uppercased.
+ */
 @Composable
 fun UppercaseLabel(text: String) {
     Text(
-        text.uppercase(),
-        fontSize = 12.sp,
+        text,
+        fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         color = MedHistryColors.TextSecondary,
         modifier = Modifier.padding(bottom = 8.dp),

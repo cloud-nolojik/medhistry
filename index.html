@@ -31,11 +31,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .nav-brand svg{width:38px;height:38px}
 .nav-brand span{font-size:18px;font-weight:800;color:#1B3A5C;letter-spacing:.5px}
-.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links{display:flex;align-items:center;gap:24px}
 .nav-links a{font-size:14px;color:var(--ts);text-decoration:none;font-weight:500;transition:color .2s}
 .nav-links a:hover{color:var(--t)}
 .nav-cta{padding:9px 22px;background:var(--acc);color:#fff;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:background .2s}
 .nav-cta:hover{background:var(--accd);color:#fff}
+.nav-cta-alt{background:transparent;color:var(--p);border:1.5px solid var(--brd);padding:7.5px 18px}
+.nav-cta-alt:hover{background:var(--accl);border-color:var(--acc);color:var(--acc)}
 
 /* ─── HERO ─── */
 .hero{padding:140px 24px 100px;text-align:center;position:relative;overflow:hidden;
@@ -223,6 +225,7 @@ footer a:hover{color:var(--acc)}
       <a href="#doctors">For Doctors</a>
       <a href="#you">For You</a>
       <a href="#trust">Security</a>
+      <a href="https://drive.google.com/file/d/1WLmPOdQQ3Gp3ZWfUtKenViEUF8pTY0Yf/view?usp=sharing" target="_blank" class="nav-cta nav-cta-alt">Doctor Portal</a>
       <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank" class="nav-cta">Try the App</a>
     </div>
   </div>
@@ -230,12 +233,13 @@ footer a:hover{color:var(--acc)}
 
 <!-- ─── HERO ─── -->
 <div class="hero">
-  <div class="hero-pill">Built for Indian healthcare <span class="inner">MVP 2026</span></div>
+  <div class="hero-pill">Now with live QR scanning &amp; family accounts <span class="inner">New · Apr 2026</span></div>
   <h1>Your medical history, <em>always with you</em></h1>
-  <p class="sub">Upload your medical records once. AI organizes them. Share with any doctor using a QR code — they get a 30-second briefing. No paperwork. No repeating yourself.</p>
+  <p class="sub">Upload your medical records once. AI organizes them into medications, vitals, labs, and follow-ups. Share with any doctor via QR — they get a 30-second briefing. No paperwork. No repeating yourself.</p>
   <div class="hero-ctas">
-    <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank" class="btn-primary">Try the App (Android)</a>
-    <a href="#how" class="btn-secondary">See How It Works</a>
+    <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank" class="btn-primary">Patient App (Android)</a>
+    <a href="https://drive.google.com/file/d/1WLmPOdQQ3Gp3ZWfUtKenViEUF8pTY0Yf/view?usp=sharing" target="_blank" class="btn-secondary">Doctor Portal (Android)</a>
+    <a href="#how" class="btn-secondary" style="border:none;background:transparent;box-shadow:none">See How It Works →</a>
   </div>
 
   <div class="hero-visual">
@@ -255,10 +259,11 @@ footer a:hover{color:var(--acc)}
         <div class="mock-briefing">
           <h4>Patient Briefing Card</h4>
           <div class="mock-row"><span class="k">Conditions</span><span class="v">Type 2 Diabetes, Hypertension</span></div>
-          <div class="mock-row"><span class="k">Medications</span><span class="v">Metformin 500mg, Amlodipine 5mg</span></div>
+          <div class="mock-row"><span class="k">Medications</span><span class="v">Metformin 500mg BD · Amlodipine 5mg OD</span></div>
           <div class="mock-row"><span class="k">Allergies</span><span class="mock-alert">Penicillin — Severe</span></div>
-          <div class="mock-row"><span class="k">Last HbA1c</span><span class="v">7.2% (Feb 2026)</span></div>
-          <div class="mock-row"><span class="k">Last Visit</span><span class="v">City Care Clinic · 3 weeks ago</span></div>
+          <div class="mock-row"><span class="k">HbA1c · Feb 2026</span><span class="v">7.2% · Ref &lt;6.5%</span></div>
+          <div class="mock-row"><span class="k">BP · last visit</span><span class="v">138/88 mmHg</span></div>
+          <div class="mock-row"><span class="k">Follow-up</span><span class="v">🧪 FBS in 2 weeks</span></div>
         </div>
       </div>
     </div>
@@ -293,7 +298,7 @@ footer a:hover{color:var(--acc)}
             <div class="step-num" style="background:var(--green)">3</div>
             <div class="step-text">
               <h3>Doctor scans, gets a 30-second briefing</h3>
-              <p>Doctor points their camera at your QR code. Instantly sees a structured briefing card — conditions, meds, allergies, labs. Session auto-expires after the visit.</p>
+              <p>Doctor opens the Doctor Portal, points the live scanner at your QR. They instantly see a structured briefing — conditions, meds with dosing, vitals, labs with reference ranges, allergies, and pending follow-ups. Session auto-expires after the visit.</p>
             </div>
           </div>
         </div>
@@ -347,14 +352,28 @@ footer a:hover{color:var(--acc)}
             <div class="benefit-ico" style="background:#FEF3C7">⚡</div>
             <div>
               <h4>Instant structured briefing</h4>
-              <p>Conditions, medications, allergies, labs, and last visit — all in one scannable card. Not paragraphs. Not PDFs. Data you can act on.</p>
+              <p>Conditions, medications with dosing and timing, vitals, labs with reference ranges, allergies, and pending follow-ups — all in one scannable card. Not PDFs. Data you can act on.</p>
             </div>
           </div>
           <div class="benefit">
             <div class="benefit-ico" style="background:var(--accl)">📷</div>
             <div>
-              <h4>Just scan a QR code</h4>
-              <p>Patient shows a QR code on their phone. You scan it. That's the entire workflow. No typing, no account linking, no file requests.</p>
+              <h4>Live QR scanner, one-tap</h4>
+              <p>Open the Doctor Portal, point the camera at the patient's QR. The briefing loads automatically the moment the code is decoded — no typing, no account linking.</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <div class="benefit-ico" style="background:#DBEAFE">📅</div>
+            <div>
+              <h4>Follow-ups surface automatically</h4>
+              <p>AI pulls pending lab tests, appointments, procedures and reviews from the latest prescriptions — urgency colour-coded so you see what's overdue at a glance.</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <div class="benefit-ico" style="background:#FEE2E2">🩺</div>
+            <div>
+              <h4>Vitals &amp; labs, trend-ready</h4>
+              <p>BP, heart rate, SpO₂, temperature, HbA1c, creatinine and more — extracted from documents with out-of-range values flagged. Reference ranges shown alongside every result.</p>
             </div>
           </div>
           <div class="benefit">
@@ -372,6 +391,11 @@ footer a:hover{color:var(--acc)}
             </div>
           </div>
         </div>
+
+        <div style="margin-top:32px">
+          <a href="https://drive.google.com/file/d/1WLmPOdQQ3Gp3ZWfUtKenViEUF8pTY0Yf/view?usp=sharing" target="_blank" class="btn-primary" style="display:inline-flex;align-items:center;gap:8px">Download Doctor Portal (Android)</a>
+          <p style="font-size:13px;color:var(--tl);margin-top:10px">Early preview · Hospital invite code required to sign in.</p>
+        </div>
       </div>
 
       <div class="doc-visual">
@@ -385,11 +409,26 @@ footer a:hover{color:var(--acc)}
         </div>
         <div class="briefing-rows">
           <div class="briefing-row"><span class="k">Conditions</span><span class="v">Type 2 Diabetes, Hypertension</span></div>
-          <div class="briefing-row"><span class="k">Medications</span><span class="v">Metformin 500mg BD, Amlodipine 5mg OD</span></div>
-          <div class="briefing-row"><span class="k">HbA1c</span><span class="v">7.2% — Feb 2026</span></div>
-          <div class="briefing-row"><span class="k">BP (last)</span><span class="v">138/88 mmHg</span></div>
-          <div class="briefing-row"><span class="k">Creatinine</span><span class="v">1.1 mg/dL</span></div>
-          <div class="briefing-row"><span class="k">Last Visit</span><span class="v">City Care Clinic · 18 Mar 2026</span></div>
+          <div class="briefing-row"><span class="k">Medications</span><span class="v">Metformin 500mg BD · after food</span></div>
+          <div class="briefing-row"><span class="k">HbA1c · Feb 2026</span><span class="v" style="color:#DC2626">7.2% <span style="color:var(--tl);font-weight:500">· Ref &lt;6.5%</span></span></div>
+          <div class="briefing-row"><span class="k">BP · 18 Mar</span><span class="v" style="color:#B45309">138/88 mmHg</span></div>
+          <div class="briefing-row"><span class="k">SpO₂ · 18 Mar</span><span class="v">98%</span></div>
+          <div class="briefing-row"><span class="k">Creatinine</span><span class="v">1.1 mg/dL <span style="color:var(--tl);font-weight:500">· Ref 0.7–1.3</span></span></div>
+        </div>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--brd)">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ts);font-weight:700;margin-bottom:10px">Follow-ups (2 pending)</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#FEE2E2;border-radius:8px">
+              <span style="font-size:16px">🧪</span>
+              <span style="font-size:12.5px;color:#991B1B;font-weight:600;flex:1">FBS + PPBS — this week</span>
+              <span style="font-size:11px;color:#991B1B;text-transform:uppercase;font-weight:700">Urgent</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#FFEDD5;border-radius:8px">
+              <span style="font-size:16px">🗓️</span>
+              <span style="font-size:12.5px;color:#9A3412;font-weight:600;flex:1">Review with Dr. Sharma · 2 weeks</span>
+              <span style="font-size:11px;color:#9A3412;text-transform:uppercase;font-weight:700">Soon</span>
+            </div>
+          </div>
         </div>
         <div class="briefing-chips">
           <span class="briefing-chip">Diabetic</span>
@@ -452,7 +491,21 @@ footer a:hover{color:var(--acc)}
             <div class="benefit-ico" style="background:var(--greenl)">📊</div>
             <div>
               <h4>See your health timeline</h4>
-              <p>Track your medical history over time — visits, tests, medications. All organized and easy to understand, not buried in medical jargon.</p>
+              <p>Track your medical history over time — visits, tests, medications, and pending follow-ups. All organized and easy to understand, not buried in medical jargon.</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <div class="benefit-ico" style="background:#EDE9FE">👨‍👩‍👧</div>
+            <div>
+              <h4>Manage family members</h4>
+              <p>Add your parents, children, or anyone you care for as dependents. Hold their QR code on their behalf at the clinic — doctors see the relationship clearly labelled on the briefing.</p>
+            </div>
+          </div>
+          <div class="benefit">
+            <div class="benefit-ico" style="background:#FEF2F2">🚨</div>
+            <div>
+              <h4>Allergies never missed</h4>
+              <p>Allergies you've entered manually plus any mentioned across your prescriptions are merged into a single banner — so doctors see every known allergy before prescribing.</p>
             </div>
           </div>
         </div>
@@ -512,9 +565,10 @@ footer a:hover{color:var(--acc)}
 <!-- ─── CTA ─── -->
 <div class="cta-section" id="start">
   <h2>Ready to take control of your health records?</h2>
-  <p>Download the app, upload your records, and walk into your next appointment fully prepared.</p>
+  <p>Download the app that fits you — patients upload and consent; doctors scan and review. Both free during the preview.</p>
   <div class="cta-buttons">
-    <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank" class="btn-primary" style="font-size:17px;padding:16px 36px">Try the App (Android)</a>
+    <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank" class="btn-primary" style="font-size:17px;padding:16px 36px">Patient App (Android)</a>
+    <a href="https://drive.google.com/file/d/1WLmPOdQQ3Gp3ZWfUtKenViEUF8pTY0Yf/view?usp=sharing" target="_blank" class="btn-primary" style="font-size:17px;padding:16px 36px;background:transparent;border:1.5px solid rgba(255,255,255,.55);box-shadow:none">Doctor Portal (Android)</a>
     <a href="mailto:vijesh.krishna@nolojik.com?subject=MedHistry for my Hospital" class="btn-secondary" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3);font-size:17px;padding:16px 36px">Hospital? Get in Touch</a>
   </div>
   <div class="note">Early preview · Android only · Currently onboarding hospitals in India · Built by Nolojik</div>
@@ -538,7 +592,7 @@ footer a:hover{color:var(--acc)}
     <span>MedHistry</span>
   </div>
   <p>&copy; 2026 MedHistry · Built by <a href="https://www.nolojik.com" target="_blank">Nolojik</a> · <a href="https://www.medhistry.com" target="_blank">medhistry.com</a></p>
-  <p style="margin-top:4px"><a href="mailto:vijesh.krishna@nolojik.com">Contact</a> · <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank">Download App (Android)</a></p>
+  <p style="margin-top:4px"><a href="mailto:vijesh.krishna@nolojik.com">Contact</a> · <a href="https://drive.google.com/file/d/1DzsVYqEtE4DplorgPr4WEiNxJAKpdP4V/view?usp=sharing" target="_blank">Patient App</a> · <a href="https://drive.google.com/file/d/1WLmPOdQQ3Gp3ZWfUtKenViEUF8pTY0Yf/view?usp=sharing" target="_blank">Doctor Portal</a></p>
 </footer>
 
 </body>

@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,7 +79,7 @@ fun FamilyMembersScreen(
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
             ) {
-                Text("+  Add member", fontWeight = FontWeight.SemiBold)
+                Text("+  Add family member", fontWeight = FontWeight.SemiBold)
             }
         },
     ) { padding ->
@@ -108,7 +110,7 @@ fun FamilyMembersScreen(
                     MemberRow(
                         initials = f.primary.name.take(1).uppercase(),
                         name = f.primary.name,
-                        subtitle = "You (primary account)",
+                        subtitle = "You",
                         accent = true,
                         onRemove = null,
                     )
@@ -118,10 +120,10 @@ fun FamilyMembersScreen(
                     } else {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "DEPENDENTS",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MedHistryColors.TextLight,
+                            "Family members",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MedHistryColors.TextSecondary,
                             modifier = Modifier.padding(vertical = 10.dp),
                         )
                         f.dependents.forEach { dep ->
@@ -376,7 +378,11 @@ private fun AddMemberDialog(
                         .clickable { showDatePicker = true },
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Text("\uD83D\uDCC5", fontSize = 18.sp) // calendar emoji
+                            Icon(
+                                imageVector = Icons.Outlined.CalendarMonth,
+                                contentDescription = "Pick date",
+                                tint = MedHistryColors.TextSecondary,
+                            )
                         }
                     },
                     interactionSource = remember { MutableInteractionSource() }.also { source ->

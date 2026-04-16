@@ -126,6 +126,12 @@ async def _build_briefing(
     all_meds = []
     all_diagnoses = []
     critical_labs = []
+    # Allergies extracted across all docs — merged with patient.allergies
+    # before we return so the banner reflects BOTH manually-entered and
+    # document-discovered allergies. Case-insensitive dedup preserves the
+    # casing of the first occurrence (usually the manual entry, which
+    # reads better than Gemini's capitalization).
+    extracted_allergies: list[str] = []
     document_notes: list[DocumentNote] = []
     # Cap notes at 5 so the doctor's scroll stays readable when a patient has
     # dozens of documents. The aggregated `medical_summary` + diagnoses/meds
@@ -140,6 +146,9 @@ async def _build_briefing(
         for lab in data.get("lab_results", []):
             if lab.get("status") in ("high", "low", "critical"):
                 critical_labs.append(lab)
+        for a in (data.get("allergies_mentioned") or []):
+            if isinstance(a, str) and a.strip():
+                extracted_allergies.append(a.strip())
 
         # Surface the per-document clinical content the doctor needs.
         # Skip docs with no useful narrative (e.g. extraction still in progress).
@@ -181,19 +190,52 @@ async def _build_briefing(
                 vitals=data.get("vitals", []) or [],
             ))
 
+    # Merge manually-entered allergies with document-extracted ones. Split
+    # patient.allergies on common separators (comma / semicolon / newline)
+    # so we can dedup against the extraction list case-insensitively, then
+    # stitch back with a consistent ", " delimiter. Result is null only if
+    # BOTH sources were empty — lets the UI banner render "No known
+    # allergies" as before.
+    manual_allergies: list[str] = []
+    if patient.allergies:
+        for piece in patient.allergies.replace(";", ",").replace("\n", ",").split(","):
+            p = piece.strip()
+            if p:
+                manual_allergies.append(p)
+    merged_allergies: list[str] = []
+    seen: set[str] = set()
+    for a in manual_allergies + extracted_allergies:
+        key = a.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        merged_allergies.append(a)
+    allergies_text = ", ".join(merged_allergies) if merged_allergies else None
+
+    # `docs` is ordered newest-first, so docs[0].created_at is the most
+    # recent extraction — we use that as the medical_summary freshness
+    # proxy. Null when the patient has no completed documents yet.
+    summary_updated_at = docs[0].created_at if docs else None
+
     return PatientBriefing(
         patient_id=patient.id,
         name=patient.name,
         age=_calculate_age(patient.date_of_birth),
         gender=patient.gender,
         blood_group=patient.blood_group,
-        allergies=patient.allergies,
+        allergies=allergies_text,
         medical_summary=patient.medical_summary,
+        medical_summary_updated_at=summary_updated_at,
         medications=all_meds,
         diagnoses=list(set(all_diagnoses)),
         critical_labs=critical_labs,
         document_notes=document_notes,
         total_documents=len(docs),
+        # Only surface `relationship` when the patient is actually a
+        # dependent of someone else (managed_by is set). For primary
+        # accounts the field is stored as None anyway, but this guards
+        # against stray non-null relationship values on a primary row.
+        relationship=patient.relationship if patient.managed_by else None,
         session_expires_at=session.expires_at,
     )
 

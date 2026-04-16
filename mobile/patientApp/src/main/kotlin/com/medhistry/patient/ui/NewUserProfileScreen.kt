@@ -10,6 +10,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -44,7 +46,19 @@ fun NewUserProfileScreen(
             .verticalScroll(rememberScrollState()),
     ) {
         Spacer(Modifier.height(40.dp))
-        Text("\u2039 Back", color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            modifier = Modifier.clickable { onBack() },
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text("Back", color = MedHistryColors.TextPrimary)
+        }
         Spacer(Modifier.height(16.dp))
         Text(
             "Complete your profile",

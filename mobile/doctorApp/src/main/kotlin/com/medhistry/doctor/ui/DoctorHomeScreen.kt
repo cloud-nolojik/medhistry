@@ -23,6 +23,7 @@ import com.medhistry.data.DoctorDashboardBriefing
 import com.medhistry.data.MedHistryApi
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -84,8 +85,16 @@ fun DoctorHomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column {
+                // Time-aware greeting — the doctor runs clinics across the
+                // whole day, so a hardcoded "Good morning" read wrong at
+                // 6pm. Boundaries: <12 morning, <17 afternoon, else evening.
+                val greeting = when (LocalTime.now().hour) {
+                    in 0..11 -> "Good morning,"
+                    in 12..16 -> "Good afternoon,"
+                    else -> "Good evening,"
+                }
                 Text(
-                    "Good morning,",
+                    greeting,
                     fontSize = 14.sp,
                     color = DoctorColors.TextSecondary,
                 )

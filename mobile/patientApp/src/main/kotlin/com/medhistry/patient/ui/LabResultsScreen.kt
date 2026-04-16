@@ -3,12 +3,14 @@ package com.medhistry.patient.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,15 +30,20 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private const val LAB_ALL_MEMBERS = "__all__"
-
 /**
  * Lab Results tab — shows all lab results and vitals with color-coded status.
  */
 @Composable
-fun LabResultsScreen(api: MedHistryApi) {
+fun LabResultsScreen(
+    api: MedHistryApi,
+    onScanReport: () -> Unit = {},
+    onManageFamily: () -> Unit = {},
+) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
-    var activePatientId by remember { mutableStateOf<String?>(LAB_ALL_MEMBERS) } // default = All
+    // null = primary (logged-in user). Dependent ids filter to that member.
+    // No aggregate "All" view — default to "me" and let the user tap a
+    // family member chip to switch.
+    var activePatientId by remember { mutableStateOf<String?>(null) }
     var healthSummary by remember { mutableStateOf<PatientHealthSummary?>(null) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -47,35 +54,7 @@ fun LabResultsScreen(api: MedHistryApi) {
 
     LaunchedEffect(activePatientId, family) {
         loading = true
-        if (activePatientId == LAB_ALL_MEMBERS) {
-            // Fetch for self + all dependents and merge
-            val allLabs = mutableListOf<Map<String, JsonElement>>()
-            val allVitals = mutableListOf<Map<String, JsonElement>>()
-            runCatching { api.getHealthSummary(null) }.onSuccess { hs ->
-                allLabs.addAll(hs.labResults)
-                allVitals.addAll(hs.vitals)
-            }
-            family?.dependents?.forEach { dep ->
-                runCatching { api.getHealthSummary(dep.id) }.onSuccess { hs ->
-                    allLabs.addAll(hs.labResults)
-                    allVitals.addAll(hs.vitals)
-                }
-            }
-            healthSummary = PatientHealthSummary(
-                patientId = "",
-                totalDocuments = 0,
-                medications = emptyList(),
-                diagnoses = emptyList(),
-                allergies = emptyList(),
-                vitals = allVitals,
-                labResults = allLabs,
-                overallSummary = null,
-            )
-        } else if (activePatientId == null) {
-            runCatching { api.getHealthSummary(null) }.onSuccess { healthSummary = it }
-        } else {
-            runCatching { api.getHealthSummary(activePatientId) }.onSuccess { healthSummary = it }
-        }
+        runCatching { api.getHealthSummary(activePatientId) }.onSuccess { healthSummary = it }
         loading = false
     }
 
@@ -98,27 +77,16 @@ fun LabResultsScreen(api: MedHistryApi) {
             modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
         )
 
-        // Family member chips
-        family?.let { f ->
-            if (f.dependents.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    LabMemberChip("All", activePatientId == LAB_ALL_MEMBERS) { activePatientId = LAB_ALL_MEMBERS }
-                    LabMemberChip("Me", activePatientId == null) { activePatientId = null }
-                    f.dependents.forEach { dep ->
-                        LabMemberChip(dep.name.split(" ").first(), activePatientId == dep.id) {
-                            activePatientId = dep.id
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-        }
+        // Family member picker. Adapts to family size (chips for ≤4,
+        // bottom-sheet for 5+). Null activePatientId means "me".
+        MemberPicker(
+            family = family,
+            selectedId = activePatientId ?: family?.primary?.id,
+            onSelect = { id ->
+                activePatientId = if (id == family?.primary?.id) null else id
+            },
+            onAddFamilyMember = onManageFamily,
+        )
 
         if (loading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -130,21 +98,34 @@ fun LabResultsScreen(api: MedHistryApi) {
 
             if (labs.isEmpty() && vitals.isEmpty()) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(48.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text("\uD83E\uDDEA", fontSize = 48.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.Science,
+                        contentDescription = null,
+                        tint = MedHistryColors.Primary,
+                        modifier = Modifier.size(48.dp),
+                    )
                     Spacer(Modifier.height(16.dp))
                     Text("No lab results yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Upload a lab report and your results will appear here with easy-to-understand explanations.",
+                        "Scan a lab report and we'll lay out your results in plain language with color-coded highlights.",
                         fontSize = 14.sp,
                         color = MedHistryColors.TextSecondary,
                         lineHeight = 20.sp,
                         textAlign = TextAlign.Center,
                     )
+                    Spacer(Modifier.height(20.dp))
+                    Button(
+                        onClick = onScanReport,
+                        colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Scan a lab report", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             } else {
                 // Merge all items (vitals + labs) and group by report_date,
@@ -164,16 +145,29 @@ fun LabResultsScreen(api: MedHistryApi) {
                         .padding(bottom = 24.dp),
                 ) {
                     grouped.forEach { (date, items) ->
-                        // Date header
-                        val dateLabel = if (date == "unknown") "Other Results"
-                            else "\uD83D\uDCC5 ${labFormatDate(date)}"
-                        Text(
-                            dateLabel,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MedHistryColors.TextPrimary,
+                        // Date header — calendar glyph replaced with a
+                        // Material Symbols icon so it renders consistently
+                        // across OEM emoji fonts.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 6.dp),
-                        )
+                        ) {
+                            if (date != "unknown") {
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MedHistryColors.TextSecondary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            Text(
+                                if (date == "unknown") "Other Results" else labFormatDate(date),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MedHistryColors.TextPrimary,
+                            )
+                        }
 
                         // Split into vitals and labs within this date
                         val dateVitals = items.filter { it.first == "vital" }.map { it.second }
@@ -270,7 +264,7 @@ private fun LabResultRow(item: Map<String, JsonElement>) {
         Column(modifier = Modifier.weight(1f)) {
             Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
             if (!ref.isNullOrEmpty() && ref != "null") {
-                Text("Reference: $ref", fontSize = 11.sp, color = MedHistryColors.TextLight)
+                Text("Normal range: $ref", fontSize = 11.sp, color = MedHistryColors.TextLight)
             }
             if (!explanation.isNullOrEmpty() && explanation != "null") {
                 Spacer(Modifier.height(3.dp))
@@ -312,21 +306,3 @@ private fun labFormatDate(isoDate: String): String {
     }
 }
 
-@Composable
-private fun LabMemberChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MedHistryColors.Primary else MedHistryColors.Surface)
-            .border(1.dp, if (selected) MedHistryColors.Primary else MedHistryColors.Border, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else MedHistryColors.TextPrimary,
-        )
-    }
-}

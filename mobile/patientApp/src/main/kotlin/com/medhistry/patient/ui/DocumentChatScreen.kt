@@ -10,8 +10,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -114,16 +121,16 @@ fun DocumentChatScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "\u2039",
-                fontSize = 28.sp,
-                color = MedHistryColors.TextPrimary,
-                modifier = Modifier.clickable { onBack() },
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(24.dp).clickable { onBack() },
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Ask about this document",
+                    "Ask about this report",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = MedHistryColors.TextPrimary,
@@ -156,7 +163,12 @@ fun DocumentChatScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("\u2139\uFE0F", fontSize = 12.sp)
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF92400E),
+                    modifier = Modifier.size(14.dp),
+                )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text,
@@ -234,10 +246,15 @@ private fun EmptyChatState(
             .padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("\uD83D\uDCAC", fontSize = 36.sp)
+        Icon(
+            imageVector = Icons.Outlined.ChatBubbleOutline,
+            contentDescription = null,
+            tint = MedHistryColors.Primary,
+            modifier = Modifier.size(40.dp),
+        )
         Spacer(Modifier.height(12.dp))
         Text(
-            "Ask anything about this document",
+            "Ask anything about this report",
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = MedHistryColors.TextPrimary,
@@ -298,7 +315,12 @@ private fun MessageBubble(m: ChatMessage) {
         ) {
             if (isRedFlag) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("\u26A0\uFE0F", fontSize = 13.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.WarningAmber,
+                        contentDescription = null,
+                        tint = txt,
+                        modifier = Modifier.size(14.dp),
+                    )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         "Please read",
@@ -364,7 +386,7 @@ private fun Composer(
         ) {
             if (value.isEmpty()) {
                 Text(
-                    "Ask about this document…",
+                    "Ask about this report…",
                     fontSize = 14.sp,
                     color = MedHistryColors.TextLight,
                 )
@@ -392,11 +414,11 @@ private fun Composer(
                 .clickable(enabled = canSend) { onSend() },
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                "\u2191",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Send",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp),
             )
         }
     }

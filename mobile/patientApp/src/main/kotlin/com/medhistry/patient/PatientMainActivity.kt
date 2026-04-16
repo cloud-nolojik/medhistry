@@ -322,9 +322,19 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
                     onDocumentClick = { docId, memberName ->
                         screen = Screen.DocumentDetail(s.session, docId, memberName)
                     },
+                    onScanReport = { screen = Screen.Upload(s.session) },
+                    onManageFamily = { screen = Screen.Family(s.session) },
                 )
-                PatientTab.Medicines -> MedicinesScreen(api = api)
-                PatientTab.LabResults -> LabResultsScreen(api = api)
+                PatientTab.Medicines -> MedicinesScreen(
+                    api = api,
+                    onScanReport = { screen = Screen.Upload(s.session) },
+                    onManageFamily = { screen = Screen.Family(s.session) },
+                )
+                PatientTab.LabResults -> LabResultsScreen(
+                    api = api,
+                    onScanReport = { screen = Screen.Upload(s.session) },
+                    onManageFamily = { screen = Screen.Family(s.session) },
+                )
             }
         }
         is Screen.Share -> ShareScreen(

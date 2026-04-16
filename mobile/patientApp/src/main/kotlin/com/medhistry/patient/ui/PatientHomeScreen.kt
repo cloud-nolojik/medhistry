@@ -9,12 +9,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,7 +110,10 @@ fun PatientHomeScreen(
         val activeName: String? = activePatientId?.let { id ->
             family?.dependents?.firstOrNull { it.id == id }?.name?.split(" ")?.firstOrNull()
         }
-        val shareLabel = activeName?.let { "Share ${it}'s Records" } ?: "Share Records"
+        // "Show Doctor" frames the action in terms of what the patient
+        // physically does — opens a QR for the doctor to scan. "Share" was
+        // ambiguous (WhatsApp? Email?) to non-technical users.
+        val shareLabel = activeName?.let { "Show ${it}'s Doctor" } ?: "Show Doctor"
 
         Row(
             modifier = Modifier
@@ -110,15 +122,19 @@ fun PatientHomeScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             QuickAction(
-                label = "Upload Record",
-                emoji = "\uD83D\uDCF7",
+                // "Scan Report" is what patients actually do — point camera
+                // at paper. "Upload" is developer-speak.
+                label = "Scan Report",
+                icon = Icons.Outlined.PhotoCamera,
+                iconTint = Color(0xFF2563EB),
                 bg = Color(0xFFEBF5FF),
                 modifier = Modifier.weight(1f),
                 onClick = onUpload,
             )
             QuickAction(
                 label = shareLabel,
-                emoji = "\uD83D\uDCF2",
+                icon = Icons.Outlined.MedicalServices,
+                iconTint = MedHistryColors.AccentDark,
                 bg = Color(0xFFF0FDF4),
                 modifier = Modifier.weight(1f),
                 onClick = { onShareQR(activePatientId) },
@@ -139,9 +155,11 @@ fun PatientHomeScreen(
             }
         } else if (hs == null || hs.totalDocuments == 0) {
             EmptyStateCard(
-                icon = "\uD83D\uDCCB",
+                icon = Icons.Outlined.Description,
                 title = "No records yet",
-                subtitle = "Upload a prescription or lab report to see your health summary here.",
+                subtitle = "Scan a prescription or lab report to see your health summary here.",
+                ctaLabel = "Scan your first report",
+                onCta = onUpload,
             )
         } else {
             // Patient-friendly summary with status badge
@@ -151,10 +169,10 @@ fun PatientHomeScreen(
 
                 // Status badge
                 hs.overallStatus?.let { status ->
-                    val (statusColor, statusBg, statusEmoji) = when (status) {
-                        "all_good" -> Triple(Color(0xFF16A34A), Color(0xFFF0FDF4), "\u2705")
-                        "critical" -> Triple(Color(0xFFDC2626), Color(0xFFFEF2F2), "\u26A0\uFE0F")
-                        else -> Triple(Color(0xFFD97706), Color(0xFFFFFBEB), "\uD83D\uDCA1") // attention_needed
+                    val (statusColor, statusBg, statusIcon) = when (status) {
+                        "all_good" -> Triple(Color(0xFF16A34A), Color(0xFFF0FDF4), Icons.Outlined.CheckCircle)
+                        "critical" -> Triple(Color(0xFFDC2626), Color(0xFFFEF2F2), Icons.Outlined.WarningAmber)
+                        else -> Triple(Color(0xFFD97706), Color(0xFFFFFBEB), Icons.Outlined.Lightbulb)
                     }
                     val statusMsg = hs.overallStatusMessage ?: when (status) {
                         "all_good" -> "Everything looks good!"
@@ -170,7 +188,12 @@ fun PatientHomeScreen(
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(statusEmoji, fontSize = 18.sp)
+                        Icon(
+                            imageVector = statusIcon,
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             statusMsg,
@@ -198,7 +221,12 @@ fun PatientHomeScreen(
                         val dosage = med["dosage"]?.jsonPrimitive?.content
                         val purpose = med["purpose"]?.jsonPrimitive?.content
                         Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("\uD83D\uDC8A", fontSize = 18.sp)
+                            Icon(
+                                imageVector = Icons.Outlined.Medication,
+                                contentDescription = null,
+                                tint = MedHistryColors.Primary,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -260,7 +288,7 @@ fun PatientHomeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MedHistryColors.TextPrimary)
                                 if (!ref.isNullOrEmpty() && ref != "null") {
-                                    Text("Ref: $ref", fontSize = 11.sp, color = MedHistryColors.TextLight)
+                                    Text("Normal range: $ref", fontSize = 11.sp, color = MedHistryColors.TextLight)
                                 }
                                 if (!explanation.isNullOrEmpty() && explanation != "null") {
                                     Text(explanation, fontSize = 12.sp, color = MedHistryColors.TextSecondary, lineHeight = 16.sp)
@@ -296,7 +324,12 @@ fun PatientHomeScreen(
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("\u26A0\uFE0F", fontSize = 16.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.WarningAmber,
+                        contentDescription = null,
+                        tint = MedHistryColors.Danger,
+                        modifier = Modifier.size(16.dp),
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "Allergies: ${hs.allergies.joinToString(", ")}",
@@ -330,7 +363,7 @@ private fun GreetingHeader(name: String, onProfile: () -> Unit) {
     ) {
         Column {
             Text(
-                "Hello, ${name.split(" ").first()} \uD83D\uDC4B",
+                "Hello, ${name.split(" ").first()}",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = MedHistryColors.TextPrimary,
@@ -368,11 +401,14 @@ private fun SharingAsRow(
     onAddFamily: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        // "Viewing records for" reads as a clear question the patient is
+        // answering with their chip choice. "Sharing as" was confusing —
+        // patients aren't sharing anything until they tap Show Doctor.
         Text(
-            "SHARING AS",
-            fontSize = 11.sp,
+            "Viewing records for",
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            color = MedHistryColors.TextLight,
+            color = MedHistryColors.TextSecondary,
         )
         Spacer(Modifier.height(8.dp))
         Row(
@@ -381,8 +417,10 @@ private fun SharingAsRow(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Show the patient's own first name instead of the pronoun "Me"
+            // so the row is consistent with the dependent chips beside it.
             ProfileChip(
-                label = "Me",
+                label = primary.name.split(" ").firstOrNull()?.takeIf { it.isNotBlank() } ?: "Me",
                 selected = activeId == null,
                 onClick = { onSelect(null) },
             )
@@ -393,7 +431,10 @@ private fun SharingAsRow(
                     onClick = { onSelect(dep.id) },
                 )
             }
-            AddFamilyButton(onClick = onAddFamily)
+            // Shared chip — identical to the one used on Records /
+            // Medicines / Lab Results so the add-family affordance
+            // looks and reads the same on every screen.
+            AddFamilyMemberChip(onClick = onAddFamily)
         }
     }
 }
@@ -422,30 +463,13 @@ private fun ProfileChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AddFamilyButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(MedHistryColors.PrimaryLight)
-            .border(
-                1.dp,
-                MedHistryColors.Primary,
-                RoundedCornerShape(20.dp),
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Text(
-            "+ Add",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MedHistryColors.Primary,
-        )
-    }
-}
-
-@Composable
-private fun EmptyStateCard(icon: String, title: String, subtitle: String) {
+private fun EmptyStateCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    ctaLabel: String? = null,
+    onCta: (() -> Unit)? = null,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -453,10 +477,15 @@ private fun EmptyStateCard(icon: String, title: String, subtitle: String) {
             .clip(RoundedCornerShape(16.dp))
             .background(MedHistryColors.Surface)
             .border(1.dp, MedHistryColors.Border, RoundedCornerShape(16.dp))
-            .padding(vertical = 48.dp, horizontal = 24.dp),
+            .padding(vertical = 40.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(icon, fontSize = 48.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MedHistryColors.Primary,
+            modifier = Modifier.size(48.dp),
+        )
         Spacer(Modifier.height(16.dp))
         Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
         Spacer(Modifier.height(6.dp))
@@ -466,7 +495,26 @@ private fun EmptyStateCard(icon: String, title: String, subtitle: String) {
             color = MedHistryColors.TextSecondary,
             lineHeight = 20.sp,
             modifier = Modifier.padding(horizontal = 16.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
+        // Inline CTA — patients shouldn't have to scroll their eyes back to
+        // the top Scan tile to act on the empty state.
+        if (ctaLabel != null && onCta != null) {
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = onCta,
+                colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(44.dp),
+            ) {
+                Text(
+                    ctaLabel,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
+        }
     }
 }
 
@@ -498,7 +546,8 @@ private fun WhiteCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun QuickAction(
     label: String,
-    emoji: String,
+    icon: ImageVector,
+    iconTint: Color,
     bg: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -519,7 +568,12 @@ private fun QuickAction(
                 .background(bg),
             contentAlignment = Alignment.Center,
         ) {
-            Text(emoji, fontSize = 22.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp),
+            )
         }
         Spacer(Modifier.height(10.dp))
         Text(

@@ -8,14 +8,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,9 +44,9 @@ import java.io.File
  * The card re-fetches whenever [activePatientId] changes so "Sharing as"
  * chip switches refresh the list for the right person.
  *
- * When there are zero pending events the card renders nothing — no point
- * consuming scroll real estate with an empty state when the header above
- * already greets the user.
+ * When there are zero pending events the card renders a single compact
+ * "All caught up" row — enough to teach the user the app tracks follow-ups
+ * without eating significant scroll real estate.
  */
 @Composable
 fun UpcomingEventsCard(
@@ -86,7 +94,56 @@ fun UpcomingEventsCard(
                 )
             }
         }
-        loaded.isEmpty() -> Unit // render nothing
+        loaded.isEmpty() -> {
+            // Compact zero-state. Keeps the "Upcoming" concept discoverable
+            // so patients know the app will surface follow-ups once they
+            // upload records — without stealing vertical space with a full
+            // illustrated empty card.
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                ) {
+                    Text(
+                        "Upcoming",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MedHistryColors.TextPrimary,
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MedHistryColors.Surface)
+                        .border(1.dp, MedHistryColors.Border, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = null,
+                        tint = MedHistryColors.Accent,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "You're all caught up",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MedHistryColors.TextPrimary,
+                        )
+                        Text(
+                            "Follow-ups and repeat tests will show here.",
+                            fontSize = 12.sp,
+                            color = MedHistryColors.TextLight,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+        }
         else -> {
             val visible = loaded.take(3)
             val extra = (loaded.size - visible.size).coerceAtLeast(0)
@@ -302,13 +359,13 @@ private fun EventRow(
                     modifier = Modifier.size(18.dp),
                 )
             } else {
-                // Compact icon-button row. We keep labels to single characters/
-                // emoji so three buttons fit next to the title without wrapping.
-                SmallIconButton(symbol = "\uD83D\uDCC5", onClick = onAddToCalendar)    // 📅
+                // Compact icon-button row. Three Material icons fit neatly
+                // next to the title without wrapping.
+                SmallIconButton(icon = Icons.Outlined.CalendarMonth, contentDescription = "Add to calendar", onClick = onAddToCalendar)
                 Spacer(Modifier.width(6.dp))
-                SmallIconButton(symbol = "\u2713", onClick = onComplete, tint = MedHistryColors.Accent) // ✓
+                SmallIconButton(icon = Icons.Outlined.Check, contentDescription = "Mark done", onClick = onComplete, tint = MedHistryColors.Accent)
                 Spacer(Modifier.width(6.dp))
-                SmallIconButton(symbol = "\u2715", onClick = onDismiss, tint = MedHistryColors.TextLight) // ✕
+                SmallIconButton(icon = Icons.Outlined.Close, contentDescription = "Skip", onClick = onDismiss, tint = MedHistryColors.TextLight)
             }
         }
 
@@ -329,7 +386,12 @@ private fun EventRow(
                     .border(1.dp, MedHistryColors.Primary, RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
-                Text("\u2728", fontSize = 14.sp) // ✨
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = MedHistryColors.PrimaryDark,
+                    modifier = Modifier.size(16.dp),
+                )
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -361,16 +423,18 @@ private fun EventRow(
                         modifier = Modifier.size(16.dp),
                     )
                 } else {
-                    // ✓ confirms — marks event complete (backend also clears suggestion).
+                    // Check confirms — marks event complete (backend also clears suggestion).
                     SmallIconButton(
-                        symbol = "\u2713",
+                        icon = Icons.Outlined.Check,
+                        contentDescription = "Confirm",
                         onClick = onComplete,
                         tint = MedHistryColors.Accent,
                     )
                     Spacer(Modifier.width(6.dp))
-                    // ✕ dismisses only the suggestion — event stays pending.
+                    // Close dismisses only the suggestion — event stays pending.
                     SmallIconButton(
-                        symbol = "\u2715",
+                        icon = Icons.Outlined.Close,
+                        contentDescription = "Dismiss suggestion",
                         onClick = onDismissSuggestion,
                         tint = MedHistryColors.TextLight,
                     )
@@ -382,7 +446,8 @@ private fun EventRow(
 
 @Composable
 private fun SmallIconButton(
-    symbol: String,
+    icon: ImageVector,
+    contentDescription: String,
     onClick: () -> Unit,
     tint: Color = MedHistryColors.TextPrimary,
 ) {
@@ -395,6 +460,11 @@ private fun SmallIconButton(
             .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        Text(symbol, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = tint)
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }

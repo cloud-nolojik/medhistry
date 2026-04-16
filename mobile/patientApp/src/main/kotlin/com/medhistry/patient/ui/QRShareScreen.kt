@@ -7,6 +7,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -107,8 +110,12 @@ private fun SharingForSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    val primaryFirstName: String = family?.primary?.name
+        ?.split(" ")?.firstOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?: "Me"
     val activeName: String = when {
-        selectedPatientId == null -> family?.primary?.name?.takeIf { it.isNotBlank() } ?: "Me"
+        selectedPatientId == null -> primaryFirstName
         else -> family?.dependents?.firstOrNull { it.id == selectedPatientId }?.name ?: "—"
     }
     val activeRelationship: String? = if (selectedPatientId == null) {
@@ -130,7 +137,7 @@ private fun SharingForSelector(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Sharing for",
+                    "Health records for",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MedHistryColors.TextLight,
@@ -150,11 +157,11 @@ private fun SharingForSelector(
                     )
                 }
             }
-            Text(
-                if (expanded) "\u25B2" else "\u25BC",
-                fontSize = 12.sp,
-                color = MedHistryColors.Primary,
-                fontWeight = FontWeight.Bold,
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MedHistryColors.Primary,
+                modifier = Modifier.size(24.dp),
             )
         }
 
@@ -166,7 +173,7 @@ private fun SharingForSelector(
                 text = {
                     Column {
                         Text(
-                            family?.primary?.name?.takeIf { it.isNotBlank() } ?: "Me",
+                            primaryFirstName,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text("You", fontSize = 11.sp, color = MedHistryColors.TextSecondary)
@@ -364,7 +371,7 @@ private fun CodeMode(api: MedHistryApi, patientId: String?) {
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "Valid for 5 minutes \u2022 single use",
+            "Expires after 5 minutes for security \u2022 single use",
             fontSize = 12.sp,
             color = MedHistryColors.TextLight,
         )

@@ -11,12 +11,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,11 +73,18 @@ fun PatientUploadScreen(
     // Document pending delete confirmation
     var pendingDeleteDoc by remember { mutableStateOf<DocumentOut?>(null) }
 
-    // Build member list for dropdown: "Me (Self)" + dependents
+    // Primary account holder's first name — used in place of generic "Me" so
+    // the member picker and document rows read like a person's name.
+    val primaryFirstName = family?.primary?.name
+        ?.split(" ")?.firstOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?: "Me"
+
+    // Build member list for dropdown: <primary first name> + dependents
     data class MemberOption(val id: String?, val label: String)
-    val memberOptions = remember(family) {
+    val memberOptions = remember(family, primaryFirstName) {
         buildList {
-            add(MemberOption(null, "Me (Self)"))
+            add(MemberOption(null, primaryFirstName))
             family?.dependents?.forEach { dep ->
                 add(MemberOption(dep.id, dep.name))
             }
@@ -74,8 +93,8 @@ fun PatientUploadScreen(
 
     // Helper to resolve member name from patient_id
     fun memberNameFor(patientId: String): String {
-        if (patientId == family?.primary?.id) return "Me (Self)"
-        return family?.dependents?.find { it.id == patientId }?.name ?: "Unknown"
+        if (patientId == family?.primary?.id) return primaryFirstName
+        return family?.dependents?.find { it.id == patientId }?.name ?: primaryFirstName
     }
 
     // Load recent uploads
@@ -199,10 +218,10 @@ fun PatientUploadScreen(
             onDismissRequest = { pendingUploadUri = null },
             shape = RoundedCornerShape(20.dp),
             containerColor = MedHistryColors.Surface,
-            title = { Text("Upload document", fontWeight = FontWeight.Bold) },
+            title = { Text("Add this report", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("Who is this document for?", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
+                    Text("Whose report is this?", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
                     Spacer(Modifier.height(12.dp))
 
                     // Member dropdown
@@ -264,7 +283,7 @@ fun PatientUploadScreen(
                     onClick = { doUpload(uri, selectedMember.id); pendingUploadUri = null },
                     colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text("Upload", color = Color.White, fontWeight = FontWeight.SemiBold) }
+                ) { Text("Add", color = Color.White, fontWeight = FontWeight.SemiBold) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingUploadUri = null }) {
@@ -280,10 +299,10 @@ fun PatientUploadScreen(
             onDismissRequest = { pendingDeleteDoc = null },
             shape = RoundedCornerShape(20.dp),
             containerColor = MedHistryColors.Surface,
-            title = { Text("Delete document?", fontWeight = FontWeight.Bold) },
+            title = { Text("Delete this report?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This will permanently delete \"${doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: doc.filename}\" and update the health summary.",
+                    "This will permanently remove \"${doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: doc.filename}\" and update your health summary.",
                     fontSize = 14.sp,
                 )
             },
@@ -331,17 +350,22 @@ fun PatientUploadScreen(
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("\u2039", fontSize = 28.sp, color = MedHistryColors.TextPrimary, modifier = Modifier.clickable { onBack() })
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(24.dp).clickable { onBack() },
+            )
             Spacer(Modifier.width(16.dp))
-            Text("Upload Records", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            Text("Add a Report", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
 
         // Upload progress / status banner
         when (val state = uploadState) {
             is UploadState.Idle -> {}
-            is UploadState.RequestingUrl -> UploadProgressBanner("Preparing upload...", null)
-            is UploadState.Uploading -> UploadProgressBanner("Uploading to cloud...", state.progress)
-            is UploadState.Processing -> UploadProgressBanner("AI is analyzing your document...", null, pulsate = true)
+            is UploadState.RequestingUrl -> UploadProgressBanner("Getting ready…", null)
+            is UploadState.Uploading -> UploadProgressBanner("Uploading to secure storage…", state.progress)
+            is UploadState.Processing -> UploadProgressBanner("Organizing your records…", null, pulsate = true)
             is UploadState.Done -> UploadSuccessBanner(state.document) { uploadState = UploadState.Idle }
             is UploadState.Error -> UploadErrorBanner(state.message) { uploadState = UploadState.Idle }
         }
@@ -373,10 +397,15 @@ fun PatientUploadScreen(
                 .padding(vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("\uD83D\uDCF7", fontSize = 48.sp)
+            Icon(
+                imageVector = Icons.Outlined.PhotoCamera,
+                contentDescription = null,
+                tint = MedHistryColors.PrimaryDark,
+                modifier = Modifier.size(48.dp),
+            )
             Spacer(Modifier.height(16.dp))
             Text("Take a Photo", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.PrimaryDark)
-            Text("Point your camera at the document", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
+            Text("Point your camera at the report", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -387,35 +416,35 @@ fun PatientUploadScreen(
                 .padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            UploadOption("\uD83D\uDDBC\uFE0F", "Gallery", Modifier.weight(1f), enabled = !isUploading) {
-                galleryLauncher.launch("image/*")
-            }
-            UploadOption("\uD83D\uDCC4", "PDF File", Modifier.weight(1f), enabled = !isUploading) {
-                pdfLauncher.launch("application/pdf")
-            }
+            UploadOption(
+                icon = Icons.Outlined.PhotoLibrary,
+                label = "Gallery",
+                subtitle = "Pick an existing photo",
+                modifier = Modifier.weight(1f),
+                enabled = !isUploading,
+            ) { galleryLauncher.launch("image/*") }
+            UploadOption(
+                icon = Icons.Outlined.PictureAsPdf,
+                label = "PDF File",
+                subtitle = "Choose from your files",
+                modifier = Modifier.weight(1f),
+                enabled = !isUploading,
+            ) { pdfLauncher.launch("application/pdf") }
         }
 
-        Spacer(Modifier.height(24.dp))
+        // Recent Reports — only shown once the user has at least one, so the
+        // empty state doesn't compete with the big "Take a Photo" CTA.
+        if (recentDocs.isNotEmpty()) {
+            Spacer(Modifier.height(24.dp))
 
-        // Recent Uploads
-        Text(
-            "Recent Uploads",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = MedHistryColors.TextPrimary,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
-        )
+            Text(
+                "Recent Reports",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MedHistryColors.TextPrimary,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
+            )
 
-        if (recentDocs.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text("No uploads yet", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
-            }
-        } else {
             recentDocs.forEach { doc ->
                 DocumentRow(
                     doc = doc,
@@ -474,18 +503,32 @@ private fun UploadSuccessBanner(doc: DocumentOut, onDismiss: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                if (doc.processingStatus == "completed") "\u2705 Upload complete — AI analysis done!"
-                else "\u2705 Uploaded — AI is analyzing...",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF166534),
-            )
-            Text(
-                "\u2715",
-                fontSize = 16.sp,
-                color = Color(0xFF166534),
-                modifier = Modifier.clickable { onDismiss() },
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF166534),
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (doc.processingStatus == "completed") "Report added — everything is organized!"
+                    else "Report added — organizing your records…",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF166534),
+                )
+            }
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Dismiss",
+                tint = Color(0xFF166534),
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { onDismiss() },
             )
         }
         doc.aiSummary?.let { summary ->
@@ -513,38 +556,55 @@ private fun UploadErrorBanner(message: String, onDismiss: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            "\u274C $message",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF991B1B),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f),
-        )
-        Text(
-            "\u2715",
-            fontSize = 16.sp,
-            color = Color(0xFF991B1B),
-            modifier = Modifier.clickable { onDismiss() },
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = Color(0xFF991B1B),
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                message,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF991B1B),
+            )
+        }
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Dismiss",
+            tint = Color(0xFF991B1B),
+            modifier = Modifier
+                .size(18.dp)
+                .clickable { onDismiss() },
         )
     }
 }
 
 @Composable
 private fun DocumentRow(doc: DocumentOut, memberName: String, onDelete: () -> Unit) {
-    val icon = when (doc.fileType) {
-        "pdf" -> "\uD83D\uDCC4"
-        "jpg", "jpeg", "png" -> "\uD83D\uDDBC\uFE0F"
-        else -> "\uD83D\uDCC1"
+    val icon: ImageVector = when (doc.fileType) {
+        "pdf" -> Icons.Outlined.PictureAsPdf
+        "jpg", "jpeg", "png" -> Icons.Outlined.Image
+        else -> Icons.Outlined.Description
+    }
+    val iconTint = when (doc.fileType) {
+        "pdf" -> MedHistryColors.Primary
+        else -> MedHistryColors.Accent
     }
     val iconBg = when (doc.fileType) {
         "pdf" -> Color(0xFFEBF5FF)
         else -> Color(0xFFF0FDF4)
     }
     val statusText = when (doc.processingStatus) {
-        "completed" -> "Analyzed \u2713"
-        "processing", "pending" -> "Processing..."
-        "pending_upload" -> "Uploading..."
-        "failed" -> "Failed \u2717"
+        "completed" -> "Ready"
+        "processing", "pending" -> "Organizing…"
+        "pending_upload" -> "Uploading…"
+        "failed" -> "Failed"
         else -> doc.processingStatus
     }
     val statusColor = when (doc.processingStatus) {
@@ -569,7 +629,14 @@ private fun DocumentRow(doc: DocumentOut, memberName: String, onDelete: () -> Un
                 .clip(RoundedCornerShape(12.dp))
                 .background(iconBg),
             contentAlignment = Alignment.Center,
-        ) { Text(icon, fontSize = 20.sp) }
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp),
+            )
+        }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -599,18 +666,20 @@ private fun DocumentRow(doc: DocumentOut, memberName: String, onDelete: () -> Un
             }
         }
         Spacer(Modifier.width(8.dp))
-        Text(
-            "\uD83D\uDDD1\uFE0F",
-            fontSize = 18.sp,
-            modifier = Modifier.clickable { onDelete() },
+        Icon(
+            imageVector = Icons.Outlined.DeleteOutline,
+            contentDescription = "Delete",
+            tint = MedHistryColors.TextLight,
+            modifier = Modifier.size(22.dp).clickable { onDelete() },
         )
     }
 }
 
 @Composable
 private fun UploadOption(
-    icon: String,
+    icon: ImageVector,
     label: String,
+    subtitle: String? = null,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onClick: () -> Unit = {},
@@ -621,11 +690,20 @@ private fun UploadOption(
             .background(if (enabled) MedHistryColors.Surface else MedHistryColors.Surface.copy(alpha = 0.5f))
             .border(1.dp, MedHistryColors.Border, RoundedCornerShape(14.dp))
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(vertical = 20.dp),
+            .padding(vertical = 20.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(icon, fontSize = 28.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MedHistryColors.Primary,
+            modifier = Modifier.size(28.dp),
+        )
         Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+        if (subtitle != null) {
+            Spacer(Modifier.height(2.dp))
+            Text(subtitle, fontSize = 11.sp, color = MedHistryColors.TextLight)
+        }
     }
 }

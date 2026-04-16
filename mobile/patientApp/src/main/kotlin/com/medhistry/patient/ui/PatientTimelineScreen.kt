@@ -1,17 +1,26 @@
 package com.medhistry.patient.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Healing
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
@@ -19,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +50,8 @@ import kotlinx.serialization.json.jsonArray
 fun PatientTimelineScreen(
     api: MedHistryApi,
     onDocumentClick: (documentId: String, memberName: String) -> Unit = { _, _ -> },
+    onScanReport: () -> Unit = {},
+    onManageFamily: () -> Unit = {},
 ) {
     var documents by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
@@ -92,10 +104,18 @@ fun PatientTimelineScreen(
         } catch (_: Exception) { dateStr }
     }
 
-    // Filter: null = "All", else patient_id
+    // Active filter. Starts null (pre-family-load) and is set to the primary's
+    // id once the family list arrives — so the first view is the logged-in
+    // user's own records, not an aggregate across dependents.
     var filterPatientId by remember { mutableStateOf<String?>(null) }
 
-    // Apply filter, then sort and group
+    LaunchedEffect(family) {
+        val f = family ?: return@LaunchedEffect
+        if (filterPatientId == null) filterPatientId = f.primary.id
+    }
+
+    // Apply filter, then sort and group. The null branch only runs for the
+    // brief pre-init window before family loads.
     val filteredDocs = remember(documents, filterPatientId) {
         val list = if (filterPatientId == null) documents
         else documents.filter { it.patientId == filterPatientId }
@@ -113,7 +133,7 @@ fun PatientTimelineScreen(
             .padding(bottom = 24.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)) {
-            Text("Your Timeline", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            Text("Your Records", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
             Text("Complete medical history", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
         }
 
@@ -134,25 +154,16 @@ fun PatientTimelineScreen(
             }
         }
 
-        // Family member filter chips
-        family?.let { f ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip("All", filterPatientId == null) { filterPatientId = null }
-                FilterChip("Me", filterPatientId == f.primary.id) { filterPatientId = f.primary.id }
-                f.dependents.forEach { dep ->
-                    FilterChip(dep.name.split(" ").first(), filterPatientId == dep.id) {
-                        filterPatientId = dep.id
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
+        // Family member picker. Adapts to family size (chips for ≤4,
+        // bottom-sheet for 5+). filterPatientId is the concrete selected
+        // id (set to f.primary.id once family loads), so we pass it through
+        // directly.
+        MemberPicker(
+            family = family,
+            selectedId = filterPatientId,
+            onSelect = { filterPatientId = it },
+            onAddFamilyMember = onManageFamily,
+        )
 
         if (loading) {
             Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
@@ -165,15 +176,35 @@ fun PatientTimelineScreen(
                     .padding(horizontal = 24.dp, vertical = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("\uD83D\uDCC5", fontSize = 48.sp)
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = MedHistryColors.TextLight,
+                    modifier = Modifier.size(56.dp),
+                )
                 Spacer(Modifier.height(16.dp))
-                Text("No timeline entries yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                Text("No records yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Upload a prescription or lab report to start building your timeline.",
+                    "Scan a prescription or lab report to start building your records.",
                     fontSize = 14.sp,
                     color = MedHistryColors.TextSecondary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
+                Spacer(Modifier.height(20.dp))
+                Button(
+                    onClick = onScanReport,
+                    colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(44.dp),
+                ) {
+                    Text(
+                        "Scan your first report",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                    )
+                }
             }
         } else {
             grouped.entries.forEachIndexed { groupIdx, (dateKey, docs) ->
@@ -294,17 +325,17 @@ private fun TimelineRow(
     onClick: () -> Unit = {},
     onDelete: () -> Unit = {},
 ) {
-    val (icon, iconBg) = when (doc.docType) {
-        "prescription" -> "\uD83D\uDC8A" to Color(0xFFEBF5FF)
-        "lab_report" -> "\uD83E\uDDEA" to Color(0xFFF0FDF4)
-        "discharge_summary" -> "\uD83C\uDFE5" to Color(0xFFFEF3C7)
-        "imaging_report" -> "\uD83D\uDCF7" to Color(0xFFFDF2F8)
-        else -> "\uD83D\uDCC4" to Color(0xFFF3F4F6)
+    val (icon, iconBg, iconTint) = when (doc.docType) {
+        "prescription" -> Triple(Icons.Outlined.Medication, Color(0xFFEBF5FF), Color(0xFF2563EB))
+        "lab_report" -> Triple(Icons.Outlined.Science, Color(0xFFF0FDF4), Color(0xFF16A34A))
+        "discharge_summary" -> Triple(Icons.Outlined.LocalHospital, Color(0xFFFEF3C7), Color(0xFFD97706))
+        "imaging_report" -> Triple(Icons.Outlined.PhotoCamera, Color(0xFFFDF2F8), Color(0xFFDB2777))
+        else -> Triple(Icons.Outlined.Description, Color(0xFFF3F4F6), MedHistryColors.TextSecondary)
     }
     val title = doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: doc.filename
     val statusLine = when (doc.processingStatus) {
-        "completed" -> doc.aiSummary ?: "Analysis complete"
-        "processing", "pending" -> "AI is analyzing this document..."
+        "completed" -> doc.aiSummary ?: "Ready"
+        "processing", "pending" -> "Organizing your records…"
         "failed" -> "Processing failed"
         else -> doc.filename
     }
@@ -326,7 +357,14 @@ private fun TimelineRow(
                     .clip(RoundedCornerShape(12.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center,
-            ) { Text(icon, fontSize = 18.sp) }
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             if (showConnector) {
                 Box(
                     modifier = Modifier
@@ -368,13 +406,15 @@ private fun TimelineRow(
                 Spacer(Modifier.weight(1f))
                 // Delete icon — stops click propagation so tapping trash
                 // doesn't also open the doc detail screen.
-                Text(
-                    "\uD83D\uDDD1\uFE0F",
-                    fontSize = 16.sp,
+                Icon(
+                    imageVector = Icons.Outlined.DeleteOutline,
+                    contentDescription = "Delete",
+                    tint = MedHistryColors.TextLight,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable { onDelete() }
-                        .padding(6.dp),
+                        .padding(6.dp)
+                        .size(18.dp),
                 )
             }
             if (doc.hospitalName != null || doc.doctorName != null) {
@@ -389,8 +429,8 @@ private fun TimelineRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
-                    contentTags.forEach { (emoji, label, color) ->
-                        ContentTag(emoji = emoji, label = label, color = color)
+                    contentTags.forEach { tag ->
+                        ContentTag(icon = tag.icon, label = tag.label, color = tag.color)
                     }
                 }
             }
@@ -407,36 +447,39 @@ private fun TimelineRow(
     }
 }
 
+/** Small holder describing one chip shown under a document row. */
+private data class ContentTagData(val icon: ImageVector, val label: String, val color: Color)
+
 /** Inspect extracted_data to determine what content types this document contains. */
-private fun buildContentTags(doc: DocumentOut): List<Triple<String, String, Color>> {
+private fun buildContentTags(doc: DocumentOut): List<ContentTagData> {
     val data = doc.extractedData ?: return emptyList()
-    val tags = mutableListOf<Triple<String, String, Color>>()
+    val tags = mutableListOf<ContentTagData>()
 
     try {
         val meds = data["medications"]
         if (meds is JsonArray && meds.isNotEmpty()) {
-            tags.add(Triple("\uD83D\uDC8A", "${meds.size} medicines", Color(0xFF2563EB)))
+            tags.add(ContentTagData(Icons.Outlined.Medication, "${meds.size} medicines", Color(0xFF2563EB)))
         }
     } catch (_: Exception) {}
 
     try {
         val labs = data["lab_results"]
         if (labs is JsonArray && labs.isNotEmpty()) {
-            tags.add(Triple("\uD83E\uDDEA", "${labs.size} lab results", Color(0xFF16A34A)))
+            tags.add(ContentTagData(Icons.Outlined.Science, "${labs.size} lab results", Color(0xFF16A34A)))
         }
     } catch (_: Exception) {}
 
     try {
         val vitals = data["vitals"]
         if (vitals is JsonArray && vitals.isNotEmpty()) {
-            tags.add(Triple("\u2764\uFE0F", "${vitals.size} vitals", Color(0xFFDC2626)))
+            tags.add(ContentTagData(Icons.Outlined.Favorite, "${vitals.size} vitals", Color(0xFFDC2626)))
         }
     } catch (_: Exception) {}
 
     try {
         val diagnoses = data["diagnoses"]
         if (diagnoses is JsonArray && diagnoses.isNotEmpty()) {
-            tags.add(Triple("\uD83E\uDE7A", "${diagnoses.size} conditions", Color(0xFFD97706)))
+            tags.add(ContentTagData(Icons.Outlined.Healing, "${diagnoses.size} conditions", Color(0xFFD97706)))
         }
     } catch (_: Exception) {}
 
@@ -444,7 +487,7 @@ private fun buildContentTags(doc: DocumentOut): List<Triple<String, String, Colo
 }
 
 @Composable
-private fun ContentTag(emoji: String, label: String, color: Color) {
+private fun ContentTag(icon: ImageVector, label: String, color: Color) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -452,27 +495,14 @@ private fun ContentTag(emoji: String, label: String, color: Color) {
             .padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(emoji, fontSize = 11.sp)
-        Spacer(Modifier.width(3.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(12.dp),
+        )
+        Spacer(Modifier.width(4.dp))
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = color)
     }
 }
 
-@Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MedHistryColors.Primary else MedHistryColors.Surface)
-            .border(1.dp, if (selected) MedHistryColors.Primary else MedHistryColors.Border, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else MedHistryColors.TextPrimary,
-        )
-    }
-}

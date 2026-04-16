@@ -9,12 +9,32 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowRight
+import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.Biotech
+import androidx.compose.material.icons.outlined.Bloodtype
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Coronavirus
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Healing
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.WbCloudy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,12 +57,18 @@ import java.time.format.DateTimeFormatter
  * Each medicine displays: name, dosage, purpose (what it's for),
  * food instruction, and category icon.
  */
-private const val ALL_MEMBERS = "__all__"
-
 @Composable
-fun MedicinesScreen(api: MedHistryApi) {
+fun MedicinesScreen(
+    api: MedHistryApi,
+    onScanReport: () -> Unit = {},
+    onManageFamily: () -> Unit = {},
+) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
-    var activePatientId by remember { mutableStateOf<String?>(ALL_MEMBERS) } // default = All
+    // null = the primary (logged-in) user's own records. Dependent ids filter
+    // to that member. No aggregate "All" view — the patient-friendly default
+    // is to show "me" first and let the user tap a family member chip to
+    // switch. Reduces cognitive load and avoids mixed-person timelines.
+    var activePatientId by remember { mutableStateOf<String?>(null) }
     var healthSummary by remember { mutableStateOf<PatientHealthSummary?>(null) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -54,33 +80,7 @@ fun MedicinesScreen(api: MedHistryApi) {
     // Reload when family member changes
     LaunchedEffect(activePatientId, family) {
         loading = true
-        if (activePatientId == ALL_MEMBERS) {
-            // Fetch for self + all dependents and merge
-            val allMeds = mutableListOf<Map<String, JsonElement>>()
-            runCatching { api.getHealthSummary(null) }.onSuccess { hs ->
-                allMeds.addAll(hs.medications)
-            }
-            family?.dependents?.forEach { dep ->
-                runCatching { api.getHealthSummary(dep.id) }.onSuccess { hs ->
-                    allMeds.addAll(hs.medications)
-                }
-            }
-            // Build a merged summary with just medications
-            healthSummary = PatientHealthSummary(
-                patientId = "",
-                totalDocuments = 0,
-                medications = allMeds,
-                diagnoses = emptyList(),
-                allergies = emptyList(),
-                vitals = emptyList(),
-                labResults = emptyList(),
-                overallSummary = null,
-            )
-        } else if (activePatientId == null) {
-            runCatching { api.getHealthSummary(null) }.onSuccess { healthSummary = it }
-        } else {
-            runCatching { api.getHealthSummary(activePatientId) }.onSuccess { healthSummary = it }
-        }
+        runCatching { api.getHealthSummary(activePatientId) }.onSuccess { healthSummary = it }
         loading = false
     }
 
@@ -104,27 +104,17 @@ fun MedicinesScreen(api: MedHistryApi) {
             modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
         )
 
-        // Family member chips
-        family?.let { f ->
-            if (f.dependents.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MemberChip("All", activePatientId == ALL_MEMBERS) { activePatientId = ALL_MEMBERS }
-                    MemberChip("Me", activePatientId == null) { activePatientId = null }
-                    f.dependents.forEach { dep ->
-                        MemberChip(dep.name.split(" ").first(), activePatientId == dep.id) {
-                            activePatientId = dep.id
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-        }
+        // Family member picker. Shown only when the user has dependents;
+        // adapts to family size (chips for up to 4, bottom-sheet for 5+).
+        // Null activePatientId means "me" — normalize at the boundary.
+        MemberPicker(
+            family = family,
+            selectedId = activePatientId ?: family?.primary?.id,
+            onSelect = { id ->
+                activePatientId = if (id == family?.primary?.id) null else id
+            },
+            onAddFamilyMember = onManageFamily,
+        )
 
         if (loading) {
             Box(
@@ -136,7 +126,7 @@ fun MedicinesScreen(api: MedHistryApi) {
         } else {
             val meds = healthSummary?.medications ?: emptyList()
             if (meds.isEmpty()) {
-                EmptyMedicinesState()
+                EmptyMedicinesState(onScanReport = onScanReport)
             } else {
                 val (activeMeds, expiredMeds) = meds.partition { !isMedicineExpired(it) }
                 MedicinesByTimeOfDay(activeMeds, expiredMeds)
@@ -146,34 +136,20 @@ fun MedicinesScreen(api: MedHistryApi) {
 }
 
 @Composable
-private fun MemberChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) MedHistryColors.Primary else MedHistryColors.Surface)
-            .border(1.dp, if (selected) MedHistryColors.Primary else MedHistryColors.Border, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) Color.White else MedHistryColors.TextPrimary,
-        )
-    }
-}
-
-@Composable
-private fun EmptyMedicinesState() {
+private fun EmptyMedicinesState(onScanReport: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp),
+            .padding(horizontal = 32.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("\uD83D\uDC8A", fontSize = 48.sp)
+        Icon(
+            imageVector = Icons.Outlined.Medication,
+            contentDescription = null,
+            tint = MedHistryColors.Primary,
+            modifier = Modifier.size(48.dp),
+        )
         Spacer(Modifier.height(16.dp))
         Text(
             "No medicines yet",
@@ -183,12 +159,20 @@ private fun EmptyMedicinesState() {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "Upload a prescription and your medicine schedule will appear here.",
+            "Scan a prescription and we'll organize your medicines into a daily schedule.",
             fontSize = 14.sp,
             color = MedHistryColors.TextSecondary,
             lineHeight = 20.sp,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = onScanReport,
+            colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Text("Scan a prescription", color = Color.White, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
@@ -250,16 +234,18 @@ private fun MedicinesByTimeOfDay(
         }
 
         activeGrouped["morning"]?.takeIf { it.isNotEmpty() }?.let {
-            TimeSection("\u2600\uFE0F", "Morning", "Take with breakfast", it, Color(0xFFFFA726), Color(0xFFFFF8E1))
+            TimeSection(Icons.Outlined.LightMode, "Morning", "Take with breakfast", it, Color(0xFFFFA726), Color(0xFFFFF8E1))
         }
         activeGrouped["afternoon"]?.takeIf { it.isNotEmpty() }?.let {
-            TimeSection("\u26C5", "Afternoon", "Take with lunch", it, Color(0xFF42A5F5), Color(0xFFE3F2FD))
+            TimeSection(Icons.Outlined.WbCloudy, "Afternoon", "Take with lunch", it, Color(0xFF42A5F5), Color(0xFFE3F2FD))
         }
         activeGrouped["night"]?.takeIf { it.isNotEmpty() }?.let {
-            TimeSection("\uD83C\uDF19", "Night", "Take after dinner", it, Color(0xFF7E57C2), Color(0xFFF3E5F5))
+            TimeSection(Icons.Outlined.Bedtime, "Night", "Take after dinner", it, Color(0xFF7E57C2), Color(0xFFF3E5F5))
         }
         activeGrouped["as_needed"]?.takeIf { it.isNotEmpty() }?.let {
-            TimeSection("\u26A1", "As Needed", "Take when required", it, MedHistryColors.TextSecondary, Color(0xFFF5F5F5))
+            // "Take only for symptoms" reads clearer than "Take when required"
+            // or the clinical "SOS" label, especially for first-time users.
+            TimeSection(Icons.Outlined.Bolt, "As Needed", "Take only for symptoms", it, MedHistryColors.TextSecondary, Color(0xFFF5F5F5))
         }
 
         // Expired medicines (collapsible)
@@ -272,12 +258,13 @@ private fun MedicinesByTimeOfDay(
                     .padding(horizontal = 24.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    if (showExpired) "\u25BC" else "\u25B6",
-                    fontSize = 12.sp,
-                    color = MedHistryColors.TextLight,
+                Icon(
+                    imageVector = if (showExpired) Icons.Filled.ArrowDropDown else Icons.Filled.ArrowRight,
+                    contentDescription = null,
+                    tint = MedHistryColors.TextLight,
+                    modifier = Modifier.size(20.dp),
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(4.dp))
                 Text(
                     "Past Medicines (${expiredMeds.size})",
                     fontSize = 14.sp,
@@ -313,7 +300,7 @@ private fun MedicinesByTimeOfDay(
 
 @Composable
 private fun TimeSection(
-    emoji: String,
+    icon: ImageVector,
     title: String,
     subtitle: String,
     meds: List<Map<String, JsonElement>>,
@@ -330,7 +317,12 @@ private fun TimeSection(
                     .background(bgColor),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(emoji, fontSize = 18.sp)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp),
+                )
             }
             Spacer(Modifier.width(10.dp))
             Column {
@@ -388,10 +380,13 @@ private fun MedicineCard(med: Map<String, JsonElement>, accentColor: Color, expi
         verticalAlignment = Alignment.Top,
     ) {
         // Category icon
-        Text(
-            categoryEmoji(category),
-            fontSize = 22.sp,
-            modifier = Modifier.padding(top = 2.dp),
+        Icon(
+            imageVector = categoryIcon(category),
+            contentDescription = null,
+            tint = if (expired) MedHistryColors.TextLight else MedHistryColors.Primary,
+            modifier = Modifier
+                .padding(top = 3.dp)
+                .size(20.dp),
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -445,50 +440,67 @@ private fun MedicineCard(med: Map<String, JsonElement>, accentColor: Color, expi
                 )
             }
 
-            // Food + timing + prescribed date
-            val infoChips = buildList {
+            // Food + timing + prescribed date (shown as inline chips)
+            val infoChips = buildList<Pair<ImageVector?, String>> {
                 foodInstruction?.let {
-                    when (it) {
-                        "before_food" -> add("\uD83C\uDF7D Before food")
-                        "after_food" -> add("\uD83C\uDF7D After food")
-                        "with_food" -> add("\uD83C\uDF7D With food")
-                        "empty_stomach" -> add("\uD83C\uDF7D Empty stomach")
+                    val label = when (it) {
+                        "before_food" -> "Before food"
+                        "after_food" -> "After food"
+                        "with_food" -> "With food"
+                        "empty_stomach" -> "Empty stomach"
+                        else -> null
                     }
+                    if (label != null) add(Icons.Outlined.Restaurant to label)
                 }
                 if (!duration.isNullOrEmpty() && duration != "null") {
-                    add("\u23F0 $duration")
+                    add(Icons.Outlined.Schedule to duration)
                 }
                 if (!instructions.isNullOrEmpty() && instructions != "null"
                     && instructions != foodInstruction
                 ) {
-                    add(instructions)
+                    add(null to instructions)
                 }
-                prescribedDate?.let { add("\uD83D\uDCC5 ${formatDateFriendly(it)}") }
+                prescribedDate?.let { add(Icons.Outlined.CalendarMonth to formatDateFriendly(it)) }
             }
             if (infoChips.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    infoChips.joinToString("  •  "),
-                    fontSize = 12.sp,
-                    color = textSecondary,
-                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                ) {
+                    infoChips.forEach { (icon, label) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (icon != null) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = textSecondary,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Spacer(Modifier.width(3.dp))
+                            }
+                            Text(label, fontSize = 12.sp, color = textSecondary)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/** Map drug category to a patient-friendly emoji */
-private fun categoryEmoji(category: String?): String = when (category) {
-    "antibiotic" -> "\uD83E\uDDA0"  // microbe
-    "painkiller" -> "\uD83E\uDE79"  // adhesive bandage
-    "antacid" -> "\uD83D\uDEE1\uFE0F"  // shield
-    "vitamin_supplement" -> "\uD83D\uDCAA" // flexed bicep
-    "blood_pressure" -> "\u2764\uFE0F" // heart
-    "diabetes" -> "\uD83E\uDE78" // drop of blood
-    "antihistamine" -> "\uD83E\uDDEA" // test tube
-    "steroid" -> "\u26A1" // lightning
-    "hormone" -> "\uD83E\uDDEC" // DNA
-    else -> "\uD83D\uDC8A" // pill
+/** Map drug category to a patient-friendly Material icon */
+private fun categoryIcon(category: String?): ImageVector = when (category) {
+    "antibiotic" -> Icons.Outlined.Coronavirus
+    "painkiller" -> Icons.Outlined.Healing
+    "antacid" -> Icons.Outlined.Shield
+    "vitamin_supplement" -> Icons.Outlined.FitnessCenter
+    "blood_pressure" -> Icons.Outlined.Favorite
+    "diabetes" -> Icons.Outlined.Bloodtype
+    "antihistamine" -> Icons.Outlined.Science
+    "steroid" -> Icons.Outlined.Bolt
+    "hormone" -> Icons.Outlined.Biotech
+    else -> Icons.Outlined.Medication
 }
 
 /**

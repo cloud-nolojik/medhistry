@@ -3,20 +3,45 @@ package com.medhistry.patient.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class PatientTab(val label: String, val glyph: String) {
-    Home("Home", "\uD83C\uDFE0"),
-    Timeline("Timeline", "\uD83D\uDDD3"),
-    Medicines("Medicines", "\uD83D\uDC8A"),
-    LabResults("Lab Results", "\uD83E\uDDEA"),
+/**
+ * Bottom nav tabs.
+ *
+ * Renamed "Timeline" → "Records" because patients think in "reports and
+ * records", not "timelines". Behaviour is identical — the screen still
+ * shows a chronological list of uploaded documents.
+ *
+ * Each tab carries both a filled and outlined icon variant so the active
+ * tab can render filled (stronger presence) and inactive tabs outlined
+ * (lighter weight), matching Material's bottom-nav conventions.
+ */
+enum class PatientTab(
+    val label: String,
+    val filledIcon: ImageVector,
+    val outlinedIcon: ImageVector,
+) {
+    Home("Home", Icons.Filled.Home, Icons.Outlined.Home),
+    Timeline("Records", Icons.Filled.Description, Icons.Outlined.Description),
+    Medicines("Medicines", Icons.Filled.Medication, Icons.Outlined.Medication),
+    LabResults("Lab Results", Icons.Filled.Science, Icons.Outlined.Science),
 }
 
 @Composable
@@ -40,10 +65,11 @@ fun PatientBottomNav(
                     .clickable { onSelect(tab) }
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                Text(
-                    tab.glyph,
-                    fontSize = 20.sp,
-                    color = if (active) MedHistryColors.Primary else MedHistryColors.TextLight,
+                Icon(
+                    imageVector = if (active) tab.filledIcon else tab.outlinedIcon,
+                    contentDescription = tab.label,
+                    tint = if (active) MedHistryColors.Primary else MedHistryColors.TextLight,
+                    modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(

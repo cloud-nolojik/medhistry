@@ -6,12 +6,24 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.PriorityHigh
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,11 +99,11 @@ fun DocumentDetailScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "\u2039",
-                fontSize = 28.sp,
-                color = MedHistryColors.TextPrimary,
-                modifier = Modifier.clickable { onBack() },
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(24.dp).clickable { onBack() },
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -119,17 +131,19 @@ fun DocumentDetailScreen(
                     border = BorderStroke(1.dp, MedHistryColors.Primary),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 ) {
-                    Text("View Original", fontSize = 12.sp, color = MedHistryColors.Primary, fontWeight = FontWeight.SemiBold)
+                    Text("Open original", fontSize = 12.sp, color = MedHistryColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
             // Trash icon — opens confirmation dialog. Shown once the
             // document has finished loading so we know it actually exists.
             if (doc != null) {
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    "\uD83D\uDDD1\uFE0F",
-                    fontSize = 20.sp,
+                Icon(
+                    imageVector = Icons.Outlined.DeleteOutline,
+                    contentDescription = "Delete",
+                    tint = MedHistryColors.TextLight,
                     modifier = Modifier
+                        .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable(enabled = !deleting) { showDeleteConfirm = true }
                         .padding(6.dp),
@@ -166,26 +180,31 @@ fun DocumentDetailScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("\uD83D\uDCAC", fontSize = 18.sp)
+                Icon(
+                    imageVector = Icons.Outlined.ChatBubbleOutline,
+                    contentDescription = null,
+                    tint = MedHistryColors.Primary,
+                    modifier = Modifier.size(20.dp),
+                )
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Ask about this document",
+                        "Ask about this report",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MedHistryColors.TextPrimary,
                     )
                     Text(
-                        "Get plain-language answers grounded in this record",
+                        "Get simple, plain-language answers about what's in this record",
                         fontSize = 12.sp,
                         color = MedHistryColors.TextSecondary,
                     )
                 }
-                Text(
-                    "\u203A",
-                    fontSize = 20.sp,
-                    color = MedHistryColors.Primary,
-                    fontWeight = FontWeight.Bold,
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MedHistryColors.Primary,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -213,10 +232,10 @@ fun DocumentDetailScreen(
             onDismissRequest = { if (!deleting) showDeleteConfirm = false },
             shape = RoundedCornerShape(20.dp),
             containerColor = MedHistryColors.Surface,
-            title = { Text("Delete document?", fontWeight = FontWeight.Bold) },
+            title = { Text("Delete this report?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This will permanently delete \"${currentDoc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: currentDoc.filename}\" and update the health summary.",
+                    "This will permanently remove \"${currentDoc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: currentDoc.filename}\" and update your health summary.",
                     color = MedHistryColors.TextSecondary,
                 )
             },
@@ -359,7 +378,7 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
         // Medications
         data["medications"]?.jsonArrayOrNull()?.let { arr ->
             if (arr.isNotEmpty()) {
-                SectionCard(title = "Medications", icon = "\uD83D\uDC8A") {
+                SectionCard(title = "Medications", icon = Icons.Outlined.Medication) {
                     arr.forEach { item ->
                         if (item is JsonObject) {
                             val name = item["name"]?.stringOrNull() ?: "\u2014"
@@ -392,7 +411,7 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
         // Diagnoses
         data["diagnoses"]?.jsonArrayOrNull()?.let { arr ->
             if (arr.isNotEmpty()) {
-                SectionCard(title = "Diagnoses", icon = "\uD83E\uDE7A") {
+                SectionCard(title = "Diagnoses", icon = Icons.Outlined.MedicalServices) {
                     arr.forEach { item -> BulletItem(item.stringOrContent()) }
                 }
                 Spacer(Modifier.height(14.dp))
@@ -402,7 +421,7 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
         // Allergies
         data["allergies_mentioned"]?.jsonArrayOrNull()?.let { arr ->
             if (arr.isNotEmpty()) {
-                SectionCard(title = "Allergies", icon = "\u26A0\uFE0F") {
+                SectionCard(title = "Allergies", icon = Icons.Outlined.WarningAmber) {
                     arr.forEach { item -> BulletItem(item.stringOrContent()) }
                 }
                 Spacer(Modifier.height(14.dp))
@@ -414,7 +433,7 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
         // is where the anchored calendar view lives.
         data["follow_ups"]?.jsonArrayOrNull()?.let { arr ->
             if (arr.isNotEmpty()) {
-                SectionCard(title = "Next Steps", icon = "\uD83D\uDCC5") {
+                SectionCard(title = "Next Steps", icon = Icons.Outlined.CalendarMonth) {
                     arr.forEach { item ->
                         val obj = (item as? kotlinx.serialization.json.JsonObject) ?: return@forEach
                         val title = obj["title"]?.stringOrNull().orEmpty()
@@ -450,11 +469,11 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
 
 @Composable
 private fun OverallStatusBanner(status: String, message: String?) {
-    val (bg, border, textColor, emoji, defaultMsg) = when (status) {
-        "all_good" -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, "\u2705", "Everything looks good!")
-        "attention_needed" -> StatusColors(StatusYellowBg, StatusYellowBorder, StatusYellow, "\u26A0\uFE0F", "Most results are fine, some need attention")
-        "critical" -> StatusColors(StatusRedBg, StatusRedBorder, StatusRed, "\uD83D\uDEA8", "Some results need prompt medical attention")
-        else -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, "\u2705", "Results reviewed")
+    val (bg, border, textColor, icon, defaultMsg) = when (status) {
+        "all_good" -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, Icons.Outlined.CheckCircle, "Everything looks good!")
+        "attention_needed" -> StatusColors(StatusYellowBg, StatusYellowBorder, StatusYellow, Icons.Outlined.WarningAmber, "Most results are fine, some need attention")
+        "critical" -> StatusColors(StatusRedBg, StatusRedBorder, StatusRed, Icons.Outlined.PriorityHigh, "Some results need prompt medical attention")
+        else -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, Icons.Outlined.CheckCircle, "Results reviewed")
     }
 
     Row(
@@ -466,7 +485,12 @@ private fun OverallStatusBanner(status: String, message: String?) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(emoji, fontSize = 24.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = textColor,
+            modifier = Modifier.size(24.dp),
+        )
         Spacer(Modifier.width(12.dp))
         Text(
             message ?: defaultMsg,
@@ -478,7 +502,7 @@ private fun OverallStatusBanner(status: String, message: String?) {
     }
 }
 
-private data class StatusColors(val bg: Color, val border: Color, val text: Color, val emoji: String, val defaultMsg: String)
+private data class StatusColors(val bg: Color, val border: Color, val text: Color, val icon: ImageVector, val defaultMsg: String)
 
 // ── Lab result card ──────────────────────────────────────────────
 
@@ -583,7 +607,7 @@ private fun VitalCard(item: JsonObject) {
 // ── Shared components ────────────────────────────────────────────
 
 @Composable
-private fun SectionCard(title: String, icon: String, content: @Composable ColumnScope.() -> Unit) {
+private fun SectionCard(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -593,7 +617,12 @@ private fun SectionCard(title: String, icon: String, content: @Composable Column
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 16.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MedHistryColors.Primary,
+                modifier = Modifier.size(18.dp),
+            )
             Spacer(Modifier.width(8.dp))
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }

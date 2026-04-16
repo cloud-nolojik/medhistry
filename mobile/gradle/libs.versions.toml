@@ -37,6 +37,7 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 # Compose
 compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
 compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
+compose-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "compose" }
 compose-tooling = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
 compose-activity = { module = "androidx.activity:activity-compose", version.ref = "composeActivity" }
 lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodel" }

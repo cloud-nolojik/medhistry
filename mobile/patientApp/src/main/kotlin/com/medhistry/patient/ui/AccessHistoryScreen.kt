@@ -8,7 +8,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,17 +61,18 @@ fun AccessHistoryScreen(
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "\u2039",
-                fontSize = 28.sp,
-                color = MedHistryColors.TextPrimary,
-                modifier = Modifier.clickable { onBack() },
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MedHistryColors.TextPrimary,
+                modifier = Modifier.size(24.dp).clickable { onBack() },
             )
             Spacer(Modifier.width(16.dp))
-            Text("Access History", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            // Patient-friendly rename: "Access History" → "Who viewed my records".
+            Text("Who viewed my records", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
         Text(
-            "Everyone who has viewed your health summary.",
+            "Every time a doctor opens your health summary, it's recorded here — so you always know who's seen what.",
             fontSize = 14.sp,
             color = MedHistryColors.TextSecondary,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
@@ -86,12 +91,17 @@ fun AccessHistoryScreen(
                     .padding(horizontal = 24.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("\uD83D\uDD12", fontSize = 48.sp)
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = MedHistryColors.Primary,
+                    modifier = Modifier.size(48.dp),
+                )
                 Spacer(Modifier.height(16.dp))
-                Text("No access yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                Text("No one has looked yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "When a doctor views your health summary, it will be logged here.",
+                    "The next time a doctor opens your health summary, it will appear here.",
                     fontSize = 14.sp,
                     color = MedHistryColors.TextSecondary,
                 )
@@ -158,13 +168,18 @@ private fun AccessRow(entry: AccessLogEntry) {
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                entry.doctorName ?: "Unknown Doctor",
+                entry.doctorName ?: "A doctor",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MedHistryColors.TextPrimary,
             )
+            // If we don't have a hospital name, just show the date — avoids
+            // defaulting to a flat "Hospital" label, which looked like a bug.
+            val subtitle = entry.hospitalName?.takeIf { it.isNotBlank() }
+                ?.let { "$it \u00B7 $dateStr" }
+                ?: dateStr
             Text(
-                "${entry.hospitalName ?: "Hospital"} \u00B7 $dateStr",
+                subtitle,
                 fontSize = 12.sp,
                 color = MedHistryColors.TextSecondary,
             )
