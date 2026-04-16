@@ -23,6 +23,7 @@ from app.core.database import get_db
 from app.api.deps import get_current_patient, resolve_patient_context
 from app.models.patient import Patient
 from app.models.patient_upcoming_event import PatientUpcomingEvent
+from app.models.medical_document import MedicalDocument
 from app.schemas.upcoming_event import UpcomingEventOut, UpcomingEventListOut
 
 
@@ -32,7 +33,49 @@ router = APIRouter(prefix="/upcoming-events", tags=["upcoming-events"])
 OVERDUE_GRACE_DAYS = 0  # due_on strictly before today → overdue
 
 
-def _serialize(ev: PatientUpcomingEvent, today: date) -> UpcomingEventOut:
+_DOC_TYPE_LABELS = {
+    "prescription": "Prescription",
+    "lab_report": "Lab report",
+    "discharge_summary": "Discharge summary",
+    "imaging_report": "Imaging report",
+}
+
+
+def _short_month(d: date) -> str:
+    return d.strftime("%-d %b") if hasattr(d, "strftime") else str(d)
+
+
+def _build_doc_label(doc: MedicalDocument | None) -> str | None:
+    """Compact label like 'Lab report · 14 Apr' for the suggestion banner."""
+    if doc is None:
+        return None
+    doc_type_label = _DOC_TYPE_LABELS.get(doc.doc_type or "", "Document")
+    # Prefer the date printed on the actual medical document; fall back to
+    # upload timestamp if extraction didn't pick one out.
+    when: date | None = None
+    if doc.document_date:
+        # document_date is stored as a "YYYY-MM-DD" string
+        try:
+            when = date.fromisoformat(doc.document_date[:10])
+        except (ValueError, TypeError):
+            when = None
+    if when is None and doc.created_at is not None:
+        when = doc.created_at.date()
+    if when is None:
+        return doc_type_label
+    try:
+        label_date = when.strftime("%-d %b")
+    except ValueError:
+        # Windows Python doesn't support %-d; fall back to a portable format.
+        label_date = when.strftime("%d %b").lstrip("0")
+    return f"{doc_type_label} · {label_date}"
+
+
+def _serialize(
+    ev: PatientUpcomingEvent,
+    today: date,
+    doc_label: str | None = None,
+) -> UpcomingEventOut:
     days_until_due: int | None = None
     is_overdue = False
     if ev.due_on is not None:
@@ -56,6 +99,9 @@ def _serialize(ev: PatientUpcomingEvent, today: date) -> UpcomingEventOut:
         created_at=ev.created_at,
         is_overdue=is_overdue,
         days_until_due=days_until_due,
+        suggested_complete_by_document_id=ev.suggested_complete_by_document_id,
+        suggested_complete_reason=ev.suggested_complete_reason,
+        suggested_complete_doc_label=doc_label,
     )
 
 
@@ -112,11 +158,35 @@ async def list_events(
         e.created_at,
     ))
 
+    # Batch-load any suggesting documents so we can render the banner label
+    # ("Lab report · 14 Apr") without N+1 queries. Only rows with an active
+    # completion suggestion trigger a lookup.
+    suggested_doc_ids = {
+        e.suggested_complete_by_document_id for e in rows
+        if e.suggested_complete_by_document_id is not None
+    }
+    doc_label_by_id: dict[UUID, str | None] = {}
+    if suggested_doc_ids:
+        doc_q = await db.execute(
+            select(MedicalDocument).where(MedicalDocument.id.in_(suggested_doc_ids))
+        )
+        for d in doc_q.scalars().all():
+            doc_label_by_id[d.id] = _build_doc_label(d)
+
     today = datetime.now(timezone.utc).date()
     return UpcomingEventListOut(
-        events=[_serialize(e, today) for e in rows],
+        events=[
+            _serialize(e, today, doc_label_by_id.get(e.suggested_complete_by_document_id))
+            for e in rows
+        ],
         total=len(rows),
     )
+
+
+def _clear_suggestion(ev: PatientUpcomingEvent) -> None:
+    ev.suggested_complete_by_document_id = None
+    ev.suggested_complete_reason = None
+    ev.suggested_complete_at = None
 
 
 @router.post("/{event_id}/complete", response_model=UpcomingEventOut)
@@ -133,6 +203,8 @@ async def complete_event(
         return _serialize(ev, today)
     ev.status = "completed"
     ev.completed_at = datetime.now(timezone.utc)
+    # Any pending completion suggestion is now moot.
+    _clear_suggestion(ev)
     await db.commit()
     await db.refresh(ev)
     today = datetime.now(timezone.utc).date()
@@ -152,6 +224,29 @@ async def dismiss_event(
         return _serialize(ev, today)
     ev.status = "dismissed"
     ev.dismissed_at = datetime.now(timezone.utc)
+    _clear_suggestion(ev)
+    await db.commit()
+    await db.refresh(ev)
+    today = datetime.now(timezone.utc).date()
+    return _serialize(ev, today)
+
+
+@router.post("/{event_id}/dismiss-suggestion", response_model=UpcomingEventOut)
+async def dismiss_suggestion(
+    event_id: UUID,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Clear the "Looks done?" suggestion without changing the event's status.
+
+    The patient tapped the cross on the suggestion banner: the event stays
+    pending, but we stop nudging them about this particular match. If the
+    same document matches again on a future re-extract we'd surface the
+    suggestion again — that's intentional; the signal is cheap to rebuild
+    and the user has already trained us once per event.
+    """
+    ev = await _load_event(event_id, primary, db)
+    _clear_suggestion(ev)
     await db.commit()
     await db.refresh(ev)
     today = datetime.now(timezone.utc).date()

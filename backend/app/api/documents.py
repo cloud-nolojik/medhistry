@@ -155,7 +155,10 @@ async def _process_and_update(doc_id: uuid.UUID, file_path: str, file_type: str,
             # "after 15 days" against the DOCUMENT date, and drops items when
             # the document itself is too old (so uploading an ancient record
             # doesn't resurrect expired reminders).
-            from app.services.upcoming_events_service import sync_upcoming_events_for_document
+            from app.services.upcoming_events_service import (
+                sync_upcoming_events_for_document,
+                detect_fulfillments_for_document,
+            )
             from datetime import date as _date
             doc_date: _date | None = None
             if doc.document_date:
@@ -170,6 +173,19 @@ async def _process_and_update(doc_id: uuid.UUID, file_path: str, file_type: str,
                 document_id=doc.id,
                 document_date=doc_date,
                 follow_ups=follow_ups_raw,
+            )
+
+            # After syncing any NEW follow-ups from this doc, scan the
+            # patient's EXISTING pending events to see if this doc looks
+            # like it fulfils any of them (e.g. a lab report arrives that
+            # contains the very tests a previous event was nagging about).
+            # We never auto-complete; we just attach a "Looks done?"
+            # suggestion and let the user tap the tick or cross.
+            await detect_fulfillments_for_document(
+                db=db,
+                patient_id=patient_id,
+                document_id=doc.id,
+                extracted_data=doc.extracted_data,
             )
 
             await db.commit()

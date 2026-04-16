@@ -31,6 +31,15 @@ class UpcomingEventOut(BaseModel):
     is_overdue: bool = False
     days_until_due: int | None = None
 
+    # "Looks done?" suggestion. When suggested_complete_by_document_id is
+    # non-null the app shows a banner with tick/cross below the event.
+    # suggested_complete_doc_label is a short human label built server-side
+    # ("Lab report · 14 Apr") so the client doesn't have to re-fetch the doc
+    # just to render the banner.
+    suggested_complete_by_document_id: UUID | None = None
+    suggested_complete_reason: str | None = None
+    suggested_complete_doc_label: str | None = None
+
     model_config = {"from_attributes": True}
 
 

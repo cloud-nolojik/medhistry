@@ -253,6 +253,198 @@ def is_document_too_stale(document_date: date | None, today: date | None = None)
     return (today - document_date).days > STALE_DOC_THRESHOLD_DAYS
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# "Looks done?" fulfillment detection
+#
+# Runs after the events sync on every upload. Compares the new document's
+# extracted data against the patient's existing pending events and, when the
+# match is strong enough, attaches a suggestion to the event — the UI then
+# renders a banner with tick/cross so the user can confirm or dismiss.
+#
+# Intentionally conservative: we only match kind="repeat_test" right now.
+# Appointments are hard to verify from a document alone, and getting
+# medication_review wrong risks telling the user their prescription is done
+# when it's actually been re-prescribed. Scope will expand as we gather
+# real-world signal.
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+# Common medical test abbreviations. We don't need exhaustive coverage —
+# just enough to catch the tests that patients see most often. Maps normalized
+# abbreviation → set of normalized full-name variants (all lowercase, no
+# punctuation) the lab report might use.
+_TEST_ALIASES: dict[str, set[str]] = {
+    "hb": {"hb", "hemoglobin", "haemoglobin"},
+    "hgb": {"hgb", "hemoglobin", "haemoglobin"},
+    "pcv": {"pcv", "packed cell volume", "hematocrit", "haematocrit", "hct"},
+    "hct": {"hct", "hematocrit", "haematocrit", "pcv"},
+    "tlc": {"tlc", "total leukocyte count", "total leucocyte count", "wbc", "white blood cell count"},
+    "wbc": {"wbc", "white blood cell count", "total leukocyte count", "tlc"},
+    "rbc": {"rbc", "red blood cell count"},
+    "plt": {"plt", "platelet count", "platelets"},
+    "esr": {"esr", "erythrocyte sedimentation rate"},
+    "crp": {"crp", "c reactive protein", "c-reactive protein"},
+    "fbs": {"fbs", "fasting blood sugar", "fasting glucose", "glucose fasting"},
+    "ppbs": {"ppbs", "post prandial blood sugar", "postprandial glucose"},
+    "rbs": {"rbs", "random blood sugar", "random glucose"},
+    "hba1c": {"hba1c", "glycated hemoglobin", "glycosylated hemoglobin"},
+    "tsh": {"tsh", "thyroid stimulating hormone"},
+    "t3": {"t3", "triiodothyronine"},
+    "t4": {"t4", "thyroxine"},
+    "ldl": {"ldl", "ldl cholesterol", "low density lipoprotein"},
+    "hdl": {"hdl", "hdl cholesterol", "high density lipoprotein"},
+    "vldl": {"vldl", "vldl cholesterol"},
+    "tg": {"tg", "triglycerides"},
+    "cbc": {"cbc", "complete blood count"},
+    "lft": {"lft", "liver function test"},
+    "kft": {"kft", "kidney function test", "rft", "renal function test"},
+    "bun": {"bun", "blood urea nitrogen", "urea"},
+    "cr": {"cr", "creatinine", "serum creatinine"},
+    "vit d": {"vit d", "vitamin d", "25 hydroxyvitamin d"},
+    "b12": {"b12", "vitamin b12", "cobalamin"},
+}
+
+
+def _normalize_test_token(s: str) -> str:
+    """Lowercase, strip punctuation, collapse whitespace."""
+    return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+
+
+def _expand_aliases(token: str) -> set[str]:
+    """Given a normalized token, return itself plus any known aliases."""
+    expanded = {token}
+    if token in _TEST_ALIASES:
+        expanded |= _TEST_ALIASES[token]
+    # Reverse lookup — if the token IS a full name, include its abbreviation(s).
+    for abbr, variants in _TEST_ALIASES.items():
+        if token in variants:
+            expanded.add(abbr)
+            expanded |= variants
+    return expanded
+
+
+def _extract_test_tokens_from_title(title: str) -> set[str]:
+    """Pull out test names/abbreviations from an event title.
+
+    Handles the common "Repeat blood tests (HB, PCV)" pattern as well as
+    simpler titles like "Repeat HbA1c" or "Follow-up TSH". Returns normalized
+    tokens with their aliases expanded so we can match against any variant
+    spelling the lab report uses.
+    """
+    tokens: set[str] = set()
+    # Extract anything inside parens first — that's where the test list lives
+    # in the "Repeat blood tests (HB, PCV)" pattern.
+    for paren in re.findall(r"\(([^)]+)\)", title):
+        for piece in re.split(r"[,/&+]| and ", paren, flags=re.I):
+            norm = _normalize_test_token(piece)
+            if norm and len(norm) <= 40:
+                tokens |= _expand_aliases(norm)
+    # Also consider bare-word tokens in the rest of the title that look like
+    # medical abbreviations (2-6 alphanumerics, all caps or known alias).
+    stripped = re.sub(r"\([^)]*\)", " ", title)
+    for word in re.findall(r"[A-Za-z0-9]+", stripped):
+        lower = word.lower()
+        if lower in _TEST_ALIASES or (2 <= len(word) <= 6 and word.isupper()):
+            tokens |= _expand_aliases(lower)
+    return tokens
+
+
+def _collect_doc_test_tokens(extracted: dict | None) -> set[str]:
+    """Gather normalized test-name tokens (with aliases) from a document.
+
+    Looks at lab_results[*].test_name and vitals[*].name — those are the two
+    arrays the extractor uses for anything measurable.
+    """
+    if not extracted:
+        return set()
+    tokens: set[str] = set()
+    for row in (extracted.get("lab_results") or []):
+        if isinstance(row, dict):
+            name = row.get("test_name") or ""
+            norm = _normalize_test_token(name)
+            if norm:
+                tokens |= _expand_aliases(norm)
+    for row in (extracted.get("vitals") or []):
+        if isinstance(row, dict):
+            name = row.get("name") or ""
+            norm = _normalize_test_token(name)
+            if norm:
+                tokens |= _expand_aliases(norm)
+    return tokens
+
+
+def _build_reason(matched: list[str]) -> str:
+    """Short, patient-friendly explanation of why we think this is done."""
+    display = ", ".join(sorted({m.upper() if len(m) <= 6 else m.title() for m in matched[:3]}))
+    if len(matched) > 3:
+        display += f" +{len(matched) - 3} more"
+    return f"{display} found in this report"
+
+
+async def detect_fulfillments_for_document(
+    *,
+    db: AsyncSession,
+    patient_id: uuid.UUID,
+    document_id: uuid.UUID,
+    extracted_data: dict | None,
+) -> list[PatientUpcomingEvent]:
+    """Attach "Looks done?" suggestions to pending events this doc may fulfil.
+
+    Called from the document pipeline AFTER sync_upcoming_events_for_document
+    has run, so newly-created events from the same doc aren't accidentally
+    flagged as "done by themselves".
+
+    Runs inside the caller's transaction — we only set fields, we never
+    commit.
+    """
+    if not extracted_data:
+        return []
+
+    doc_tokens = _collect_doc_test_tokens(extracted_data)
+    if not doc_tokens:
+        return []
+
+    # Pull pending events for this patient. Skip events that already have a
+    # different suggestion attached, or that were created from THIS same
+    # document (those are fresh, not fulfilled).
+    q = await db.execute(
+        select(PatientUpcomingEvent).where(
+            PatientUpcomingEvent.patient_id == patient_id,
+            PatientUpcomingEvent.status == "pending",
+            PatientUpcomingEvent.kind == "repeat_test",
+            PatientUpcomingEvent.source_document_id != document_id,
+        )
+    )
+    pending_events = list(q.scalars().all())
+    if not pending_events:
+        return []
+
+    now = datetime.now(timezone.utc)
+    touched: list[PatientUpcomingEvent] = []
+
+    for ev in pending_events:
+        event_tokens = _extract_test_tokens_from_title(ev.title)
+        if not event_tokens:
+            continue
+        overlap = event_tokens & doc_tokens
+        if not overlap:
+            continue
+        # Prefer shorter tokens (abbreviations) for the reason so the label
+        # stays terse — "HB, PCV found" reads better than "hemoglobin,
+        # packed cell volume found".
+        matched = sorted(overlap, key=len)
+        ev.suggested_complete_by_document_id = document_id
+        ev.suggested_complete_reason = _build_reason(matched)
+        ev.suggested_complete_at = now
+        touched.append(ev)
+        logger.info(
+            "Attached completion suggestion to event %s via document %s (matched: %s)",
+            ev.id, document_id, matched,
+        )
+
+    return touched
+
+
 async def sync_upcoming_events_for_document(
     *,
     db: AsyncSession,

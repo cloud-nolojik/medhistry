@@ -58,6 +58,22 @@ async def lifespan(app: FastAPI):
             "ALTER TABLE patients ADD COLUMN IF NOT EXISTS patient_summary TEXT"
         ))
 
+        # "Looks done?" completion suggestion fields on upcoming events.
+        # Added after initial table creation so existing prod DBs pick them up.
+        await conn.execute(text(
+            "ALTER TABLE patient_upcoming_events "
+            "ADD COLUMN IF NOT EXISTS suggested_complete_by_document_id UUID "
+            "REFERENCES medical_documents(id) ON DELETE CASCADE"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE patient_upcoming_events "
+            "ADD COLUMN IF NOT EXISTS suggested_complete_at TIMESTAMPTZ"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE patient_upcoming_events "
+            "ADD COLUMN IF NOT EXISTS suggested_complete_reason VARCHAR(200)"
+        ))
+
         # FK cascade migration: older DBs created document_chat_messages and
         # patient_upcoming_events with a non-cascading FK to medical_documents.
         # Drop + recreate with ON DELETE CASCADE so deleting a document

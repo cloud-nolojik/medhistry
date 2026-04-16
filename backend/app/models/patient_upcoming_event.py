@@ -58,6 +58,25 @@ class PatientUpcomingEvent(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Completion suggestion: when a newly-uploaded document looks like it
+    # fulfils this pending event (e.g. a lab report arrives containing the
+    # very test this event was nagging about), we surface a "Looks done?"
+    # banner in the app with tick/cross buttons. Tick → status=completed,
+    # cross → dismiss just the suggestion (event stays pending). We never
+    # auto-complete; the user always has to tap.
+    # Null means no suggestion currently attached.
+    suggested_complete_by_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("medical_documents.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    suggested_complete_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Human-readable reason for the match ("HB, PCV found in lab report").
+    # Powers the banner body so the user knows why we think it's done.
+    suggested_complete_reason: Mapped[str | None] = mapped_column(String(200))
+
     # Dedup key: stable hash of (kind, normalized-title, approx-due-window).
     # Used so re-uploading the same discharge summary doesn't duplicate events.
     dedup_key: Mapped[str] = mapped_column(String(64), nullable=False)

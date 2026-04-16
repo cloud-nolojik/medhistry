@@ -419,6 +419,17 @@ data class UpcomingEvent(
     @SerialName("is_overdue") val isOverdue: Boolean = false,
     @SerialName("days_until_due") val daysUntilDue: Int? = null,
     @SerialName("created_at") val createdAt: String,
+
+    // "Looks done?" suggestion — non-null when a newer document appears to
+    // fulfil this pending event (e.g. a lab report containing the repeat
+    // tests a discharge summary was nagging about). UI renders a banner
+    // with tick/cross so the user can confirm or dismiss the suggestion.
+    @SerialName("suggested_complete_by_document_id")
+    val suggestedCompleteByDocumentId: String? = null,
+    @SerialName("suggested_complete_reason")
+    val suggestedCompleteReason: String? = null,        // e.g. "HB, PCV found in this report"
+    @SerialName("suggested_complete_doc_label")
+    val suggestedCompleteDocLabel: String? = null,      // e.g. "Lab report · 14 Apr"
 )
 
 @Serializable

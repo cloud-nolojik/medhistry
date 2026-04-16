@@ -489,6 +489,14 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         }.ensureSuccess().body()
     }
 
+    /** Dismiss ONLY the "Looks done?" completion suggestion — the event stays
+     *  pending. Used when the user taps the ✕ on the suggestion banner. */
+    suspend fun dismissUpcomingEventSuggestion(eventId: String): UpcomingEvent {
+        return client.post("$baseUrl/upcoming-events/$eventId/dismiss-suggestion") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
     /** Returns the raw ICS body the OS calendar app can open via intent. */
     suspend fun getUpcomingEventIcs(eventId: String): String {
         return client.get("$baseUrl/upcoming-events/$eventId/calendar.ics") {

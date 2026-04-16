@@ -147,6 +147,14 @@ fun UpcomingEventsCard(
                                     reloadTrigger++
                                 }
                             },
+                            onDismissSuggestion = {
+                                busyIds = busyIds + ev.id
+                                scope.launch {
+                                    runCatching { api.dismissUpcomingEventSuggestion(ev.id) }
+                                    busyIds = busyIds - ev.id
+                                    reloadTrigger++
+                                }
+                            },
                             onAddToCalendar = {
                                 busyIds = busyIds + ev.id
                                 scope.launch {
@@ -204,6 +212,7 @@ private fun EventRow(
     busy: Boolean,
     onComplete: () -> Unit,
     onDismiss: () -> Unit,
+    onDismissSuggestion: () -> Unit,
     onAddToCalendar: () -> Unit,
 ) {
     // Colour the urgency dot: red (overdue/urgent), amber (soon), grey (routine).
@@ -232,67 +241,141 @@ private fun EventRow(
         else -> "No date given"
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Urgency dot
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(dotColor),
-        )
-        Spacer(Modifier.width(12.dp))
+    // Smart-cast shields for cross-module suggestion fields.
+    val suggestedDocId = event.suggestedCompleteByDocumentId
+    val suggestedReason = event.suggestedCompleteReason
+    val suggestedDocLabel = event.suggestedCompleteDocLabel
+    val hasSuggestion = suggestedDocId != null
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                event.title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MedHistryColors.TextPrimary,
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Urgency dot
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(dotColor),
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    dueText,
-                    fontSize = 12.sp,
-                    color = if (event.isOverdue) MedHistryColors.Danger else MedHistryColors.TextSecondary,
-                    fontWeight = if (event.isOverdue) FontWeight.SemiBold else FontWeight.Normal,
+                    event.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MedHistryColors.TextPrimary,
                 )
-                if (event.urgency != "routine") {
-                    Spacer(Modifier.width(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "· $urgencyLabel",
+                        dueText,
+                        fontSize = 12.sp,
+                        color = if (event.isOverdue) MedHistryColors.Danger else MedHistryColors.TextSecondary,
+                        fontWeight = if (event.isOverdue) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                    if (event.urgency != "routine") {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "· $urgencyLabel",
+                            fontSize = 12.sp,
+                            color = MedHistryColors.TextLight,
+                        )
+                    }
+                }
+                event.withWhom?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        "with $it",
                         fontSize = 12.sp,
                         color = MedHistryColors.TextLight,
                     )
                 }
             }
-            event.withWhom?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    "with $it",
-                    fontSize = 12.sp,
-                    color = MedHistryColors.TextLight,
+
+            if (busy) {
+                CircularProgressIndicator(
+                    color = MedHistryColors.Primary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp),
                 )
+            } else {
+                // Compact icon-button row. We keep labels to single characters/
+                // emoji so three buttons fit next to the title without wrapping.
+                SmallIconButton(symbol = "\uD83D\uDCC5", onClick = onAddToCalendar)    // 📅
+                Spacer(Modifier.width(6.dp))
+                SmallIconButton(symbol = "\u2713", onClick = onComplete, tint = MedHistryColors.Accent) // ✓
+                Spacer(Modifier.width(6.dp))
+                SmallIconButton(symbol = "\u2715", onClick = onDismiss, tint = MedHistryColors.TextLight) // ✕
             }
         }
 
-        if (busy) {
-            CircularProgressIndicator(
-                color = MedHistryColors.Primary,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(18.dp),
-            )
-        } else {
-            // Compact icon-button row. We keep labels to single characters/
-            // emoji so three buttons fit next to the title without wrapping.
-            SmallIconButton(symbol = "\uD83D\uDCC5", onClick = onAddToCalendar)    // 📅
-            Spacer(Modifier.width(6.dp))
-            SmallIconButton(symbol = "\u2713", onClick = onComplete, tint = MedHistryColors.Accent) // ✓
-            Spacer(Modifier.width(6.dp))
-            SmallIconButton(symbol = "\u2715", onClick = onDismiss, tint = MedHistryColors.TextLight) // ✕
+        // "Looks done?" safe-suggestion banner. Shown only when the backend's
+        // fulfillment detector found overlap between a newly-uploaded document
+        // and this event's expected tests. Never auto-completes — user must
+        // tap ✓ to confirm or ✕ to dismiss the suggestion (keeping the event
+        // pending so it stays on their radar).
+        if (hasSuggestion) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 10.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MedHistryColors.PrimaryLight)
+                    .border(1.dp, MedHistryColors.Primary, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Text("\u2728", fontSize = 14.sp) // ✨
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Looks done?",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MedHistryColors.PrimaryDark,
+                    )
+                    if (!suggestedReason.isNullOrBlank()) {
+                        Text(
+                            suggestedReason,
+                            fontSize = 11.sp,
+                            color = MedHistryColors.TextPrimary,
+                        )
+                    }
+                    if (!suggestedDocLabel.isNullOrBlank()) {
+                        Text(
+                            suggestedDocLabel,
+                            fontSize = 11.sp,
+                            color = MedHistryColors.TextLight,
+                        )
+                    }
+                }
+
+                if (busy) {
+                    CircularProgressIndicator(
+                        color = MedHistryColors.Primary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp),
+                    )
+                } else {
+                    // ✓ confirms — marks event complete (backend also clears suggestion).
+                    SmallIconButton(
+                        symbol = "\u2713",
+                        onClick = onComplete,
+                        tint = MedHistryColors.Accent,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    // ✕ dismisses only the suggestion — event stays pending.
+                    SmallIconButton(
+                        symbol = "\u2715",
+                        onClick = onDismissSuggestion,
+                        tint = MedHistryColors.TextLight,
+                    )
+                }
+            }
         }
     }
 }
