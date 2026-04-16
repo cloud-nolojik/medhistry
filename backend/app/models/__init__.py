@@ -6,8 +6,11 @@ from app.models.invitation import Invitation
 from app.models.super_admin import SuperAdmin
 from app.models.medical_document import MedicalDocument
 from app.models.patient_access_log import PatientAccessLog
+from app.models.patient_upcoming_event import PatientUpcomingEvent
+from app.models.document_chat_message import DocumentChatMessage
 
 __all__ = [
     "Patient", "QRSession", "Hospital", "Doctor", "Invitation",
     "SuperAdmin", "MedicalDocument", "PatientAccessLog",
+    "PatientUpcomingEvent", "DocumentChatMessage",
 ]

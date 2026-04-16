@@ -15,6 +15,8 @@ from app.core.logging_middleware import RequestResponseLogger
 from app.core.security import hash_password
 from app.models.super_admin import SuperAdmin
 from app.models.otp import OTP  # noqa: F401 — ensures create_all picks up the table
+from app.models.patient_upcoming_event import PatientUpcomingEvent  # noqa: F401 — registers table
+from app.models.document_chat_message import DocumentChatMessage  # noqa: F401 — registers table
 from app.api.patients import router as patients_router
 from app.api.qr import router as qr_router
 from app.api.hospitals import router as hospitals_router
@@ -22,6 +24,8 @@ from app.api.doctors import router as doctors_router
 from app.api.invitations import router as invitations_router
 from app.api.super_admin import router as super_admin_router
 from app.api.documents import router as documents_router
+from app.api.upcoming_events import router as upcoming_events_router
+from app.api.document_chat import router as document_chat_router
 
 
 SEED_ADMIN_EMAIL = "admin@medhistry.com"
@@ -110,6 +114,8 @@ app.include_router(doctors_router, prefix="/api/v1")
 app.include_router(invitations_router, prefix="/api/v1")
 app.include_router(super_admin_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(upcoming_events_router, prefix="/api/v1")
+app.include_router(document_chat_router, prefix="/api/v1")
 
 
 @app.get("/health")

@@ -41,7 +41,17 @@ Return ONLY valid JSON with this exact structure (use null for missing data):
     {"name": "e.g. Blood Pressure", "value": "120/80", "unit": "mmHg"}
   ],
   "allergies_mentioned": ["list of any allergies noted"],
-  "follow_up": "follow-up instructions or null",
+  "follow_ups": [
+    {
+      "kind": "repeat_test" | "appointment" | "medication_review" | "vaccination" | "procedure" | "lifestyle" | "other",
+      "title": "short label",
+      "due_on": "YYYY-MM-DD or null",
+      "due_hint": "EXACT original phrase from the doc (e.g. 'in 3 months', 'after 15 days') — required when due_on is null",
+      "with_whom": "doctor/specialist/department or null",
+      "notes": "short extra context or null",
+      "urgency": "routine" | "soon" | "urgent"
+    }
+  ],
   "summary": "A clear 2-3 sentence summary written for a doctor who needs this patient's history in 30 seconds. Focus on what is medically significant."
 }
 
@@ -49,6 +59,7 @@ Important:
 - Extract medication names in their generic form when possible
 - Flag any lab values outside reference range
 - For Indian prescriptions, recognize abbreviations (BD=twice daily, TDS=thrice daily, OD=once daily, SOS=as needed)
+- For follow_ups: return [] if nothing mentioned; put every distinct future action as its own entry; prefer absolute dates, fall back to relative phrases copied verbatim into due_hint (e.g. "after 15 days", "review in 3 months") so the backend can anchor them against document_date
 - Return ONLY the JSON object, no other text"""
 
 

@@ -284,11 +284,34 @@ private fun PatientFriendlyContent(doc: DocumentOut) {
             }
         }
 
-        // Follow-up
-        data["follow_up"]?.stringOrNull()?.let { followUp ->
-            if (followUp.isNotBlank() && followUp != "null") {
+        // Follow-ups (structured). Each row shows title, optional due date / hint,
+        // specialist, and notes. Dates shown as given; the Upcoming card on Home
+        // is where the anchored calendar view lives.
+        data["follow_ups"]?.jsonArrayOrNull()?.let { arr ->
+            if (arr.isNotEmpty()) {
                 SectionCard(title = "Next Steps", icon = "\uD83D\uDCC5") {
-                    Text(followUp, fontSize = 14.sp, color = MedHistryColors.TextPrimary, lineHeight = 21.sp)
+                    arr.forEach { item ->
+                        val obj = (item as? kotlinx.serialization.json.JsonObject) ?: return@forEach
+                        val title = obj["title"]?.stringOrNull().orEmpty()
+                        if (title.isBlank()) return@forEach
+                        val dueOn = obj["due_on"]?.stringOrNull()
+                        val dueHint = obj["due_hint"]?.stringOrNull()
+                        val withWhom = obj["with_whom"]?.stringOrNull()
+                        val notes = obj["notes"]?.stringOrNull()
+                        val subtitle = listOfNotNull(
+                            dueOn?.takeIf { it.isNotBlank() && it != "null" },
+                            dueHint?.takeIf { !it.isNullOrBlank() && it != "null" && (dueOn == null || dueOn == "null") },
+                            withWhom?.takeIf { !it.isNullOrBlank() && it != "null" }?.let { "with $it" },
+                        ).joinToString(" • ")
+                        Text(title, fontSize = 14.sp, color = MedHistryColors.TextPrimary, lineHeight = 21.sp)
+                        if (subtitle.isNotBlank()) {
+                            Text(subtitle, fontSize = 12.sp, color = MedHistryColors.TextSecondary, lineHeight = 18.sp)
+                        }
+                        if (!notes.isNullOrBlank() && notes != "null") {
+                            Text(notes, fontSize = 12.sp, color = MedHistryColors.TextSecondary, lineHeight = 18.sp)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
                 Spacer(Modifier.height(14.dp))
             }

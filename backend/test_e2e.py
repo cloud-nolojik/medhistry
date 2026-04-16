@@ -53,7 +53,28 @@ _TEST_DOC_DATA = {
     ],
     "vitals": [{"name": "Blood Pressure", "value": "145/92", "unit": "mmHg"}],
     "allergies_mentioned": ["Penicillin"],
-    "follow_up": "Review in 3 months",
+    # Structured follow-ups — backend anchors "after 15 days" / "in 3 months"
+    # against document_date before inserting into patient_upcoming_events.
+    "follow_ups": [
+        {
+            "kind": "repeat_test",
+            "title": "Repeat HbA1c",
+            "due_on": None,
+            "due_hint": "in 3 months",
+            "with_whom": "Dr. Arun Mehta",
+            "notes": "fasting preferred",
+            "urgency": "routine",
+        },
+        {
+            "kind": "appointment",
+            "title": "Blood pressure review",
+            "due_on": None,
+            "due_hint": "after 15 days",
+            "with_whom": "Dr. Arun Mehta",
+            "notes": None,
+            "urgency": "soon",
+        },
+    ],
     "summary": "Type 2 Diabetes (HbA1c 7.2%) and mild hypertension. On Metformin 500mg BD and Amlodipine 5mg OD. Penicillin allergy.",
 }
 
@@ -108,11 +129,27 @@ async def _stub_generate_incremental_summary(
     }
 
 
+async def _stub_chat_about_document(
+    system_prompt: str,
+    grounding_context: str,
+    history: list,
+    user_message: str,
+    model_override: str | None = None,
+) -> str:
+    """Stub for per-doc chat — deterministic, echoes so tests can assert."""
+    return (
+        f"[stub-reply turns={len(history)}] "
+        f"You asked: {user_message[:120]}. "
+        "Please confirm with your doctor before changing anything."
+    )
+
+
 # Patch both underlying service modules
 medgemma_service.extract_document = _stub_extract_document
 gemini_service.extract_document = _stub_extract_document
 gemini_service.generate_aggregated_summary = _stub_generate_aggregated_summary
 gemini_service.generate_incremental_summary = _stub_generate_incremental_summary
+gemini_service.chat_about_document = _stub_chat_about_document
 
 # Patch the names that documents.py imported / defined at module load time
 from app.api import documents as documents_api
@@ -567,6 +604,192 @@ async def main():
         assert rebuilt['total_documents'] == 3
         assert rebuilt['overall_summary'] is not None
         print(f"    Rebuild OK, summary regenerated from all {rebuilt['total_documents']} docs")
+
+        # ── Upcoming events: anchored dates, dedup, complete, dismiss, ICS ───
+        print("\n[20h] Upcoming events surfaced from extracted follow-ups...")
+        r = await c.get("/api/v1/upcoming-events",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200, f"list upcoming failed: {r.text}"
+        listing = r.json()
+        # Stub has 2 follow-ups per doc; we uploaded 3 docs but the dedup key
+        # collapses them (same kind + normalized title + same month bucket
+        # anchored off the same document_date). Expect exactly 2 unique events.
+        assert listing["total"] == 2, f"expected 2 deduped events, got {listing['total']}: {listing}"
+        titles = {e["title"] for e in listing["events"]}
+        assert "Repeat HbA1c" in titles
+        assert "Blood pressure review" in titles
+        # Relative phrase "in 3 months" should have been anchored against
+        # document_date (2026-03-15) → 2026-06-13 (30-day/month math).
+        hba1c = next(e for e in listing["events"] if e["title"] == "Repeat HbA1c")
+        assert hba1c["due_on"] is not None, f"expected anchored due_on, got {hba1c}"
+        assert hba1c["due_on"].startswith("2026-06"), f"expected due_on near 2026-06, got {hba1c['due_on']}"
+        assert hba1c["due_hint_text"] == "in 3 months"
+        assert hba1c["urgency"] == "routine"
+        # "after 15 days" anchored against 2026-03-15 → 2026-03-30 (soon bucket)
+        bp = next(e for e in listing["events"] if e["title"] == "Blood pressure review")
+        assert bp["due_on"] is not None
+        assert bp["urgency"] == "soon"
+        # Ordering: urgent → soon → routine, so BP (soon) should come before HbA1c (routine).
+        assert listing["events"][0]["title"] == "Blood pressure review"
+        print(f"    {listing['total']} events; dates anchored against document_date ✓")
+
+        print("\n[20i] Complete one event (idempotent)...")
+        ev_id = hba1c["id"]
+        r = await c.post(f"/api/v1/upcoming-events/{ev_id}/complete",
+                         headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200
+        assert r.json()["status"] == "completed"
+        # Second call is a no-op
+        r = await c.post(f"/api/v1/upcoming-events/{ev_id}/complete",
+                         headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200 and r.json()["status"] == "completed"
+        # List without include_completed should now return 1
+        r = await c.get("/api/v1/upcoming-events",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.json()["total"] == 1
+        print(f"    Complete + idempotent ✓ (pending count now 1)")
+
+        print("\n[20j] Dismiss the remaining event...")
+        r = await c.post(f"/api/v1/upcoming-events/{bp['id']}/dismiss",
+                         headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200
+        assert r.json()["status"] == "dismissed"
+        r = await c.get("/api/v1/upcoming-events",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.json()["total"] == 0
+        r = await c.get("/api/v1/upcoming-events?include_completed=true",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.json()["total"] == 2
+        print(f"    Dismiss ✓ (include_completed shows both)")
+
+        print("\n[20k] ICS calendar export for one event...")
+        r = await c.get(f"/api/v1/upcoming-events/{ev_id}/calendar.ics",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("text/calendar")
+        body = r.text
+        assert "BEGIN:VCALENDAR" in body and "END:VCALENDAR" in body
+        assert "SUMMARY:Repeat HbA1c" in body
+        assert "DTSTART;VALUE=DATE:2026" in body
+        print(f"    ICS exported ({len(body)} bytes), includes alarm + all-day date ✓")
+
+        print("\n[20l] Stale-document skip: 2-year-old doc must NOT create events...")
+        # Upload a document dated 2024-01-01 with a follow-up. The sync service
+        # should see document_date is >180d old and refuse to insert events.
+        import copy as _copy
+        stale_data = _copy.deepcopy(_TEST_DOC_DATA)
+        stale_data["document_date"] = "2024-01-01"
+        stale_data["follow_ups"] = [{
+            "kind": "appointment",
+            "title": "Ancient review",
+            "due_on": None,
+            "due_hint": "in 1 month",
+            "with_whom": "Dr. Old",
+            "notes": None,
+            "urgency": "routine",
+        }]
+        # Temporarily swap the stub to return the stale fixture, upload, restore.
+        _orig_stub = gemini_service.extract_document
+        async def _stale_stub(*args, **kwargs):
+            return {
+                "extracted_text": "stubbed-stale",
+                "extracted_data": stale_data,
+                "ai_summary": stale_data["summary"],
+                "doc_type": stale_data["doc_type"],
+                "document_date": stale_data["document_date"],
+                "hospital_name": stale_data["hospital_name"],
+                "doctor_name": stale_data["doctor_name"],
+                "error": None,
+                "_meta": {"provider": "stub", "model": "stub-stale"},
+            }
+        gemini_service.extract_document = _stale_stub
+        try:
+            await _upload_document("stale.pdf", b"%PDF-old", patient_token)
+        finally:
+            gemini_service.extract_document = _orig_stub
+        r = await c.get("/api/v1/upcoming-events?include_completed=true",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        titles = {e["title"] for e in r.json()["events"]}
+        assert "Ancient review" not in titles, \
+            f"stale-document follow-up leaked into events: {titles}"
+        print(f"    Stale doc ignored ✓ (events unchanged)")
+
+        # ── Per-document chat: starters, send, list, red-flag, rate-limit, reset ─
+        print("\n[20m] Chat starters endpoint returns doc-type-aware prompts...")
+        r = await c.get(f"/api/v1/documents/{doc_id}/chat/starters",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200, f"starters failed: {r.text}"
+        s = r.json()
+        assert len(s["starters"]) >= 3, f"too few starters: {s}"
+        # doc_type is 'prescription' in stub → expect medicine-themed labels
+        labels = " ".join(x["label"].lower() for x in s["starters"])
+        assert "medicine" in labels or "dose" in labels, \
+            f"prescription starters expected but got: {labels}"
+        assert "doctor" in s["disclaimer"].lower(), "disclaimer should mention doctor"
+        print(f"    Starters OK ({len(s['starters'])} prompts) ✓")
+
+        print("\n[20n] Send a chat message and verify both turns persisted...")
+        r = await c.post(
+            f"/api/v1/documents/{doc_id}/chat",
+            json={"message": "What is Metformin for?"},
+            headers={"Authorization": f"Bearer {patient_token}"},
+        )
+        assert r.status_code == 200, f"chat send failed: {r.text}"
+        send_body = r.json()
+        assert send_body["user_message"]["role"] == "user"
+        assert send_body["user_message"]["content"] == "What is Metformin for?"
+        assert send_body["assistant_message"]["role"] == "assistant"
+        assert "stub-reply" in send_body["assistant_message"]["content"]
+        assert send_body["assistant_message"]["refusal_reason"] is None
+        assert send_body["remaining_messages_today"] >= 0
+        print(f"    Chat turn persisted, remaining={send_body['remaining_messages_today']} ✓")
+
+        print("\n[20o] List chat history returns both turns in order...")
+        r = await c.get(f"/api/v1/documents/{doc_id}/chat",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200
+        hist = r.json()
+        assert hist["total"] == 2, f"expected 2 messages, got {hist['total']}"
+        assert hist["messages"][0]["role"] == "user"
+        assert hist["messages"][1]["role"] == "assistant"
+        print(f"    History ordered correctly ({hist['total']} msgs) ✓")
+
+        print("\n[20p] Emergency keyword short-circuits to crisis reply (no LLM)...")
+        # This should NOT hit the stubbed chat_about_document — the red-flag
+        # detector must respond before the LLM is called.
+        r = await c.post(
+            f"/api/v1/documents/{doc_id}/chat",
+            json={"message": "I'm having chest pain right now, what should I do?"},
+            headers={"Authorization": f"Bearer {patient_token}"},
+        )
+        assert r.status_code == 200, f"emergency chat failed: {r.text}"
+        em = r.json()
+        assert em["assistant_message"]["refusal_reason"] == "red_flag", \
+            f"expected red_flag, got {em['assistant_message']['refusal_reason']}"
+        assert "emergency" in em["assistant_message"]["content"].lower() \
+            or "112" in em["assistant_message"]["content"]
+        # Importantly, NOT the stub-reply marker — we bypassed the LLM.
+        assert "stub-reply" not in em["assistant_message"]["content"]
+        print(f"    Red-flag short-circuit engaged ✓ (LLM not called)")
+
+        print("\n[20q] Unauthenticated chat rejected with 401...")
+        r = await c.post(
+            f"/api/v1/documents/{doc_id}/chat",
+            json={"message": "hello"},
+            headers={"Authorization": "Bearer not-a-real-token"},
+        )
+        assert r.status_code == 401, f"expected 401, got {r.status_code}: {r.text}"
+        print(f"    Unauthenticated request rejected ✓")
+
+        print("\n[20r] Reset chat thread deletes all messages (204)...")
+        r = await c.delete(f"/api/v1/documents/{doc_id}/chat",
+                           headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+        r = await c.get(f"/api/v1/documents/{doc_id}/chat",
+                        headers={"Authorization": f"Bearer {patient_token}"})
+        assert r.status_code == 200 and r.json()["total"] == 0, \
+            f"thread should be empty after reset: {r.json()}"
+        print(f"    Chat reset + history empty ✓")
 
         # ===== PHASE 7: QR Flow (now with AI data) =====
         print("\n--- PHASE 7: QR Flow (with AI-enriched briefing) ---")

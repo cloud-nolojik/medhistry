@@ -60,15 +60,29 @@ class PatientAccessLogEntry(BaseModel):
     accessed_at: datetime
 
 
+class FollowUpNote(BaseModel):
+    """One structured follow-up item extracted from a document.
+
+    The doctor sees these grouped per-document in the briefing. The same items
+    flow into the patient's `/upcoming-events` list after date-anchoring +
+    stale-document filtering.
+    """
+    kind: str
+    title: str
+    due_on: str | None = None      # YYYY-MM-DD, if the document stated it explicitly
+    due_hint: str | None = None    # original phrase, e.g. "in 3 months", "after 15 days"
+    with_whom: str | None = None
+    notes: str | None = None
+    urgency: str = "routine"
+
+
 class DocumentNote(BaseModel):
     """A single document's distilled clinical content, surfaced to the doctor.
 
     Each Gemini-extracted document already contains a doctor-targeted
-    `clinical_summary`, an `overall_status`, optional `follow_up`, etc.
-    The briefing builder previously dropped all of this — only the patient-
-    level aggregated `medical_summary` and the lab/med/dx arrays were shown.
-    Now we pass the per-document notes through so the doctor can actually
-    read what each visit/report said.
+    `clinical_summary`, an `overall_status`, a structured `follow_ups` list,
+    etc. We pass all of this through so the doctor can actually read what
+    each visit/report said.
     """
     document_id: UUID
     doc_type: str | None = None
@@ -80,7 +94,7 @@ class DocumentNote(BaseModel):
     patient_summary: str | None = None   # for the patient (plain language)
     overall_status: str | None = None    # "normal" | "attention_needed" | "urgent"
     overall_status_message: str | None = None
-    follow_up: str | None = None
+    follow_ups: list[FollowUpNote] = Field(default_factory=list)
     symptoms: list[str] = Field(default_factory=list)
     vitals: list[dict] = Field(default_factory=list)
 

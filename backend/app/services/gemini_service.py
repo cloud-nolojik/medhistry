@@ -124,7 +124,18 @@ Return ONLY valid JSON with this structure (include all fields, use null for mis
   ],
 
   "allergies_mentioned": ["list of any allergies noted"],
-  "follow_up": "follow-up instructions or null",
+
+  "follow_ups": [
+    {
+      "kind": "repeat_test" | "appointment" | "medication_review" | "vaccination" | "procedure" | "lifestyle" | "other",
+      "title": "Short label, e.g. 'Repeat HbA1c', 'Review with Dr. Mehta', 'Second dose of Hep-B vaccine'",
+      "due_on": "YYYY-MM-DD (absolute date if the document states it explicitly) OR null",
+      "due_hint": "EXACT original phrasing from the document, e.g. 'in 3 months', 'after 15 days', 'review on 15 July 2026', '2 weeks post-discharge'. NEVER paraphrase — copy the phrase verbatim. Required whenever due_on is null so the backend can anchor the relative date against document_date.",
+      "with_whom": "doctor/specialist/department if stated, else null",
+      "notes": "short extra context, e.g. 'fasting preferred', 'bring previous report', or null",
+      "urgency": "routine" | "soon" | "urgent"
+    }
+  ],
 
   "patient_summary": "A warm, reassuring 3-4 sentence summary written FOR THE PATIENT in simple everyday language. Emphasize what is NORMAL and healthy first. For anything abnormal, explain what it means simply and suggest next steps like 'discuss with your doctor'. Avoid medical jargon. Use phrases like 'Your tests show...', 'The good news is...', 'One thing to keep an eye on...'. Be encouraging but honest.",
 
@@ -162,8 +173,17 @@ If doc_type is "lab_report":
 
 If doc_type is "discharge_summary":
   - Extract BOTH the diagnosis/conditions AND any new medications prescribed at discharge
-  - follow_up is critical — extract exact follow-up date and instructions
+  - follow_ups is critical — extract EVERY follow-up instruction as a separate entry (repeat tests, specialist visits, suture removal, vaccination boosters, etc.) with exact dates or relative phrases
   - patient_summary should explain the hospital stay and what to do at home
+
+FOLLOW-UP EXTRACTION RULES (apply to every doc_type):
+  - Return an empty array [] if the document does not mention any future action.
+  - Capture EVERY distinct future action as a separate entry. Do NOT merge "repeat HbA1c" and "see endocrinologist" into one line.
+  - PREFER absolute dates: if the doc says "Review on 15 July 2026", set due_on="2026-07-15" and put the same phrase in due_hint.
+  - For relative phrases ("in 3 months", "after 15 days", "2 weeks later", "next month", "review in 1 year"), set due_on=null and put the EXACT phrase in due_hint — the backend will anchor it against document_date.
+  - For indefinite phrases without any timeframe ("follow up if symptoms persist", "review SOS"), set both due_on=null and due_hint with that exact phrase; urgency="routine".
+  - urgency: "urgent" if words like "immediately", "asap", "within 24 hours" are used; "soon" if within 2 weeks; otherwise "routine".
+  - kind: use "repeat_test" for lab/imaging redo, "appointment" for doctor visits, "medication_review" for "review meds after X", "vaccination" for boosters, "procedure" for surgeries/removals, "lifestyle" for diet/exercise checkpoints, "other" otherwise.
 
 General rules:
 - For Indian prescriptions, recognize: BD=twice daily, TDS=thrice daily, OD=once daily, SOS=as needed, HS=at bedtime, AC=before food, PC=after food, stat=immediately
@@ -514,5 +534,73 @@ def _extract_dual_summary(result: dict, *, context: str) -> dict:
             "clinical": fallback_text or "Unable to generate summary. Please review individual documents.",
             "patient": None,
         }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Per-document chat
+#
+# A single Gemini call with a conversation history. We keep the system prompt
+# in code (never in the DB) so we can evolve safety rules without rewriting
+# user history. The caller is responsible for assembling grounded context
+# (extracted_data + ai_summary) — this function just talks to the API.
+# ──────────────────────────────────────────────────────────────────────────────
+
+async def chat_about_document(
+    system_prompt: str,
+    grounding_context: str,
+    history: list[dict],
+    user_message: str,
+    model_override: str | None = None,
+) -> str:
+    """Run one chat turn, return the assistant's plain-text reply.
+
+    Args:
+        system_prompt: Safety rules, tone, refusal policy. Injected as the
+            first turn with role='user' (Gemini does not have a separate
+            system role in the REST API; instead we use the systemInstruction
+            field).
+        grounding_context: Structured info pulled from the document
+            (extracted_data JSON + ai_summary). Sent once in the
+            systemInstruction so every turn is grounded.
+        history: [{role: 'user'|'model', content: str}, ...] — prior turns
+            from the DB, oldest first. Trimmed by the caller.
+        user_message: The new user message.
+        model_override: Optional model name (defaults to GEMINI_MODEL).
+    """
+    model_name = model_override or settings.GEMINI_MODEL
+    url = f"{GEMINI_API_URL}/{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
+
+    contents: list[dict] = []
+    for turn in history:
+        role = "model" if turn.get("role") == "assistant" else "user"
+        contents.append({"role": role, "parts": [{"text": turn.get("content", "")}]})
+    contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+    payload = {
+        "systemInstruction": {
+            "parts": [{"text": f"{system_prompt}\n\n=== DOCUMENT CONTEXT ===\n{grounding_context}"}]
+        },
+        "contents": contents,
+        "generationConfig": {
+            # Low temperature — medical chat should be consistent, not creative.
+            "temperature": 0.3,
+            "maxOutputTokens": 1024,
+            # Flash is a thinking model; we don't need reasoning tokens for
+            # conversational Q&A and it just adds latency + cost.
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(url, json=payload)
+        response.raise_for_status()
+        result = response.json()
+
+    try:
+        text = result["candidates"][0]["content"]["parts"][0]["text"]
+        return (text or "").strip()
+    except (KeyError, IndexError):
+        logger.exception("Unexpected Gemini chat response shape: %s", result)
+        return "Sorry, I couldn't generate a reply right now. Please try again in a moment."
 
 

@@ -148,6 +148,23 @@ async def _build_briefing(
         clinical = data.get("clinical_summary")
         patient_sum = data.get("patient_summary")
         if clinical or patient_sum:
+            raw_follow_ups = data.get("follow_ups") or []
+            follow_up_notes = []
+            for f in raw_follow_ups:
+                if not isinstance(f, dict):
+                    continue
+                title = (f.get("title") or "").strip()
+                if not title:
+                    continue
+                follow_up_notes.append({
+                    "kind": (f.get("kind") or "other"),
+                    "title": title,
+                    "due_on": f.get("due_on"),
+                    "due_hint": f.get("due_hint"),
+                    "with_whom": f.get("with_whom"),
+                    "notes": f.get("notes"),
+                    "urgency": (f.get("urgency") or "routine"),
+                })
             document_notes.append(DocumentNote(
                 document_id=doc.id,
                 doc_type=doc.doc_type,
@@ -159,7 +176,7 @@ async def _build_briefing(
                 patient_summary=patient_sum,
                 overall_status=data.get("overall_status"),
                 overall_status_message=data.get("overall_status_message"),
-                follow_up=data.get("follow_up"),
+                follow_ups=follow_up_notes,
                 symptoms=data.get("symptoms", []) or [],
                 vitals=data.get("vitals", []) or [],
             ))
