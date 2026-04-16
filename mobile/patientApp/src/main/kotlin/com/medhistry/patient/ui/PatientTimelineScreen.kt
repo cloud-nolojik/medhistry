@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,9 +44,16 @@ fun PatientTimelineScreen(
     var documents by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
     var loading by remember { mutableStateOf(true) }
+    // Reload trigger — bumped after a successful delete to re-run the
+    // LaunchedEffect below and refresh the list.
+    var reloadTrigger by remember { mutableStateOf(0) }
+    // Document pending delete confirmation.
+    var pendingDeleteDoc by remember { mutableStateOf<DocumentOut?>(null) }
+    var deleting by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadTrigger) {
         scope.launch {
             runCatching { api.listFamily() }.onSuccess { family = it }
             runCatching { api.listDocuments(includeFamily = true) }
@@ -106,6 +117,23 @@ fun PatientTimelineScreen(
             Text("Complete medical history", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
         }
 
+        // Inline delete error — rendered in the header strip so users see
+        // failures without losing their scroll position.
+        deleteError?.let { msg ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFEF2F2))
+                    .padding(horizontal = 24.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    "Delete failed: $msg",
+                    fontSize = 13.sp,
+                    color = MedHistryColors.Danger,
+                )
+            }
+        }
+
         // Family member filter chips
         family?.let { f ->
             Row(
@@ -160,6 +188,7 @@ fun PatientTimelineScreen(
                         memberName = memberNameFor(doc.patientId),
                         showConnector = !isLastOverall,
                         onClick = { onDocumentClick(doc.id, memberNameFor(doc.patientId)) },
+                        onDelete = { pendingDeleteDoc = doc },
                     )
                 }
 
@@ -170,6 +199,61 @@ fun PatientTimelineScreen(
             }
         }
     }
+
+    // --- Delete confirmation dialog ---
+    pendingDeleteDoc?.let { doc ->
+        AlertDialog(
+            onDismissRequest = { if (!deleting) pendingDeleteDoc = null },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MedHistryColors.Surface,
+            title = { Text("Delete document?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "This will permanently delete \"${doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: doc.filename}\" and update the health summary.",
+                    color = MedHistryColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val docToDelete = doc
+                        deleting = true
+                        deleteError = null
+                        scope.launch {
+                            try {
+                                api.deleteDocument(docToDelete.id)
+                                pendingDeleteDoc = null
+                                reloadTrigger++
+                            } catch (e: Exception) {
+                                deleteError = e.message ?: "Unknown error"
+                                pendingDeleteDoc = null
+                            } finally {
+                                deleting = false
+                            }
+                        }
+                    },
+                    enabled = !deleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Danger),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        if (deleting) "Deleting…" else "Delete",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingDeleteDoc = null },
+                    enabled = !deleting,
+                ) {
+                    Text("Cancel", color = MedHistryColors.TextSecondary)
+                }
+            },
+        )
+    }
+
 }
 
 @Composable
@@ -203,7 +287,13 @@ private fun DateHeader(date: String) {
 }
 
 @Composable
-private fun TimelineRow(doc: DocumentOut, memberName: String, showConnector: Boolean, onClick: () -> Unit = {}) {
+private fun TimelineRow(
+    doc: DocumentOut,
+    memberName: String,
+    showConnector: Boolean,
+    onClick: () -> Unit = {},
+    onDelete: () -> Unit = {},
+) {
     val (icon, iconBg) = when (doc.docType) {
         "prescription" -> "\uD83D\uDC8A" to Color(0xFFEBF5FF)
         "lab_report" -> "\uD83E\uDDEA" to Color(0xFFF0FDF4)
@@ -249,9 +339,19 @@ private fun TimelineRow(doc: DocumentOut, memberName: String, showConnector: Boo
         Spacer(Modifier.width(16.dp))
 
         // Right: doc info
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 24.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                Text(
+                    title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MedHistryColors.TextPrimary,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 if (memberName.isNotEmpty()) {
                     Text(
                         "  \u2022  ",
@@ -265,6 +365,17 @@ private fun TimelineRow(doc: DocumentOut, memberName: String, showConnector: Boo
                         color = MedHistryColors.Primary,
                     )
                 }
+                Spacer(Modifier.weight(1f))
+                // Delete icon — stops click propagation so tapping trash
+                // doesn't also open the doc detail screen.
+                Text(
+                    "\uD83D\uDDD1\uFE0F",
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onDelete() }
+                        .padding(6.dp),
+                )
             }
             if (doc.hospitalName != null || doc.doctorName != null) {
                 val meta = listOfNotNull(doc.hospitalName, doc.doctorName).joinToString(" \u2022 ")

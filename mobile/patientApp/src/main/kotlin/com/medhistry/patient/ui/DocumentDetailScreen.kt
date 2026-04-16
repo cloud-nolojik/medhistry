@@ -47,6 +47,8 @@ fun DocumentDetailScreen(
     documentId: String,
     memberName: String,
     onBack: () -> Unit,
+    onOpenChat: () -> Unit = {},
+    onDeleted: () -> Unit = onBack,
 ) {
     BackHandler { onBack() }
     val context = LocalContext.current
@@ -54,6 +56,9 @@ fun DocumentDetailScreen(
     var fileUrl by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(documentId) {
@@ -117,6 +122,72 @@ fun DocumentDetailScreen(
                     Text("View Original", fontSize = 12.sp, color = MedHistryColors.Primary, fontWeight = FontWeight.SemiBold)
                 }
             }
+            // Trash icon — opens confirmation dialog. Shown once the
+            // document has finished loading so we know it actually exists.
+            if (doc != null) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "\uD83D\uDDD1\uFE0F",
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = !deleting) { showDeleteConfirm = true }
+                        .padding(6.dp),
+                )
+            }
+        }
+
+        // Inline delete error (network failure etc.) — rendered just under
+        // the top bar so the user sees it without losing context.
+        deleteError?.let { msg ->
+            Text(
+                "Delete failed: $msg",
+                fontSize = 13.sp,
+                color = MedHistryColors.Danger,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFEF2F2))
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+        }
+
+        // "Ask about this" pill — full-width under the top bar so it's
+        // obvious and tappable; only shown once the document has finished
+        // processing (extracted_data powers the chat's grounding context).
+        doc?.takeIf { it.processingStatus == "completed" }?.let {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MedHistryColors.PrimaryLight)
+                    .border(1.dp, MedHistryColors.Primary, RoundedCornerShape(14.dp))
+                    .clickable { onOpenChat() }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("\uD83D\uDCAC", fontSize = 18.sp)
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Ask about this document",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MedHistryColors.TextPrimary,
+                    )
+                    Text(
+                        "Get plain-language answers grounded in this record",
+                        fontSize = 12.sp,
+                        color = MedHistryColors.TextSecondary,
+                    )
+                }
+                Text(
+                    "\u203A",
+                    fontSize = 20.sp,
+                    color = MedHistryColors.Primary,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
 
         // Content
@@ -133,6 +204,60 @@ fun DocumentDetailScreen(
             }
             doc != null -> PatientFriendlyContent(doc!!)
         }
+    }
+
+    // --- Delete confirmation dialog ---
+    if (showDeleteConfirm && doc != null) {
+        val currentDoc = doc!!
+        AlertDialog(
+            onDismissRequest = { if (!deleting) showDeleteConfirm = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MedHistryColors.Surface,
+            title = { Text("Delete document?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "This will permanently delete \"${currentDoc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: currentDoc.filename}\" and update the health summary.",
+                    color = MedHistryColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        deleting = true
+                        deleteError = null
+                        scope.launch {
+                            try {
+                                api.deleteDocument(currentDoc.id)
+                                showDeleteConfirm = false
+                                onDeleted()
+                            } catch (e: Exception) {
+                                deleteError = e.message ?: "Unknown error"
+                                showDeleteConfirm = false
+                            } finally {
+                                deleting = false
+                            }
+                        }
+                    },
+                    enabled = !deleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Danger),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        if (deleting) "Deleting…" else "Delete",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirm = false },
+                    enabled = !deleting,
+                ) {
+                    Text("Cancel", color = MedHistryColors.TextSecondary)
+                }
+            },
+        )
     }
 }
 

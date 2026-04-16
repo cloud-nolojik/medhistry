@@ -31,7 +31,10 @@ class DocumentChatMessage(Base):
         UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True
     )
     document_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("medical_documents.id"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("medical_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # Who wrote this turn. We only persist 'user' and 'assistant' — the system

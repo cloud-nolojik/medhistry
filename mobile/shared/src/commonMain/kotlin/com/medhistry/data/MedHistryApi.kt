@@ -463,4 +463,64 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             bearerAuth(doctorToken ?: throw IllegalStateException("Doctor not authenticated"))
         }.ensureSuccess().body()
     }
+
+    // --- Upcoming Events ---
+
+    suspend fun listUpcomingEvents(
+        patientId: String? = null,
+        includeCompleted: Boolean = false,
+    ): UpcomingEventListOut {
+        return client.get("$baseUrl/upcoming-events") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            patientId?.let { parameter("patient_id", it) }
+            if (includeCompleted) parameter("include_completed", "true")
+        }.ensureSuccess().body()
+    }
+
+    suspend fun completeUpcomingEvent(eventId: String): UpcomingEvent {
+        return client.post("$baseUrl/upcoming-events/$eventId/complete") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun dismissUpcomingEvent(eventId: String): UpcomingEvent {
+        return client.post("$baseUrl/upcoming-events/$eventId/dismiss") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    /** Returns the raw ICS body the OS calendar app can open via intent. */
+    suspend fun getUpcomingEventIcs(eventId: String): String {
+        return client.get("$baseUrl/upcoming-events/$eventId/calendar.ics") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().bodyAsText()
+    }
+
+    // --- Per-document Chat ---
+
+    suspend fun getChatStarters(documentId: String): ChatStartersOut {
+        return client.get("$baseUrl/documents/$documentId/chat/starters") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun getChatHistory(documentId: String): ChatMessageListOut {
+        return client.get("$baseUrl/documents/$documentId/chat") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun sendChatMessage(documentId: String, message: String): ChatSendResponse {
+        return client.post("$baseUrl/documents/$documentId/chat") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(ChatSendRequest(message))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun resetChat(documentId: String) {
+        client.delete("$baseUrl/documents/$documentId/chat") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess()
+    }
 }

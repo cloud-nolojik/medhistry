@@ -28,6 +28,7 @@ import com.medhistry.patient.ui.Onboarding2
 import com.medhistry.patient.ui.Onboarding3
 import com.medhistry.patient.ui.OtpScreen
 import com.medhistry.patient.ui.PatientBottomNav
+import com.medhistry.patient.ui.DocumentChatScreen
 import com.medhistry.patient.ui.DocumentDetailScreen
 import com.medhistry.patient.ui.PatientHomeScreen
 import com.medhistry.patient.ui.PatientLoginScreen
@@ -92,6 +93,7 @@ private sealed class Screen {
     data class Profile(val session: PatientSession) : Screen()
     data class AccessHistory(val session: PatientSession) : Screen()
     data class DocumentDetail(val session: PatientSession, val documentId: String, val memberName: String) : Screen()
+    data class DocumentChat(val session: PatientSession, val documentId: String, val docTypeLabel: String?, val memberName: String) : Screen()
     data class Upload(val session: PatientSession) : Screen()
 }
 
@@ -143,6 +145,7 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             is Screen.Profile -> screen = Screen.Home(s.session)
             is Screen.AccessHistory -> screen = Screen.Profile(s.session)
             is Screen.DocumentDetail -> screen = Screen.Home(s.session, PatientTab.Timeline)
+            is Screen.DocumentChat -> screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName)
             is Screen.Upload -> screen = Screen.Home(s.session, PatientTab.Home)
             is Screen.Home -> { /* handled by PatientShell */ }
         }
@@ -348,11 +351,36 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             patientId = s.session.patientId,
             onBack = { screen = Screen.Profile(s.session) },
         )
-        is Screen.DocumentDetail -> DocumentDetailScreen(
+        is Screen.DocumentDetail -> {
+            // We pre-fetch the doc type so the chat screen's header can
+            // render "Prescription" / "Lab report" etc. without a second
+            // round-trip. It's a nice-to-have — the chat screen still
+            // works if this is null.
+            var docTypeLabel by remember(s.documentId) { mutableStateOf<String?>(null) }
+            LaunchedEffect(s.documentId) {
+                runCatching { api.getDocument(s.documentId) }
+                    .onSuccess { docTypeLabel = it.docType }
+            }
+            DocumentDetailScreen(
+                api = api,
+                documentId = s.documentId,
+                memberName = s.memberName,
+                onBack = { screen = Screen.Home(s.session, PatientTab.Timeline) },
+                onOpenChat = {
+                    screen = Screen.DocumentChat(
+                        session = s.session,
+                        documentId = s.documentId,
+                        docTypeLabel = docTypeLabel,
+                        memberName = s.memberName,
+                    )
+                },
+            )
+        }
+        is Screen.DocumentChat -> DocumentChatScreen(
             api = api,
             documentId = s.documentId,
-            memberName = s.memberName,
-            onBack = { screen = Screen.Home(s.session, PatientTab.Timeline) },
+            docTypeLabel = s.docTypeLabel,
+            onBack = { screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName) },
         )
         is Screen.Upload -> {
             var family by remember { mutableStateOf<FamilyListResponse?>(null) }

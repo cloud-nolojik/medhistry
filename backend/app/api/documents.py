@@ -29,7 +29,7 @@ import uuid
 import os
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.medical_document import MedicalDocument
+from app.models.document_chat_message import DocumentChatMessage
+from app.models.patient_upcoming_event import PatientUpcomingEvent
 from app.schemas.document import (
     DocumentOut,
     DocumentListOut,
@@ -520,7 +522,23 @@ async def delete_document(
     patient_id = doc.patient_id
     blob_path = doc.file_path
 
-    # Delete DB row first so concurrent reads won't find it
+    # Clean up related rows that reference this document. These tables
+    # (document_chat_messages, patient_upcoming_events) use a non-cascading
+    # FK to medical_documents.id, so we must drop them explicitly before
+    # deleting the document itself — otherwise Postgres raises a FK
+    # violation and the whole request 500s.
+    await db.execute(
+        sql_delete(DocumentChatMessage).where(
+            DocumentChatMessage.document_id == document_id
+        )
+    )
+    await db.execute(
+        sql_delete(PatientUpcomingEvent).where(
+            PatientUpcomingEvent.source_document_id == document_id
+        )
+    )
+
+    # Delete DB row so concurrent reads won't find it
     await db.delete(doc)
     await db.commit()
 

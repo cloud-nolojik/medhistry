@@ -36,7 +36,10 @@ class PatientUpcomingEvent(Base):
     # Which document surfaced this event. Nullable because we may re-point to a
     # newer document if the same follow-up is mentioned in a later upload.
     source_document_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("medical_documents.id"), nullable=True, index=True
+        UUID(as_uuid=True),
+        ForeignKey("medical_documents.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     # Core content

@@ -281,6 +281,22 @@ data class PatientBriefing(
     @SerialName("session_expires_at") val sessionExpiresAt: String,
 )
 
+/** One structured follow-up / upcoming event extracted from a document.
+ *  Replaces the legacy `follow_up` free-text string. `dueOn` may be null
+ *  when the doc only says "review in 3 months" — the backend anchors that
+ *  phrase against the document date and produces an absolute date there,
+ *  but clients should still handle null and fall back to [dueHint]. */
+@Serializable
+data class FollowUpNote(
+    val kind: String? = null,       // "lab_test" | "appointment" | "procedure" | "review" | "vaccination" | "medication_review"
+    val title: String? = null,
+    @SerialName("due_on") val dueOn: String? = null,
+    @SerialName("due_hint") val dueHint: String? = null,
+    @SerialName("with_whom") val withWhom: String? = null,
+    val notes: String? = null,
+    val urgency: String? = null,    // "urgent" | "soon" | "routine"
+)
+
 /** Per-document distilled clinical content (one row per uploaded document).
  *  Surfaces the doctor-targeted `clinical_summary` Gemini extracts for each
  *  document — previously dropped on the floor by the briefing builder. */
@@ -296,7 +312,7 @@ data class DocumentNote(
     @SerialName("patient_summary") val patientSummary: String? = null,
     @SerialName("overall_status") val overallStatus: String? = null,
     @SerialName("overall_status_message") val overallStatusMessage: String? = null,
-    @SerialName("follow_up") val followUp: String? = null,
+    @SerialName("follow_ups") val followUps: List<FollowUpNote> = emptyList(),
     val symptoms: List<String> = emptyList(),
     val vitals: List<Map<String, kotlinx.serialization.json.JsonElement>> = emptyList(),
 )
@@ -383,4 +399,69 @@ data class AccessLogEntry(
     @SerialName("hospital_name") val hospitalName: String? = null,
     val method: String,
     @SerialName("accessed_at") val accessedAt: String,
+)
+
+// --- Upcoming Events (follow-ups, lab repeats, appointments) ---
+
+@Serializable
+data class UpcomingEvent(
+    val id: String,
+    @SerialName("patient_id") val patientId: String,
+    @SerialName("source_document_id") val sourceDocumentId: String? = null,
+    val kind: String,                                             // lab_test / appointment / ...
+    val title: String,
+    @SerialName("with_whom") val withWhom: String? = null,
+    val notes: String? = null,
+    @SerialName("due_on") val dueOn: String? = null,              // ISO date (yyyy-MM-dd) or null
+    @SerialName("due_hint_text") val dueHintText: String? = null, // "in 3 months", "after 15 days"
+    val urgency: String = "routine",                              // urgent | soon | routine
+    val status: String = "pending",                               // pending | completed | dismissed
+    @SerialName("is_overdue") val isOverdue: Boolean = false,
+    @SerialName("days_until_due") val daysUntilDue: Int? = null,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class UpcomingEventListOut(
+    val events: List<UpcomingEvent> = emptyList(),
+    val total: Int = 0,
+)
+
+// --- Per-document Chat ---
+
+@Serializable
+data class ChatMessage(
+    val id: String,
+    val role: String,                                             // "user" | "assistant"
+    val content: String,
+    @SerialName("refusal_reason") val refusalReason: String? = null,
+    @SerialName("created_at") val createdAt: String,
+)
+
+@Serializable
+data class ChatMessageListOut(
+    val messages: List<ChatMessage> = emptyList(),
+    val total: Int = 0,
+)
+
+@Serializable
+data class ChatSendRequest(val message: String)
+
+@Serializable
+data class ChatSendResponse(
+    @SerialName("user_message") val userMessage: ChatMessage,
+    @SerialName("assistant_message") val assistantMessage: ChatMessage,
+    @SerialName("remaining_messages_today") val remainingMessagesToday: Int,
+)
+
+@Serializable
+data class ChatStarter(
+    val label: String,
+    val prompt: String,
+)
+
+@Serializable
+data class ChatStartersOut(
+    val starters: List<ChatStarter> = emptyList(),
+    val disclaimer: String,
 )

@@ -58,6 +58,48 @@ async def lifespan(app: FastAPI):
             "ALTER TABLE patients ADD COLUMN IF NOT EXISTS patient_summary TEXT"
         ))
 
+        # FK cascade migration: older DBs created document_chat_messages and
+        # patient_upcoming_events with a non-cascading FK to medical_documents.
+        # Drop + recreate with ON DELETE CASCADE so deleting a document
+        # automatically removes its chat history and derived events.
+        # Wrapped in DO blocks so the migration is idempotent — if the tables
+        # don't exist yet (fresh DB) or the constraints are already cascading
+        # we skip without erroring.
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE table_name = 'document_chat_messages'
+                      AND constraint_name = 'document_chat_messages_document_id_fkey'
+                ) THEN
+                    ALTER TABLE document_chat_messages
+                        DROP CONSTRAINT document_chat_messages_document_id_fkey;
+                    ALTER TABLE document_chat_messages
+                        ADD CONSTRAINT document_chat_messages_document_id_fkey
+                        FOREIGN KEY (document_id) REFERENCES medical_documents(id)
+                        ON DELETE CASCADE;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE table_name = 'patient_upcoming_events'
+                      AND constraint_name = 'patient_upcoming_events_source_document_id_fkey'
+                ) THEN
+                    ALTER TABLE patient_upcoming_events
+                        DROP CONSTRAINT patient_upcoming_events_source_document_id_fkey;
+                    ALTER TABLE patient_upcoming_events
+                        ADD CONSTRAINT patient_upcoming_events_source_document_id_fkey
+                        FOREIGN KEY (source_document_id) REFERENCES medical_documents(id)
+                        ON DELETE CASCADE;
+                END IF;
+            END $$;
+        """))
+
     # Seed default super admin if not exists
     async with async_session() as session:
         result = await session.execute(

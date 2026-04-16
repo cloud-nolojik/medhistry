@@ -127,6 +127,11 @@ fun PatientHomeScreen(
 
         Spacer(Modifier.height(24.dp))
 
+        // Upcoming follow-ups / lab repeats / appointments extracted from
+        // uploaded documents. Rendered above the health summary so users
+        // see time-sensitive actions before they scroll.
+        UpcomingEventsCard(api = api, activePatientId = activePatientId)
+
         val hs = healthSummary
         if (loading) {
             Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
