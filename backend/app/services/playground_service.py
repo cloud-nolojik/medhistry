@@ -90,18 +90,23 @@ async def run_playground(
 
         # Step 2: summary (always uses Gemini Flash by default unless overridden)
         # We feed the just-extracted data through the aggregated-summary prompt
-        # so the admin sees what a "first document" patient summary would look
-        # like under this combination.
-        summary_text: str | None = None
+        # so the admin sees what a "first document" patient briefing would look
+        # like under this combination. The service returns BOTH a clinical
+        # (doctor-facing) and patient-facing narrative in a single call; we
+        # surface both so admins can A/B test tone on both audiences.
+        clinical_summary: str | None = None
+        patient_briefing: str | None = None
         summary_ms: int | None = None
         summary_error: str | None = None
         if extract_result.get("extracted_data"):
             try:
                 s_started = time.perf_counter()
-                summary_text = await gemini_service.generate_aggregated_summary(
+                summary_dict = await gemini_service.generate_aggregated_summary(
                     [extract_result["extracted_data"]],
                     model_override=summary_model,
                 )
+                clinical_summary = summary_dict.get("clinical")
+                patient_briefing = summary_dict.get("patient")
                 summary_ms = int((time.perf_counter() - s_started) * 1000)
             except Exception as e:
                 summary_error = str(e)
@@ -118,7 +123,8 @@ async def run_playground(
             "doctor_name": extract_result.get("doctor_name"),
             "extracted_data": extract_result.get("extracted_data"),
             "ai_summary_from_extraction": extract_result.get("ai_summary"),
-            "patient_briefing_summary": summary_text,
+            "patient_briefing_summary": clinical_summary,
+            "patient_facing_summary": patient_briefing,
             "summary_error": summary_error,
             "extraction_error": extract_result.get("error"),
             "timing_ms": {

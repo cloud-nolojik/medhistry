@@ -189,9 +189,20 @@ async def _update_patient_summary(
     """
     # Acquire an advisory lock scoped to this patient — blocks until available.
     # pg_advisory_xact_lock releases automatically when the transaction commits.
-    lock_key = _patient_lock_key(patient_id)
-    await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
-    logger.info("Acquired summary lock for patient %s (key=%s)", patient_id, lock_key)
+    # Postgres-only: SQLite (used in tests) doesn't support advisory locks, so we
+    # skip the call there. Single-process test runs don't need inter-process
+    # serialization anyway; production Postgres keeps the safety guarantee.
+    bind = db.get_bind() if hasattr(db, "get_bind") else None
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", None) if bind else None
+    if dialect_name == "postgresql":
+        lock_key = _patient_lock_key(patient_id)
+        await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+        logger.info("Acquired summary lock for patient %s (key=%s)", patient_id, lock_key)
+    else:
+        logger.debug(
+            "Skipping advisory lock for patient %s on non-Postgres dialect %r",
+            patient_id, dialect_name,
+        )
 
     # Re-read patient AFTER acquiring the lock so we see the latest summary
     # (a concurrent task may have committed an update while we were waiting).
@@ -209,12 +220,20 @@ async def _update_patient_summary(
     )
     total_doc_count = count_result.scalar() or 0
 
-    # Incremental path: existing summary + new doc data + not the very first doc
+    # Incremental path: existing summary + new doc data + not the very first doc.
+    # generate_incremental_summary now returns a dict {"clinical": str, "patient": str|None}
+    # so both the doctor-facing and patient-facing aggregated summaries stay in sync.
     if new_doc_data and patient.medical_summary and total_doc_count > 1:
         try:
-            patient.medical_summary = await generate_incremental_summary(
-                patient.medical_summary, new_doc_data, total_doc_count
+            result_dict = await generate_incremental_summary(
+                patient.medical_summary,
+                patient.patient_summary,
+                new_doc_data,
+                total_doc_count,
             )
+            patient.medical_summary = result_dict["clinical"]
+            if result_dict.get("patient"):
+                patient.patient_summary = result_dict["patient"]
             logger.info("Incremental summary merge done for patient %s (doc #%d)", patient_id, total_doc_count)
             return
         except Exception:
@@ -230,10 +249,17 @@ async def _update_patient_summary(
     docs = result.scalars().all()
 
     if not docs:
+        # No completed documents left — clear both summaries so stale text isn't
+        # shown after the last document is deleted.
+        patient.medical_summary = None
+        patient.patient_summary = None
         return
 
     all_data = [doc.extracted_data for doc in docs if doc.extracted_data]
-    patient.medical_summary = await generate_aggregated_summary(all_data)
+    summary_dict = await generate_aggregated_summary(all_data)
+    patient.medical_summary = summary_dict["clinical"]
+    if summary_dict.get("patient"):
+        patient.patient_summary = summary_dict["patient"]
     logger.info("Full summary rebuild done for patient %s (%d docs)", patient_id, len(all_data))
 
 
@@ -583,9 +609,14 @@ async def get_health_summary(
                 worst_status = doc_status
                 worst_status_message = data.get("overall_status_message")
 
-    # Use the most recent document's patient_summary as the primary one,
-    # since docs are ordered by created_at desc
-    patient_summary = all_patient_summaries[0] if all_patient_summaries else None
+    # Prefer the AGGREGATED patient summary (rolling narrative merged across all
+    # documents on every upload, mirrors target.medical_summary for doctors).
+    # Fall back to the most recent document's patient_summary for legacy patients
+    # whose aggregated summary hasn't been regenerated yet — POST /documents/summary/rebuild
+    # will populate it on next run.
+    patient_summary = target.patient_summary or (
+        all_patient_summaries[0] if all_patient_summaries else None
+    )
 
     return PatientHealthSummary(
         patient_id=target.id,

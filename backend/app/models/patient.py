@@ -24,7 +24,13 @@ class Patient(Base):
     gender: Mapped[str | None] = mapped_column(String(20))
     blood_group: Mapped[str | None] = mapped_column(String(5))
     allergies: Mapped[str | None] = mapped_column(Text)
-    medical_summary: Mapped[str | None] = mapped_column(Text)  # AI-generated summary
+    # AI-generated aggregated summaries across ALL uploaded documents.
+    # medical_summary → clinical, 3-5 sentences, for the doctor briefing card.
+    # patient_summary → warm, patient-facing, shown on patient Home. Merged on
+    # every upload alongside medical_summary so the patient sees cumulative state
+    # (not just the most recent document).
+    medical_summary: Mapped[str | None] = mapped_column(Text)
+    patient_summary: Mapped[str | None] = mapped_column(Text)
     # Dependents (Dad, Mom, kids) are full Patient rows managed by another
     # Patient (the primary account holder). NULL = self-managed primary.
     managed_by: Mapped[uuid.UUID | None] = mapped_column(

@@ -70,8 +70,10 @@ class PatientHealthSummary(BaseModel):
     allergies: list[str] = Field(default_factory=list)
     vitals: list[dict] = Field(default_factory=list)
     lab_results: list[dict] = Field(default_factory=list)
-    overall_summary: str | None = None  # Doctor-oriented aggregated summary
-    patient_summary: str | None = None  # Patient-friendly summary from most recent doc
+    overall_summary: str | None = None  # Doctor-oriented aggregated summary (across ALL docs)
+    patient_summary: str | None = None  # Patient-friendly aggregated summary (across ALL docs).
+    #   Generated alongside overall_summary on every upload so the patient Home screen
+    #   reflects cumulative state, not just the most recent document.
     overall_status: str | None = None  # "all_good" | "attention_needed" | "critical"
     overall_status_message: str | None = None  # Short 1-line patient message
     last_updated: datetime | None = None

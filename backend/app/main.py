@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
         await conn.execute(text(
             "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS pin_failed_attempts INTEGER NOT NULL DEFAULT 0"
         ))
+        await conn.execute(text(
+            "ALTER TABLE patients ADD COLUMN IF NOT EXISTS patient_summary TEXT"
+        ))
 
     # Seed default super admin if not exists
     async with async_session() as session:
@@ -118,4 +121,11 @@ async def health():
 async def admin_panel():
     """Serve the unified MedHistry admin dashboard."""
     html_path = Path(__file__).parent / "super_admin_panel.html"
+    return HTMLResponse(html_path.read_text())
+
+
+@app.get("/hospital-admin/login", response_class=HTMLResponse)
+async def hospital_admin_panel():
+    """Serve the per-hospital admin dashboard (doctor invites)."""
+    html_path = Path(__file__).parent / "hospital_admin_panel.html"
     return HTMLResponse(html_path.read_text())

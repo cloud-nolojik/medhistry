@@ -73,16 +73,39 @@ async def _stub_extract_document(file_path: str, file_type: str, model_override=
     }
 
 
-async def _stub_generate_aggregated_summary(documents_data: list, model_override=None) -> str:
-    """Stub for Gemini full-rebuild summary — no Gemini API call."""
-    return ("Active conditions: Mild Hypertension, Type 2 Diabetes Mellitus. "
+async def _stub_generate_aggregated_summary(documents_data: list, model_override=None) -> dict:
+    """Stub for Gemini full-rebuild summary — no Gemini API call.
+
+    Returns BOTH a clinical (doctor-facing) and patient-facing narrative so the
+    dual-summary code path in documents._update_patient_summary has something
+    realistic to write to patient.medical_summary / patient.patient_summary.
+    """
+    return {
+        "clinical": (
+            "Active conditions: Mild Hypertension, Type 2 Diabetes Mellitus. "
             "Current medications: Metformin 500mg, Amlodipine 5mg. "
-            "ALLERGIES: Penicillin. Abnormal labs: HbA1c 7.2% high.")
+            "ALLERGIES: Penicillin. Abnormal labs: HbA1c 7.2% high."
+        ),
+        "patient": (
+            "You're being treated for mild high blood pressure and type 2 diabetes. "
+            "Keep taking Metformin and Amlodipine as prescribed, avoid Penicillin, "
+            "and your recent sugar levels are a bit high — your doctor will review in 3 months."
+        ),
+    }
 
 
-async def _stub_generate_incremental_summary(existing_summary: str, new_doc_data: dict, total_doc_count: int, model_override=None) -> str:
-    """Stub for Gemini incremental merge — preserves old summary, appends marker."""
-    return f"{existing_summary} Updated after document #{total_doc_count}: latest labs reviewed."
+async def _stub_generate_incremental_summary(
+    existing_clinical: str | None,
+    existing_patient: str | None,
+    new_doc_data: dict,
+    total_doc_count: int,
+    model_override=None,
+) -> dict:
+    """Stub for Gemini incremental merge — preserves old summaries, appends marker."""
+    return {
+        "clinical": f"{existing_clinical or ''} Updated after document #{total_doc_count}: latest labs reviewed.".strip(),
+        "patient": f"{existing_patient or ''} After this new record, your care plan is on track.".strip(),
+    }
 
 
 # Patch both underlying service modules
@@ -256,43 +279,63 @@ async def main():
         print(f"    Total invitations: {r.json()['total']}")
 
         # ===== PHASE 5: Doctors Register Via Invite Codes =====
-        print("\n--- PHASE 5: Doctors Register ---")
+        # Doctor auth is OTP-only now (no password). Registration is a 3-step flow:
+        #   send-otp → verify-otp → complete-registration
+        # The temp_token returned from verify-otp encodes the OTP-verified phone;
+        # complete-registration rejects the invite if that phone doesn't match
+        # what the hospital admin keyed in.
+        print("\n--- PHASE 5: Doctors Register (OTP → invite → complete) ---")
+
+        async def _doctor_register_via_otp(invite_code: str, phone: str, **overrides):
+            """Drive the full new-doctor OTP flow and return the final response."""
+            r = await c.post("/api/v1/doctors/send-otp", json={"phone": phone})
+            assert r.status_code == 200, f"send-otp failed: {r.text}"
+            otp_code = r.json()["otp"]  # dev endpoint echoes the code back
+            r = await c.post("/api/v1/doctors/verify-otp", json={"phone": phone, "otp": otp_code})
+            assert r.status_code == 200, f"verify-otp failed: {r.text}"
+            v = r.json()
+            assert v["is_new_user"] is True, "expected new doctor"
+            temp_token = v["temp_token"]
+            payload = {"temp_token": temp_token, "invite_code": invite_code, **overrides}
+            return await c.post("/api/v1/doctors/complete-registration", json=payload)
 
         print("\n[12] Dr. Arun Mehta registers (SA's invite)...")
-        r = await c.post("/api/v1/doctors/register", json={
-            "invite_code": sa_invite_code,
-            "phone": "+919812345678",
-            "name": "Dr. Arun Mehta",
-            "password": "doctor123",
-            "specialisation": "General Medicine",
-            "license_number": "KA-MCI-12345",
-        })
+        r = await _doctor_register_via_otp(
+            sa_invite_code,
+            "+919812345678",
+            name="Dr. Arun Mehta",
+            specialisation="General Medicine",
+            license_number="KA-MCI-12345",
+        )
         assert r.status_code == 201, f"Doctor registration failed: {r.text}"
         doctor_token = r.json()["access_token"]
         print(f"    Doctor: {r.json()['doctor']['name']}")
 
         print("\n[13] Dr. Priya Rao registers (hospital's invite)...")
-        r = await c.post("/api/v1/doctors/register", json={
-            "invite_code": hosp_invite_code,
-            "phone": "+919999888877",
-            "name": "Dr. Priya Rao",
-            "password": "cardio456",
-            "specialisation": "Cardiology",
-        })
-        assert r.status_code == 201
+        r = await _doctor_register_via_otp(
+            hosp_invite_code,
+            "+919999888877",
+            name="Dr. Priya Rao",
+            specialisation="Cardiology",
+        )
+        assert r.status_code == 201, f"Priya registration failed: {r.text}"
         print(f"    Doctor: {r.json()['doctor']['name']}")
 
         print("\n[14] Wrong phone with invite code rejected...")
-        # Create a fresh invite to test
+        # Invite is issued to +911111111111 — but an impostor OTP-verifies a
+        # completely different phone (+922222222222) and tries to redeem the
+        # invite. complete-registration must reject because the invite's phone
+        # does not match the phone baked into the temp_token.
         r2 = await c.post(f"/api/v1/super-admin/hospitals/{hospital_id}/invitations", json={
             "doctor_name": "Dr. Test", "doctor_phone": "+911111111111",
         }, headers={"Authorization": f"Bearer {sa_token}"})
         test_code = r2.json()["invite_code"]
-        r = await c.post("/api/v1/doctors/register", json={
-            "invite_code": test_code, "phone": "+922222222222",
-            "name": "Impostor", "password": "hack1234",
-        })
-        assert r.status_code == 400
+        r = await _doctor_register_via_otp(
+            test_code,
+            "+922222222222",
+            name="Impostor",
+        )
+        assert r.status_code == 400, f"Expected 400 phone-mismatch, got {r.status_code}: {r.text}"
         print(f"    Correctly rejected: {r.json()['detail']}")
 
         print("\n[15] Super admin sees 2 doctors at Jadeva...")
@@ -320,18 +363,69 @@ async def main():
         print(f"    Patient: {r.json()['patient']['name']}")
 
         # ===== PHASE 6.5: Document Upload + AI Processing =====
+        # The legacy multipart `/documents/upload` endpoint is gone — every
+        # upload now goes through the Azure SAS flow:
+        #   1. POST /documents/upload-url  (mint a short-lived SAS + create pending row)
+        #   2. Client PUTs bytes to the SAS URL (our stub pre-seeds _FAKE_BLOB_STORE)
+        #   3. POST /documents/confirm     (kick off background extraction)
         print("\n--- PHASE 6.5: Document Upload + AI Processing ---")
+
+        async def _upload_document(
+            filename: str,
+            content_bytes: bytes,
+            token: str,
+            *,
+            patient_id: str | None = None,
+            content_type: str = "application/pdf",
+            hospital_id: str | None = None,
+            doctor_id: str | None = None,
+            wait_for_processing: bool = True,
+        ):
+            """Full SAS upload flow → returns the document row after /confirm.
+
+            Mirrors what the mobile client does: request a SAS, the stubbed Azure
+            adapter seeds bytes into _FAKE_BLOB_STORE at the blob path, then
+            confirm kicks the extractor (which reads back from that store).
+            """
+            import asyncio as _aio
+            payload = {
+                "filename": filename,
+                "content_type": content_type,
+                "file_size_bytes": len(content_bytes),
+            }
+            if patient_id is not None:
+                payload["patient_id"] = patient_id
+            if hospital_id is not None:
+                payload["hospital_id"] = hospital_id
+            if doctor_id is not None:
+                payload["doctor_id"] = doctor_id
+            sas_resp = await c.post(
+                "/api/v1/documents/upload-url",
+                json=payload,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            if sas_resp.status_code != 201:
+                return sas_resp  # let caller assert on failure codes
+            sas = sas_resp.json()
+            # Overwrite the pre-seeded stub content with the actual test bytes so
+            # the downstream extractor sees what the caller intended to upload.
+            _FAKE_BLOB_STORE[sas["blob_path"]] = content_bytes
+            confirm = await c.post(
+                "/api/v1/documents/confirm",
+                json={"document_id": sas["document_id"]},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert confirm.status_code == 200, f"confirm failed: {confirm.text}"
+            if wait_for_processing:
+                await _aio.sleep(1)
+            return confirm
 
         print("\n[17] Patient uploads a medical document...")
         # Create a fake PDF file for testing
         fake_pdf = b"%PDF-1.4 fake prescription content"
         import io
-        r = await c.post(
-            "/api/v1/documents/upload",
-            files={"file": ("prescription.pdf", io.BytesIO(fake_pdf), "application/pdf")},
-            headers={"Authorization": f"Bearer {patient_token}"},
-        )
-        assert r.status_code == 201, f"Upload failed: {r.text}"
+        r = await _upload_document("prescription.pdf", fake_pdf, patient_token)
+        assert r.status_code == 200, f"Upload failed: {r.text}"
         doc = r.json()
         doc_id = doc["id"]
         print(f"    Document uploaded: {doc['filename']} (status: {doc['processing_status']})")
@@ -374,13 +468,8 @@ async def main():
 
         print("\n[20a] Patient uploads a SECOND document (incremental merge)...")
         fake_pdf2 = b"%PDF-1.4 fake lab report content"
-        r = await c.post(
-            "/api/v1/documents/upload",
-            files={"file": ("lab_report.pdf", io.BytesIO(fake_pdf2), "application/pdf")},
-            headers={"Authorization": f"Bearer {patient_token}"},
-        )
-        assert r.status_code == 201
-        await aio.sleep(1)
+        r = await _upload_document("lab_report.pdf", fake_pdf2, patient_token)
+        assert r.status_code == 200, f"Second upload failed: {r.text}"
 
         print("\n[20b] Verify summary updated AND retains old data after second upload...")
         r = await c.get("/api/v1/documents/summary/health",
@@ -659,18 +748,15 @@ async def main():
         assert r.status_code == 403
         print(f"    Blocked (403)")
 
-        print("\n[27l0] Son uploads an old prescription for Dad (multipart)...")
+        print("\n[27l0] Son uploads an old prescription for Dad (SAS flow)...")
         fake_dad_rx = b"%PDF-1.4 dad's old diabetes prescription"
-        r = await c.post(
-            f"/api/v1/documents/upload?patient_id={dad_id}",
-            files={"file": ("dad_rx.pdf", __import__("io").BytesIO(fake_dad_rx), "application/pdf")},
-            headers={"Authorization": f"Bearer {patient_token}"},
+        r = await _upload_document(
+            "dad_rx.pdf", fake_dad_rx, patient_token, patient_id=dad_id,
         )
-        assert r.status_code == 201, f"Dep upload failed: {r.text}"
+        assert r.status_code == 200, f"Dep upload failed: {r.text}"
         dep_doc = r.json()
         dep_doc_id = dep_doc["id"]
         print(f"    Uploaded under Dad's profile: {dep_doc['filename']}")
-        await __import__("asyncio").sleep(1)
 
         print("\n[27l1] Primary's own list does NOT include Dad's doc by default...")
         r = await c.get("/api/v1/documents/",
@@ -715,12 +801,19 @@ async def main():
         print(f"    Dad's summary: {dad_summary['total_documents']} doc(s)")
 
         print("\n[27l6] Cross-account doc upload is blocked (403)...")
+        # resolve_patient_context raises 403 on /upload-url for a stranger's id,
+        # so the SAS never gets minted and no pending row is created.
         r = await c.post(
-            f"/api/v1/documents/upload?patient_id={_uuid.uuid4()}",
-            files={"file": ("evil.pdf", __import__("io").BytesIO(b"%PDF-1.4"), "application/pdf")},
+            "/api/v1/documents/upload-url",
+            json={
+                "filename": "evil.pdf",
+                "content_type": "application/pdf",
+                "file_size_bytes": 100,
+                "patient_id": str(_uuid.uuid4()),
+            },
             headers={"Authorization": f"Bearer {patient_token}"},
         )
-        assert r.status_code == 403
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
         print(f"    Blocked (403)")
 
         print("\n[27l7] Azure SAS upload-url can target a dependent...")
@@ -905,13 +998,13 @@ async def main():
         print(f"    Hospitals: {stats['hospitals']}, Doctors: {stats['doctors']}, Patients: {stats['patients']}, Pending: {stats['pending_invitations']}")
 
         print("\n[30] Super admin panel serves HTML...")
-        r = await c.get("/admin")
+        r = await c.get("/super-admin/login")
         assert r.status_code == 200
         assert "Platform Admin" in r.text
         print(f"    Super admin panel OK")
 
         print("\n[31] Hospital admin panel serves HTML...")
-        r = await c.get("/hospital-admin")
+        r = await c.get("/hospital-admin/login")
         assert r.status_code == 200
         assert "Hospital Admin" in r.text
         print(f"    Hospital admin panel OK")

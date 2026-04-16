@@ -285,8 +285,12 @@ async def _gemini_extract_document(
 
 async def generate_aggregated_summary(
     documents_data: list[dict], model_override: str | None = None
-) -> str:
-    """Generate an overall patient summary from ALL document extractions (full rebuild).
+) -> dict:
+    """Generate overall patient summaries from ALL document extractions (full rebuild).
+
+    Returns a dict with two aggregated summaries across the full document set:
+      - ``clinical``: 3-5 sentence clinical summary for the doctor briefing card
+      - ``patient``: 3-5 sentence warm, patient-facing summary for Home screen
 
     Used for: first document, manual rebuild, or fallback when incremental merge fails.
     """
@@ -296,39 +300,65 @@ async def generate_aggregated_summary(
 
 
 async def generate_incremental_summary(
-    existing_summary: str,
+    existing_clinical: str,
+    existing_patient: str | None,
     new_doc_data: dict,
     total_doc_count: int,
     model_override: str | None = None,
-) -> str:
-    """Merge a single new document's data into the existing patient summary."""
+) -> dict:
+    """Merge a single new document's data into the existing aggregated summaries.
+
+    Returns a dict ``{"clinical": str, "patient": str}`` — updated versions of
+    both the doctor-facing and patient-facing aggregated summaries.
+    """
     if not settings.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set.")
     return await _gemini_incremental_summary(
-        existing_summary, new_doc_data, total_doc_count, model_override
+        existing_clinical,
+        existing_patient,
+        new_doc_data,
+        total_doc_count,
+        model_override,
     )
 
 
 async def _gemini_aggregated_summary(
     documents_data: list[dict], model_override: str | None = None
-) -> str:
-    """Use Gemini to create a unified patient summary from multiple documents."""
-    prompt = f"""You are a medical AI assistant for MedHistry. A doctor has just scanned a patient's QR code
-and needs a quick briefing. Below are the extracted data from all of the patient's uploaded medical documents,
-ordered from oldest to newest by document date.
+) -> dict:
+    """Use Gemini to create BOTH clinical and patient summaries from multiple documents.
 
-Create a concise, clinically useful summary (3-5 sentences) that a doctor can read in 30 seconds.
-Focus on: active conditions, current medications, critical lab values, allergies, and anything the doctor
-needs to know RIGHT NOW before seeing this patient.
+    Returns a dict with ``clinical`` and ``patient`` string keys.
+    """
+    prompt = f"""You are a medical AI assistant for MedHistry. Below are the extracted data from all of the
+patient's uploaded medical documents, ordered from oldest to newest by document date.
 
-IMPORTANT: When documents span different dates, the MOST RECENT values are the current state. Older values
-provide context for trends (e.g. "HbA1c improved from 7.2% to 6.8% over 3 months"). Always reflect the
-latest known state of the patient.
+Produce TWO summaries in a single JSON object:
+
+1. "clinical" — For a doctor who has just scanned the patient's QR code and needs a 30-second briefing.
+   - 3-5 sentences, clinically precise
+   - Focus: active conditions, current medications, critical lab values, allergies, anything the doctor
+     needs to know RIGHT NOW
+   - Lead with abnormal/critical findings
+   - Include specific values (e.g. "HbA1c 7.2%")
+
+2. "patient" — For the patient themselves, shown on their Home screen.
+   - 3-5 sentences, warm and reassuring tone
+   - Lead with what is NORMAL and healthy
+   - For anything that needs attention, explain simply and suggest "discuss with your doctor"
+   - Avoid medical jargon. Use phrases like "Your tests show...", "The good news is...",
+     "One thing to keep an eye on..."
+   - Be encouraging but honest. Never cause unnecessary panic.
+
+IMPORTANT — timeline handling (applies to BOTH summaries):
+- The MOST RECENT values are the current state.
+- Older values provide context for trends (e.g. "HbA1c improved from 7.2% to 6.8% over 3 months").
+- Always reflect the latest known state of the patient.
+- Allergies are cumulative across all documents.
 
 Documents data (oldest first):
 {json.dumps(documents_data, indent=2)}
 
-Return ONLY the summary text, no JSON or formatting."""
+Return ONLY a JSON object of the form {{"clinical": "...", "patient": "..."}} — no markdown, no code fence, no commentary."""
 
     model_name = model_override or settings.GEMINI_MODEL
     url = f"{GEMINI_API_URL}/{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
@@ -336,6 +366,7 @@ Return ONLY the summary text, no JSON or formatting."""
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.2,
+            "responseMimeType": "application/json",
             # Gemini 2.5 Flash/Pro are thinking models: thinking tokens count toward
             # maxOutputTokens, so a low ceiling truncates the user-visible text
             # mid-sentence. Disable thinking for simple summary generation and give
@@ -350,67 +381,66 @@ Return ONLY the summary text, no JSON or formatting."""
         response.raise_for_status()
         result = response.json()
 
-    return _extract_summary_text(result, context="aggregated")
-
-
-def _extract_summary_text(result: dict, *, context: str) -> str:
-    """Pull the text out of a Gemini generateContent response and warn on truncation.
-
-    Gemini returns finishReason=MAX_TOKENS when it ran out of output budget mid-way
-    (including thinking tokens on 2.5 models). If we see that, we log a warning so
-    truncated summaries don't silently ship to doctors.
-    """
-    try:
-        candidate = result["candidates"][0]
-        finish_reason = candidate.get("finishReason")
-        text = candidate["content"]["parts"][0]["text"]
-        if finish_reason and finish_reason != "STOP":
-            logger.warning(
-                "Gemini %s summary finished with reason=%s (text len=%d). "
-                "Consider raising maxOutputTokens or checking safety filters.",
-                context,
-                finish_reason,
-                len(text or ""),
-            )
-        return text
-    except (KeyError, IndexError):
-        logger.exception("Failed to parse Gemini %s summary response: %s", context, result)
-        if context == "incremental":
-            raise ValueError("Failed to parse Gemini incremental summary response")
-        return "Unable to generate summary. Please review individual documents."
+    return _extract_dual_summary(result, context="aggregated")
 
 
 async def _gemini_incremental_summary(
-    existing_summary: str,
+    existing_clinical: str,
+    existing_patient: str | None,
     new_doc_data: dict,
     total_doc_count: int,
     model_override: str | None = None,
-) -> str:
-    """Merge new document data into existing summary using Gemini."""
+) -> dict:
+    """Merge new document data into the existing clinical AND patient summaries.
+
+    Returns a dict ``{"clinical": str, "patient": str}`` — both updated in a single
+    model call so the two versions stay in sync about the same underlying facts.
+    """
     # Extract document_date so the model can reason about timeline
     doc_date = new_doc_data.get("document_date", "unknown")
 
+    # If the patient summary hasn't been generated yet (e.g. legacy patients
+    # created before this field existed), tell the model to synthesise one
+    # from the existing clinical summary rather than fail.
+    patient_seed = existing_patient or "(not yet generated — derive from the clinical summary while keeping warm patient language)"
+
     prompt = f"""You are a medical AI assistant for MedHistry. A patient has uploaded a medical document
-(document #{total_doc_count}, dated {doc_date}). Below is their EXISTING medical summary followed by the NEW document's extracted data.
+(document #{total_doc_count}, dated {doc_date}). Below are their EXISTING aggregated summaries (one for the
+doctor, one for the patient) followed by the NEW document's extracted data.
 
-Your job: merge the new information into a single updated summary that reflects the patient's CURRENT health state.
+Your job: produce UPDATED versions of BOTH summaries that reflect the patient's CURRENT health state after
+incorporating the new document.
 
-Rules:
-- Keep the summary concise (3-5 sentences), readable in 30 seconds by a doctor
-- TIMELINE MATTERS: The document date is {doc_date}. If this is an OLDER document than what's already in the summary, do NOT overwrite current lab values or medications with older ones. Instead, note historical context if clinically relevant (e.g. "HbA1c has improved from 7.2% (Jan 2024) to 6.8% (Mar 2025)")
-- If the new document is MORE RECENT and has newer lab values for the same test, update them and note the trend
-- If a medication was changed or stopped in a newer document, reflect that. If the document is older, only add it as historical context
-- NEW diagnoses should be added; do NOT drop existing conditions unless a NEWER document explicitly says they are resolved
-- Allergies are cumulative — never remove an allergy regardless of document date
-- Prioritize: active conditions, current medications, critical/abnormal labs, allergies, recent changes
+Rules (apply to BOTH summaries):
+- Each summary stays concise (3-5 sentences)
+- TIMELINE MATTERS: The new document is dated {doc_date}. If this is an OLDER document than what's already in
+  the summaries, do NOT overwrite current lab values or medications with older ones. Instead, note historical
+  context if clinically relevant (e.g. "HbA1c has improved from 7.2% (Jan 2024) to 6.8% (Mar 2025)").
+- If the new document is MORE RECENT and has newer lab values for the same test, update them and note the trend.
+- If a medication was changed or stopped in a newer document, reflect that. If the document is older, only add
+  it as historical context.
+- NEW diagnoses should be added; do NOT drop existing conditions unless a NEWER document explicitly says they
+  are resolved.
+- Allergies are cumulative — never remove an allergy regardless of document date.
 
-EXISTING SUMMARY:
-{existing_summary}
+Voice differences:
+- "clinical" — for the doctor briefing card. Clinically precise, lead with abnormal/critical findings, include
+  specific values. Prioritise: active conditions, current medications, critical/abnormal labs, allergies, recent changes.
+- "patient" — for the patient themselves on their Home screen. Warm and reassuring. Lead with what is normal and
+  healthy. For anything that needs attention, explain simply and suggest "discuss with your doctor". Avoid medical
+  jargon. Use phrases like "Your tests show...", "The good news is...", "One thing to keep an eye on...". Never
+  cause unnecessary panic.
+
+EXISTING CLINICAL SUMMARY (doctor):
+{existing_clinical}
+
+EXISTING PATIENT SUMMARY (patient):
+{patient_seed}
 
 NEW DOCUMENT DATA:
 {json.dumps(new_doc_data, indent=2)}
 
-Return ONLY the updated summary text, no JSON or formatting."""
+Return ONLY a JSON object of the form {{"clinical": "...", "patient": "..."}} — no markdown, no code fence, no commentary."""
 
     model_name = model_override or settings.GEMINI_MODEL
     url = f"{GEMINI_API_URL}/{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
@@ -418,6 +448,7 @@ Return ONLY the updated summary text, no JSON or formatting."""
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.2,
+            "responseMimeType": "application/json",
             # See note in _gemini_aggregated_summary — disable thinking for plain
             # paragraph-writing tasks to prevent thinking tokens from starving the
             # output budget and truncating the summary mid-sentence.
@@ -431,6 +462,57 @@ Return ONLY the updated summary text, no JSON or formatting."""
         response.raise_for_status()
         result = response.json()
 
-    return _extract_summary_text(result, context="incremental")
+    return _extract_dual_summary(result, context="incremental")
+
+
+def _extract_dual_summary(result: dict, *, context: str) -> dict:
+    """Pull ``{clinical, patient}`` out of a Gemini generateContent JSON response.
+
+    The prompt sets responseMimeType=application/json, so the model is expected
+    to return a parseable JSON object. We still parse leniently in case the model
+    wraps the response in prose or a code fence. On parse failure we fall back to
+    treating the full text as the clinical summary (safer for the doctor path)
+    and return None for patient so the caller can decide whether to retry.
+    """
+    try:
+        candidate = result["candidates"][0]
+        finish_reason = candidate.get("finishReason")
+        text = candidate["content"]["parts"][0]["text"]
+        if finish_reason and finish_reason != "STOP":
+            logger.warning(
+                "Gemini %s summary finished with reason=%s (text len=%d). "
+                "Consider raising maxOutputTokens or checking safety filters.",
+                context,
+                finish_reason,
+                len(text or ""),
+            )
+        parsed = _parse_json_lenient(text)
+        clinical = parsed.get("clinical")
+        patient = parsed.get("patient")
+        if not isinstance(clinical, str) or not clinical.strip():
+            # Fall through to the fallback branch below
+            raise ValueError("clinical field missing or empty")
+        return {
+            "clinical": clinical.strip(),
+            "patient": (patient.strip() if isinstance(patient, str) and patient.strip() else None),
+        }
+    except (KeyError, IndexError, ValueError):
+        logger.exception("Failed to parse Gemini %s dual summary response: %s", context, result)
+        # Best-effort fallback: if we got any text at all, use it as the clinical
+        # summary (the doctor-facing path is higher stakes), and leave patient=None
+        # so _update_patient_summary will retry on the next upload.
+        try:
+            fallback_text = result["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError):
+            fallback_text = None
+        if context == "incremental":
+            # Incremental must succeed to preserve the invariant that the
+            # stored summary stays coherent — raise so the caller falls back
+            # to a full rebuild.
+            raise ValueError("Failed to parse Gemini incremental dual summary response")
+        return {
+            "clinical": fallback_text or "Unable to generate summary. Please review individual documents.",
+            "patient": None,
+        }
 
 
