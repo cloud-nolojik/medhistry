@@ -5,13 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Medication
-import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,25 +21,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Bottom nav tabs.
+ * Bottom nav — 3 tabs only: Family, Dashboard, Profile.
  *
- * Renamed "Timeline" → "Records" because patients think in "reports and
- * records", not "timelines". Behaviour is identical — the screen still
- * shows a chronological list of uploaded documents.
+ * Removed from nav per redesign brief:
+ *   • Records  → now a section on Dashboard (drill-in list)
+ *   • Medicines → now "Currently Taking" on Dashboard (drill-in list)
+ *   • Lab Results → now "Latest Results" on Dashboard (drill-in list)
+ *   • Share    → promoted to a prominent button on Dashboard, not a tab
  *
- * Each tab carries both a filled and outlined icon variant so the active
- * tab can render filled (stronger presence) and inactive tabs outlined
- * (lighter weight), matching Material's bottom-nav conventions.
+ * The Scan FAB replaces the old Upload tab entry point and is rendered
+ * by PatientShell so it floats above the nav on all primary screens.
  */
 enum class PatientTab(
     val label: String,
     val filledIcon: ImageVector,
     val outlinedIcon: ImageVector,
 ) {
-    Home("Home", Icons.Filled.Home, Icons.Outlined.Home),
-    Timeline("Records", Icons.Filled.Description, Icons.Outlined.Description),
-    Medicines("Medicines", Icons.Filled.Medication, Icons.Outlined.Medication),
-    LabResults("Lab Results", Icons.Filled.Science, Icons.Outlined.Science),
+    Family("Family", Icons.Filled.People, Icons.Outlined.People),
+    Dashboard("Dashboard", Icons.Filled.Home, Icons.Outlined.Home),
+    Profile("Profile", Icons.Filled.Person, Icons.Outlined.Person),
 }
 
 @Composable
@@ -63,7 +61,7 @@ fun PatientBottomNav(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clickable { onSelect(tab) }
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
             ) {
                 Icon(
                     imageVector = if (active) tab.filledIcon else tab.outlinedIcon,

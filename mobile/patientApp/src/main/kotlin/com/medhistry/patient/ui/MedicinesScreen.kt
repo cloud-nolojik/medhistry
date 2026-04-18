@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.outlined.Bedtime
@@ -62,13 +63,12 @@ fun MedicinesScreen(
     api: MedHistryApi,
     onScanReport: () -> Unit = {},
     onManageFamily: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
+    initialActivePatientId: String? = null,
 ) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
-    // null = the primary (logged-in) user's own records. Dependent ids filter
-    // to that member. No aggregate "All" view — the patient-friendly default
-    // is to show "me" first and let the user tap a family member chip to
-    // switch. Reduces cognitive load and avoids mixed-person timelines.
-    var activePatientId by remember { mutableStateOf<String?>(null) }
+    // Pre-scoped to the active person from the Dashboard if provided.
+    var activePatientId by remember { mutableStateOf(initialActivePatientId) }
     var healthSummary by remember { mutableStateOf<PatientHealthSummary?>(null) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -89,20 +89,27 @@ fun MedicinesScreen(
             .fillMaxSize()
             .background(MedHistryColors.Background),
     ) {
-        // Header
-        Text(
-            "My Medicines",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MedHistryColors.TextPrimary,
-            modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 4.dp),
-        )
-        Text(
-            "Your daily medication schedule",
-            fontSize = 14.sp,
-            color = MedHistryColors.TextSecondary,
-            modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
-        )
+        // Header — with optional back arrow when used as a sub-screen
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = if (onBack != null) 16.dp else 24.dp, end = 24.dp, top = 18.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MedHistryColors.TextPrimary,
+                    modifier = Modifier.size(24.dp).clickable { onBack() },
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Column {
+                Text("Prescriptions", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+                Text("Currently taking and past medicines", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
+            }
+        }
 
         // Family member picker. Shown only when the user has dependents;
         // adapts to family size (chips for up to 4, bottom-sheet for 5+).

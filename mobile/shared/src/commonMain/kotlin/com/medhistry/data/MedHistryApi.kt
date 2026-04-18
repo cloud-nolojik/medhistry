@@ -223,6 +223,14 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         }.body()
     }
 
+    suspend fun updateDependent(dependentId: String, request: DependentCreateRequest): DependentOut {
+        return client.put("$baseUrl/patients/family/$dependentId") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(request)
+        }.ensureSuccess().body()
+    }
+
     suspend fun removeDependent(dependentId: String) {
         client.delete("$baseUrl/patients/family/$dependentId") {
             bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
@@ -502,6 +510,32 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         return client.get("$baseUrl/upcoming-events/$eventId/calendar.ics") {
             bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
         }.ensureSuccess().bodyAsText()
+    }
+
+    // --- Person-scoped Chat (all documents for a family member) ---
+
+    /**
+     * Send a message to the person-scoped AI chat.
+     * The backend endpoint at /patients/chat (or /patients/{id}/chat) has
+     * access to all of the person's documents, conditions, medicines, and labs.
+     *
+     * Session memory is managed server-side (last ~10 turns) for the duration
+     * of the auth token. Wiped on re-login for privacy.
+     *
+     * Returns the assistant's plain-language reply as a string.
+     */
+    suspend fun sendPersonChat(patientId: String? = null, message: String): String {
+        val url = if (patientId != null) {
+            "$baseUrl/patients/$patientId/chat"
+        } else {
+            "$baseUrl/patients/chat"
+        }
+        val response = client.post(url) {
+            contentType(ContentType.Application.Json)
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(ChatSendRequest(message))
+        }.ensureSuccess().body<ChatSendResponse>()
+        return response.assistantMessage.content
     }
 
     // --- Per-document Chat ---

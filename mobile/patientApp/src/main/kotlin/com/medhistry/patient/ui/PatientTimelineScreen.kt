@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Favorite
@@ -52,6 +53,8 @@ fun PatientTimelineScreen(
     onDocumentClick: (documentId: String, memberName: String) -> Unit = { _, _ -> },
     onScanReport: () -> Unit = {},
     onManageFamily: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
+    initialActivePatientId: String? = null,
 ) {
     var documents by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
@@ -104,10 +107,9 @@ fun PatientTimelineScreen(
         } catch (_: Exception) { dateStr }
     }
 
-    // Active filter. Starts null (pre-family-load) and is set to the primary's
-    // id once the family list arrives — so the first view is the logged-in
-    // user's own records, not an aggregate across dependents.
-    var filterPatientId by remember { mutableStateOf<String?>(null) }
+    // Active filter — initialised from Dashboard's active person if provided,
+    // otherwise falls back to the primary once family loads.
+    var filterPatientId by remember { mutableStateOf(initialActivePatientId) }
 
     LaunchedEffect(family) {
         val f = family ?: return@LaunchedEffect
@@ -132,9 +134,26 @@ fun PatientTimelineScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp)) {
-            Text("Your Records", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
-            Text("Complete medical history", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
+        // Header row — with optional back arrow when used as a sub-screen
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = if (onBack != null) 16.dp else 24.dp, end = 24.dp, top = 20.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MedHistryColors.TextPrimary,
+                    modifier = Modifier.size(24.dp).clickable { onBack() },
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Column {
+                Text("Timeline", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+                Text("Complete medical history", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
+            }
         }
 
         // Inline delete error — rendered in the header strip so users see

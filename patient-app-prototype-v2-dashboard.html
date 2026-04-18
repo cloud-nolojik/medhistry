@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MedHistry — Patient App v2 (Dashboard Model)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--p:#14B8B8;--pd:#0D9999;--pl:#E0F7F7;--acc:#2ECC71;--accd:#27AE60;--dng:#E74C3C;--wrn:#F59E0B;--wrnl:#FEF3C7;--t:#1A1A2E;--ts:#6B7280;--tl:#9CA3AF;--bg:#F8FAFC;--w:#FFF;--brd:#E5E7EB;--sh:0 1px 3px rgba(0,0,0,.06);--r:16px;--rs:12px;--rx:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1A1A2E;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;flex-wrap:wrap;gap:20px}
+.pf{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3);border:8px solid #2A2A3E}
+.s{display:none;flex-direction:column;height:100%;width:100%;position:absolute;top:0;left:0;background:var(--bg);animation:fi .25s ease}
+.s.a{display:flex}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.sb{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 8px;font-size:14px;font-weight:600;color:var(--t);flex-shrink:0}
+.sb .r{display:flex;gap:6px;align-items:center;font-size:12px}
+.hd{padding:4px 20px 12px;flex-shrink:0;background:var(--bg)}
+.hd h1{font-size:24px;font-weight:700;color:var(--t);line-height:1.2}
+.hd p{font-size:13px;color:var(--ts);margin-top:3px}
+.hr{display:flex;justify-content:space-between;align-items:center}
+
+.bn{display:flex;justify-content:space-around;align-items:center;padding:10px 12px 24px;background:var(--w);border-top:1px solid var(--brd);flex-shrink:0;position:relative}
+.ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;border:none;background:none;font-family:inherit;flex:1}
+.ni svg{width:22px;height:22px;color:var(--tl);stroke-width:2}.ni span{font-size:10.5px;color:var(--tl);font-weight:500}
+.ni.ac svg{color:var(--p)}.ni.ac span{color:var(--p);font-weight:600}
+
+.fab{position:absolute;bottom:90px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(20,184,184,.4);cursor:pointer;font-size:24px;border:none;z-index:5}
+.fab:active{background:var(--pd)}
+
+.ct{flex:1;overflow-y:auto;padding:0 20px 20px}.ct::-webkit-scrollbar{display:none}
+
+/* Person switcher header */
+.psh{display:flex;align-items:center;gap:10px;padding:4px 20px 14px;background:var(--bg);flex-shrink:0}
+.psh-av{width:40px;height:40px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0}
+.psh-av.gr{background:#E879B5}.psh-av.bl{background:#7B9EE8}.psh-av.pu{background:#A875E0}
+.psh-name{flex:1}
+.psh-name .nm{font-size:17px;font-weight:700;color:var(--t);display:flex;align-items:center;gap:6px}
+.psh-name .rel{font-size:12px;color:var(--ts);margin-top:1px}
+.psh-ic{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ts);cursor:pointer}
+.psh-ic:active{background:var(--brd)}
+.chev{display:inline-block;transform:rotate(90deg);font-size:11px;color:var(--ts)}
+
+/* AI Summary card */
+.ai-sum{background:var(--w);border:1px solid var(--brd);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--sh)}
+.ai-sum-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ai-sum-ic{width:32px;height:32px;border-radius:10px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:16px}
+.ai-sum-ttl{font-size:14px;font-weight:700;color:var(--t);flex:1}
+.ai-sum-dt{font-size:11px;color:var(--tl)}
+.ai-sum-alert{display:flex;gap:10px;padding:10px 12px;background:var(--wrnl);border-radius:10px;margin-bottom:12px;border-left:3px solid var(--wrn)}
+.ai-sum-alert .tx{font-size:13px;color:#92400E;font-weight:500;line-height:1.4}
+.ai-sum-body{font-size:13.5px;color:var(--ts);line-height:1.55}
+
+/* Ask AI CTA */
+.ask-ai{background:linear-gradient(135deg,var(--p),var(--pd));border-radius:var(--r);padding:16px;margin-bottom:18px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:14px;border:none;width:100%;text-align:left;font-family:inherit;box-shadow:0 4px 14px rgba(20,184,184,.25)}
+.ask-ai-ic{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ask-ai-tx{flex:1}
+.ask-ai-tx .t1{font-size:15px;font-weight:700;line-height:1.2}
+.ask-ai-tx .t2{font-size:12px;opacity:.85;margin-top:3px;line-height:1.3}
+.ask-ai-arr{font-size:20px;opacity:.85}
+
+.share-cta{background:var(--w);border:1.5px solid var(--p);border-radius:var(--r);padding:14px 16px;margin-bottom:18px;cursor:pointer;display:flex;align-items:center;gap:14px;width:100%;text-align:left;font-family:inherit;box-shadow:var(--sh)}
+.share-cta:active{background:var(--pl)}
+.share-cta-ic{width:42px;height:42px;border-radius:12px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+
+/* Section header */
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;margin-top:6px;padding:0 2px}
+.sh h2{font-size:15px;font-weight:700;color:var(--t)}
+.sh a{font-size:13px;color:var(--p);font-weight:600;cursor:pointer}
+
+/* Cards */
+.cd{background:var(--w);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid var(--brd)}
+.cd.zp{padding:0}
+
+/* Medicine item */
+.mi{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--brd)}.mi:last-child{border-bottom:none}
+.mic{width:38px;height:38px;border-radius:10px;background:var(--pl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.mif{flex:1}.mn{font-size:14px;font-weight:600;color:var(--t)}.md{font-size:12px;color:var(--ts);margin-top:1px}
+.mb{font-size:11px;color:var(--p);background:var(--pl);padding:3px 8px;border-radius:10px;font-weight:600}
+
+/* Lab row */
+.lr{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--brd)}.lr:last-child{border-bottom:none}
+.lnm{font-size:13.5px;font-weight:500;color:var(--t)}
+.lnmd{font-size:11px;color:var(--tl);margin-top:2px}
+.lv{font-size:14px;font-weight:700}
+.lv.n{color:var(--accd)}.lv.h{color:var(--dng)}.lv.w{color:var(--wrn)}
+.ls{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;display:inline-block;margin-top:3px}
+.ls.n{background:#F0FDF4;color:var(--accd)}.ls.h{background:#FEF2F2;color:var(--dng)}.ls.w{background:var(--wrnl);color:#92400E}
+
+/* Timeline compact */
+.ti{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--brd)}.ti:last-child{border-bottom:none}
+.td{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.td.rx{background:#EBF5FF}.td.lb{background:#F0FDF4}.td.vi{background:var(--wrnl)}.td.sn{background:#FDF2F8}
+.tc{flex:1}
+.tdt{font-size:11px;color:var(--tl);font-weight:500}
+.tt{font-size:13.5px;font-weight:600;color:var(--t);margin-top:1px}
+.tds{font-size:12px;color:var(--ts);margin-top:3px;line-height:1.4}
+
+/* Records buckets */
+.buckets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.bucket{background:var(--w);border:1px solid var(--brd);border-radius:var(--r);padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh)}
+.bucket:active{background:var(--pl);border-color:var(--p)}
+.bucket-ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.bucket-ic.rx{background:#EBF5FF}
+.bucket-ic.lb{background:#F0FDF4}
+.bucket-ic.vi{background:var(--wrnl)}
+.bucket-ic.sn{background:#FDF2F8}
+.bucket-lbl{font-size:13px;font-weight:600;color:var(--t)}
+.bucket-ct{font-size:11px;color:var(--ts);margin-top:-4px}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;background:var(--w);border:1px dashed var(--brd);border-radius:var(--r);margin-bottom:14px}
+.empty-ic{width:56px;height:56px;border-radius:16px;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
+.empty-t{font-size:15px;font-weight:700;color:var(--t);margin-bottom:6px}
+.empty-d{font-size:13px;color:var(--ts);line-height:1.5;max-width:260px;margin-bottom:16px}
+.bp{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;background:var(--p);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.bp:active{background:var(--pd)}
+.bp.lg{width:100%;padding:15px;font-size:15px}
+
+/* Family tab */
+.fam-card{background:var(--w);border:1px solid var(--brd);border-radius:var(--r);padding:14px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:14px;box-shadow:var(--sh)}
+.fam-card:active{background:var(--pl)}
+.fam-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0}
+.fam-info{flex:1;min-width:0}
+.fam-nm{font-size:15px;font-weight:700;color:var(--t);display:flex;align-items:center;gap:6px}
+.fam-nm .you{font-size:10px;background:var(--pl);color:var(--p);padding:2px 7px;border-radius:8px;font-weight:600}
+.fam-rel{font-size:11px;color:var(--ts);margin-top:1px}
+.fam-meta{font-size:12px;color:var(--ts);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+.fam-meta .mt{display:flex;align-items:center;gap:4px}
+.fam-meta .alert{color:var(--wrn);font-weight:600}
+.fam-arr{color:var(--tl);font-size:18px}
+
+.add-card{background:var(--pl);border:2px dashed var(--p);border-radius:var(--r);padding:18px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--pd);font-weight:600;font-size:14px;margin-bottom:16px}
+.add-card:active{background:#C8E6E6}
+
+/* Chatbot */
+.chat-ct{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.chat-disclaim{display:flex;gap:8px;padding:10px 16px;margin:0 16px 8px;background:var(--wrnl);border-radius:10px;border-left:3px solid var(--wrn);align-items:flex-start}
+.chat-disclaim .ic{font-size:15px;flex-shrink:0;margin-top:1px}
+.chat-disclaim .tx{font-size:12px;color:#92400E;line-height:1.4}
+.chat-thread{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.chat-thread::-webkit-scrollbar{display:none}
+.bubble{max-width:85%;padding:11px 14px;border-radius:16px;font-size:13.5px;line-height:1.45}
+.bubble.ai{background:var(--w);border:1px solid var(--brd);align-self:flex-start;color:var(--t);border-bottom-left-radius:4px}
+.bubble.me{background:var(--p);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-sugs{padding:8px 16px 4px;display:flex;gap:8px;flex-wrap:wrap}
+.sug{padding:8px 14px;background:var(--w);border:1px solid var(--brd);border-radius:20px;font-size:12.5px;color:var(--t);cursor:pointer;font-weight:500}
+.sug:active{background:var(--pl);border-color:var(--p)}
+.chat-inp{display:flex;align-items:center;gap:8px;padding:10px 16px 14px;background:var(--w);border-top:1px solid var(--brd);flex-shrink:0}
+.chat-inp-box{flex:1;background:var(--bg);border:1px solid var(--brd);border-radius:20px;padding:10px 14px;font-size:13.5px;color:var(--ts)}
+.chat-inp-btn{width:38px;height:38px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;font-size:16px;flex-shrink:0}
+
+/* Records list */
+.rec-item{background:var(--w);border:1px solid var(--brd);border-radius:var(--r);padding:14px;margin-bottom:10px;display:flex;gap:12px;cursor:pointer;box-shadow:var(--sh)}
+.rec-item:active{background:var(--pl)}
+.rec-ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.rec-ic.lb{background:#F0FDF4}
+.rec-ic.rx{background:#EBF5FF}
+.rec-info{flex:1;min-width:0}
+.rec-ttl{font-size:14px;font-weight:600;color:var(--t)}
+.rec-sub{font-size:12px;color:var(--ts);margin-top:2px}
+.rec-dt{font-size:11px;color:var(--tl);margin-top:6px}
+
+/* Filter chips */
+.filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.filter-row::-webkit-scrollbar{display:none}
+.fchip{padding:7px 14px;background:var(--w);border:1px solid var(--brd);border-radius:20px;font-size:12.5px;color:var(--ts);cursor:pointer;font-weight:500;white-space:nowrap;flex-shrink:0}
+.fchip.ac{background:var(--p);color:#fff;border-color:var(--p);font-weight:600}
+
+/* Switcher dropdown */
+.switcher{position:absolute;top:78px;left:20px;right:20px;background:var(--w);border-radius:var(--r);box-shadow:0 10px 40px rgba(0,0,0,.18);padding:8px;z-index:20;display:none}
+.switcher.a{display:block}
+.sw-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer}
+.sw-item:active{background:var(--pl)}
+.sw-item.ac{background:var(--pl)}
+.sw-item .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+.sw-item .nm{flex:1;font-size:14px;font-weight:600;color:var(--t)}
+.sw-item .ck{color:var(--p);font-size:14px}
+.sw-add{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;color:var(--p);font-weight:600;font-size:14px;border-top:1px solid var(--brd);margin-top:4px;padding-top:14px}
+.sw-add .plus{width:36px;height:36px;border-radius:50%;background:var(--pl);display:flex;align-items:center;justify-content:center;font-size:20px}
+
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:15;display:none}
+.scrim.a{display:block}
+
+/* Lab detail sections — reused */
+.detail-card{background:var(--w);border:1px solid var(--brd);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.detail-card h3{font-size:14px;font-weight:700;color:var(--t);margin-bottom:8px}
+.detail-card p{font-size:13px;color:var(--ts);line-height:1.55}
+.res-row{padding:12px;border:1px solid var(--brd);border-radius:10px;margin-bottom:8px;border-left:3px solid var(--accd);background:#F8FFFB}
+.res-row.w{border-left-color:var(--wrn);background:#FFFCF2}
+.res-row .rn{font-size:12px;font-weight:700;color:var(--t);text-transform:uppercase;letter-spacing:.3px;display:flex;justify-content:space-between;gap:10px}
+.res-row .rn .val{font-size:13px}
+.res-row .rn .val.w{color:var(--wrn)}.res-row .rn .val.n{color:var(--accd)}
+.res-row .rr{font-size:11px;color:var(--tl);margin-top:4px}
+.res-row .rd{font-size:12px;color:var(--ts);margin-top:6px;line-height:1.4}
+
+/* Labels */
+.dropdown-lbl{font-size:12px;color:var(--ts);font-weight:600;margin-bottom:6px;padding:0 2px}
+</style>
+</head>
+<body>
+
+<div class="pf">
+
+<!-- SCRIM -->
+<div class="scrim" id="scrim" onclick="closeSwitcher()"></div>
+
+<!-- PERSON SWITCHER DROPDOWN (shared overlay) -->
+<div class="switcher" id="switcher">
+  <div class="sw-item ac" onclick="switchTo('induchoodan')">
+    <div class="av" style="background:#7B9EE8">i</div>
+    <div class="nm">induchoodan <span style="font-size:11px;color:var(--ts);font-weight:500">· Child</span></div>
+    <span class="ck">✓</span>
+  </div>
+  <div class="sw-item" onclick="switchTo('vijesh')">
+    <div class="av" style="background:var(--p)">V</div>
+    <div class="nm">Vijesh <span style="font-size:11px;color:var(--ts);font-weight:500">· You</span></div>
+  </div>
+  <div class="sw-item" onclick="switchTo('sruthi')">
+    <div class="av" style="background:#E879B5">S</div>
+    <div class="nm">Sruthi <span style="font-size:11px;color:var(--ts);font-weight:500">· Spouse</span></div>
+  </div>
+  <div class="sw-add" onclick="go('s-family');closeSwitcher()">
+    <span class="plus">+</span>
+    <span>Add family member</span>
+  </div>
+</div>
+
+<!-- ================== SPLASH ================== -->
+<div class="s a" id="s-splash">
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 32px;text-align:center;background:linear-gradient(135deg,var(--p),var(--pd))">
+  <div style="width:88px;height:88px;border-radius:24px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;margin-bottom:24px">
+    <span style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px">Mh</span>
+  </div>
+  <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:8px">MedHistry</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.8);margin-bottom:60px">Your family's health, organized</div>
+  <button class="bp" style="background:rgba(255,255,255,.2);max-width:300px;width:100%" onclick="go('s-dashboard-induchoodan')">Enter Prototype →</button>
+  <div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.6">Dashboard-with-Ask-AI model<br>Structured data + conversational Q&A</div>
+</div>
+</div>
+
+<!-- ================== DASHBOARD — induchoodan (populated) ================== -->
+<div class="s" id="s-dashboard-induchoodan">
+<div class="sb"><span>3:04</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div class="psh">
+  <div class="psh-av bl">i</div>
+  <div class="psh-name" onclick="toggleSwitcher()" style="cursor:pointer">
+    <div class="nm">induchoodan <span class="chev">›</span></div>
+    <div class="rel">Child · 1 month old</div>
+  </div>
+  <div class="psh-ic" onclick="go('s-search')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+  <div class="psh-ic" onclick="go('s-profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+</div>
+
+<div class="ct">
+
+  <!-- AI Summary -->
+  <div class="ai-sum">
+    <div class="ai-sum-hd">
+      <div class="ai-sum-ic">💡</div>
+      <div class="ai-sum-ttl">How induchoodan is doing</div>
+      <div class="ai-sum-dt">17 Apr</div>
+    </div>
+    <div class="ai-sum-alert">
+      <span style="font-size:14px">⚠️</span>
+      <span class="tx">Most results are fine, but some hormone levels need attention.</span>
+    </div>
+    <div class="ai-sum-body">Recent hormone tests from 17 Apr show FSH, LH, and Androstenedione within normal range for their age. Total Testosterone is slightly higher than typical — worth discussing with your pediatrician.</div>
+  </div>
+
+  <!-- Ask AI CTA -->
+  <button class="ask-ai" onclick="go('s-ask-ai')">
+    <div class="ask-ai-ic">💬</div>
+    <div class="ask-ai-tx">
+      <div class="t1">Ask about induchoodan's reports</div>
+      <div class="t2">Get plain-language answers from all records</div>
+    </div>
+    <div class="ask-ai-arr">›</div>
+  </button>
+
+  <!-- Share with Doctor CTA -->
+  <button class="share-cta" onclick="go('s-share')">
+    <div class="share-cta-ic">📲</div>
+    <div class="ask-ai-tx">
+      <div class="t1" style="color:var(--t)">Share with Doctor</div>
+      <div class="t2" style="color:var(--ts);opacity:1">Show QR for instant access — expires after visit</div>
+    </div>
+    <div class="ask-ai-arr" style="color:var(--p);opacity:1">›</div>
+  </button>
+
+  <!-- Upcoming / Pending -->
+  <div class="sh"><h2>Upcoming</h2><a>1</a></div>
+  <div class="cd" style="border-left:3px solid var(--wrn)">
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="font-size:20px">📅</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--t)">Repeat hormone estimation</div>
+        <div style="font-size:12px;color:var(--ts);margin-top:2px">Tomorrow · 19 Apr · Soon</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer">✓</div>
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer">✕</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Currently Taking -->
+  <div class="sh"><h2>Currently Taking</h2><a onclick="go('s-records-rx')">View all (3) →</a></div>
+  <div class="cd zp" style="padding:4px 16px">
+    <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Multivitamin drops</div><div class="md">5 drops daily · Morning</div></div><span class="mb">Active</span></div>
+    <div class="mi"><div class="mic">💊</div><div class="mif"><div class="mn">Vitamin D3</div><div class="md">400 IU · Once daily</div></div><span class="mb">Active</span></div>
+  </div>
+
+  <!-- Latest Lab Results -->
+  <div class="sh"><h2>Latest Results</h2><a onclick="go('s-records-lab')">View all (8) →</a></div>
+  <div class="cd zp" style="padding:4px 16px" onclick="go('s-lab-detail')">
+    <div class="lr">
+      <div>
+        <div class="lnm">Total Testosterone</div>
+        <div class="lnmd">17 Apr · DDRC Agilus</div>
+      </div>
+      <div style="text-align:right"><div class="lv w">200 ng/dl</div><span class="ls w">High</span></div>
+    </div>
+    <div class="lr">
+      <div>
+        <div class="lnm">FSH, Serum</div>
+        <div class="lnmd">17 Apr · DDRC Agilus</div>
+      </div>
+      <div style="text-align:right"><div class="lv n">2.58 mIU/mL</div><span class="ls n">Normal</span></div>
+    </div>
+    <div class="lr">
+      <div>
+        <div class="lnm">LH, Serum</div>
+        <div class="lnmd">17 Apr · DDRC Agilus</div>
+      </div>
+      <div style="text-align:right"><div class="lv n">5.10 mIU/mL</div><span class="ls n">Normal</span></div>
+    </div>
+  </div>
+
+  <!-- Recent Timeline -->
+  <div class="sh"><h2>Recent Activity</h2><a onclick="go('s-timeline')">Full timeline →</a></div>
+  <div class="cd zp" style="padding:4px 16px">
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">17 Apr 2026</div><div class="tt">Lab report added</div><div class="tds">DDRC Agilus · 5 hormone tests processed</div></div></div>
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">16 Apr 2026</div><div class="tt">Lab report added</div><div class="tds">DDRC Agilus · 3 lab results</div></div></div>
+    <div class="ti"><div class="td vi">🏥</div><div class="tc"><div class="tdt">10 Apr 2026</div><div class="tt">Pediatrician visit</div><div class="tds">Dr. Parvathy L · Routine checkup</div></div></div>
+  </div>
+
+  <!-- Records buckets -->
+  <div class="sh"><h2>All Records</h2></div>
+  <div class="buckets">
+    <div class="bucket" onclick="go('s-records-lab')">
+      <div class="bucket-ic lb">🧪</div>
+      <div class="bucket-lbl">Lab Reports</div>
+      <div class="bucket-ct">8 reports</div>
+    </div>
+    <div class="bucket" onclick="go('s-records-rx')">
+      <div class="bucket-ic rx">💊</div>
+      <div class="bucket-lbl">Prescriptions</div>
+      <div class="bucket-ct">12 items</div>
+    </div>
+    <div class="bucket" onclick="go('s-timeline')">
+      <div class="bucket-ic vi">🏥</div>
+      <div class="bucket-lbl">Visits</div>
+      <div class="bucket-ct">3 visits</div>
+    </div>
+    <div class="bucket">
+      <div class="bucket-ic sn">📋</div>
+      <div class="bucket-lbl">Other Docs</div>
+      <div class="bucket-ct">2 documents</div>
+    </div>
+  </div>
+
+  <div style="height:40px"></div>
+</div>
+
+<button class="fab" onclick="go('s-scan')">📷</button>
+
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Family</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== DASHBOARD — Vijesh (empty state) ================== -->
+<div class="s" id="s-dashboard-vijesh">
+<div class="sb"><span>3:04</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div class="psh">
+  <div class="psh-av">V</div>
+  <div class="psh-name" onclick="toggleSwitcher()" style="cursor:pointer">
+    <div class="nm">Vijesh <span style="font-size:11px;background:var(--pl);color:var(--p);padding:2px 7px;border-radius:8px;font-weight:600;margin-left:4px">You</span><span class="chev">›</span></div>
+    <div class="rel">Account owner</div>
+  </div>
+  <div class="psh-ic" onclick="go('s-profile')"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+</div>
+
+<div class="ct">
+
+  <!-- Welcome / empty AI summary -->
+  <div class="ai-sum" style="background:var(--pl);border-color:var(--p)">
+    <div class="ai-sum-hd">
+      <div class="ai-sum-ic" style="background:var(--w)">👋</div>
+      <div class="ai-sum-ttl">Welcome, Vijesh</div>
+    </div>
+    <div class="ai-sum-body">Start by scanning a prescription or lab report. I'll read, organize, and summarize it in plain language.</div>
+  </div>
+
+  <!-- Empty CTA -->
+  <div class="empty">
+    <div class="empty-ic">📄</div>
+    <div class="empty-t">No records yet</div>
+    <div class="empty-d">Scan a prescription or lab report to see your health summary here.</div>
+    <button class="bp" onclick="go('s-scan')">📷 Scan your first report</button>
+  </div>
+
+  <!-- Share with Doctor CTA -->
+  <button class="share-cta" onclick="go('s-share')">
+    <div class="share-cta-ic">📲</div>
+    <div class="ask-ai-tx">
+      <div class="t1" style="color:var(--t)">Share with Doctor</div>
+      <div class="t2" style="color:var(--ts);opacity:1">Show QR for instant access — expires after visit</div>
+    </div>
+    <div class="ask-ai-arr" style="color:var(--p);opacity:1">›</div>
+  </button>
+
+  <div style="height:40px"></div>
+</div>
+
+<button class="fab" onclick="go('s-scan')">📷</button>
+
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== FAMILY TAB ================== -->
+<div class="s" id="s-family">
+<div class="sb"><span>3:04</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><h1>Family</h1><p>Manage everyone's health in one place</p></div>
+<div class="ct">
+
+  <div class="add-card" onclick="go('s-add-member')">
+    <span style="font-size:22px">+</span>
+    <span>Add family member</span>
+  </div>
+
+  <div class="fam-card" onclick="go('s-dashboard-vijesh')">
+    <div class="fam-av" style="background:var(--p)">V</div>
+    <div class="fam-info">
+      <div class="fam-nm">Vijesh <span class="you">You</span></div>
+      <div class="fam-rel">Account owner</div>
+      <div class="fam-meta"><span class="mt">📄 No records yet</span></div>
+    </div>
+    <span class="fam-arr">›</span>
+  </div>
+
+  <div class="fam-card" onclick="go('s-dashboard-induchoodan')">
+    <div class="fam-av" style="background:#7B9EE8">i</div>
+    <div class="fam-info">
+      <div class="fam-nm">induchoodan</div>
+      <div class="fam-rel">Child · 1 month old</div>
+      <div class="fam-meta">
+        <span class="mt">📄 10 docs</span>
+        <span class="mt alert">⚠ 2 values need attention</span>
+      </div>
+      <div style="font-size:11px;color:var(--wrn);margin-top:4px;font-weight:600">📅 Repeat hormone test tomorrow</div>
+    </div>
+    <span class="fam-arr">›</span>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-av" style="background:#E879B5">S</div>
+    <div class="fam-info">
+      <div class="fam-nm">Sruthi</div>
+      <div class="fam-rel">Spouse</div>
+      <div class="fam-meta"><span class="mt">📄 4 docs</span><span class="mt" style="color:var(--accd)">✓ All clear</span></div>
+    </div>
+    <span class="fam-arr">›</span>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-av" style="background:#A875E0">A</div>
+    <div class="fam-info">
+      <div class="fam-nm">Amma</div>
+      <div class="fam-rel">Mother · 68 years</div>
+      <div class="fam-meta"><span class="mt">📄 22 docs</span><span class="mt alert">⚠ 3 active conditions</span></div>
+    </div>
+    <span class="fam-arr">›</span>
+  </div>
+</div>
+
+<div class="bn">
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Family</span></div>
+  <div class="ni" onclick="go('s-dashboard-induchoodan')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== ASK AI (person-scoped chat) ================== -->
+<div class="s" id="s-ask-ai">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+
+<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--w);border-bottom:1px solid var(--brd);flex-shrink:0">
+  <div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div class="psh-av bl" style="width:36px;height:36px;font-size:14px">i</div>
+  <div style="flex:1">
+    <div style="font-size:15px;font-weight:700;color:var(--t)">Ask about induchoodan</div>
+    <div style="font-size:11px;color:var(--ts)">Powered by your records</div>
+  </div>
+</div>
+
+<div class="chat-disclaim">
+  <span class="ic">ℹ️</span>
+  <span class="tx">I can help you understand your records, but I'm not a doctor. Always confirm with your physician.</span>
+</div>
+
+<div class="chat-thread">
+  <div class="bubble ai">Hi! I can answer questions about induchoodan's health using all 10 uploaded documents. What would you like to know?</div>
+  <div class="bubble me">What does the high testosterone mean?</div>
+  <div class="bubble ai">The 17 Apr report shows Total Testosterone at 200 ng/dL, slightly above the typical range for a 1-month-old. In infants this can sometimes be transient. The lab also suggests repeating the test in 2 days if clinically indicated. Your pediatrician (Dr. Parvathy L) will interpret this in context with the other hormone values — FSH and LH were normal, which is reassuring.</div>
+  <div class="bubble me">Should I be worried?</div>
+  <div class="bubble ai">It's understandable to feel anxious, but the overall picture is actually reassuring — most hormone levels are within normal range. The elevated testosterone is worth discussing but isn't necessarily cause for alarm. The "Next Steps" from the lab suggest a repeat test, which is a very standard approach.</div>
+</div>
+
+<div class="chat-sugs">
+  <div class="sug">What's changed recently?</div>
+  <div class="sug">Show medicines list</div>
+  <div class="sug">What needs attention?</div>
+</div>
+
+<div class="chat-inp">
+  <div style="width:34px;height:34px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--ts);font-size:18px;cursor:pointer">📎</div>
+  <div class="chat-inp-box">Ask about induchoodan's health…</div>
+  <div style="width:34px;height:34px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--ts);font-size:16px;cursor:pointer">🎤</div>
+  <button class="chat-inp-btn">→</button>
+</div>
+</div>
+
+<!-- ================== RECORDS — LAB REPORTS LIST ================== -->
+<div class="s" id="s-records-lab">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Lab Reports</h1><div style="width:22px"></div></div><p>induchoodan · 8 reports</p></div>
+
+<div class="ct">
+  <div class="filter-row">
+    <div class="fchip ac">All (8)</div>
+    <div class="fchip">Hormone</div>
+    <div class="fchip">Blood</div>
+    <div class="fchip">Imaging</div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:8px 0 8px 2px">April 2026</div>
+
+  <div class="rec-item" onclick="go('s-lab-detail')">
+    <div class="rec-ic lb">🧪</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Hormone panel</div>
+      <div class="rec-sub">DDRC Agilus · Dr. Parvathy L</div>
+      <div style="font-size:11px;color:var(--wrn);margin-top:4px;font-weight:600">⚠ 2 values need attention</div>
+      <div class="rec-dt">17 Apr · 5 results</div>
+    </div>
+  </div>
+
+  <div class="rec-item" onclick="go('s-lab-detail')">
+    <div class="rec-ic lb">🧪</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Hormone panel</div>
+      <div class="rec-sub">DDRC Agilus · Dr. Parvathy L</div>
+      <div style="font-size:11px;color:var(--accd);margin-top:4px;font-weight:600">✓ All normal</div>
+      <div class="rec-dt">16 Apr · 3 results</div>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:16px 0 8px 2px">March 2026</div>
+
+  <div class="rec-item">
+    <div class="rec-ic lb">🧪</div>
+    <div class="rec-info">
+      <div class="rec-ttl">CBC with Differential</div>
+      <div class="rec-sub">Apollo Diagnostics · Dr. Suresh Patel</div>
+      <div class="rec-dt">28 Mar · 12 results</div>
+    </div>
+  </div>
+
+  <div class="rec-item">
+    <div class="rec-ic lb">🧪</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Newborn screening</div>
+      <div class="rec-sub">Hospital lab · Dr. Anita Rao</div>
+      <div class="rec-dt">12 Mar · 6 results</div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="go('s-scan')">📷</button>
+
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== RECORDS — PRESCRIPTIONS LIST ================== -->
+<div class="s" id="s-records-rx">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Prescriptions</h1><div style="width:22px"></div></div><p>induchoodan · 12 prescriptions</p></div>
+
+<div class="ct">
+  <div class="filter-row">
+    <div class="fchip ac">All (12)</div>
+    <div class="fchip">Active (3)</div>
+    <div class="fchip">Past (9)</div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:8px 0 8px 2px">Currently Active</div>
+
+  <div class="rec-item">
+    <div class="rec-ic rx">💊</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Multivitamin drops</div>
+      <div class="rec-sub">Prescribed by Dr. Parvathy L</div>
+      <div style="font-size:11px;color:var(--accd);margin-top:4px;font-weight:600">✓ Active · 5 drops daily</div>
+    </div>
+  </div>
+
+  <div class="rec-item">
+    <div class="rec-ic rx">💊</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Vitamin D3</div>
+      <div class="rec-sub">Prescribed by Dr. Parvathy L</div>
+      <div style="font-size:11px;color:var(--accd);margin-top:4px;font-weight:600">✓ Active · 400 IU daily</div>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:16px 0 8px 2px">Past Prescriptions</div>
+
+  <div class="rec-item">
+    <div class="rec-ic rx">💊</div>
+    <div class="rec-info">
+      <div class="rec-ttl">Paracetamol drops</div>
+      <div class="rec-sub">Prescribed by Dr. Parvathy L</div>
+      <div class="rec-dt">Completed · 10 Apr</div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="go('s-scan')">📷</button>
+
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== TIMELINE (full) ================== -->
+<div class="s" id="s-timeline">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Timeline</h1><div style="width:22px"></div></div><p>induchoodan · Complete history</p></div>
+
+<div class="ct">
+  <div class="filter-row">
+    <div class="fchip ac">All</div>
+    <div class="fchip">🧪 Labs</div>
+    <div class="fchip">💊 Prescriptions</div>
+    <div class="fchip">🏥 Visits</div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:8px 0 12px 2px">April 2026</div>
+
+  <div class="cd zp" style="padding:4px 16px">
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">17 Apr</div><div class="tt">Hormone panel added</div><div class="tds">DDRC Agilus · 5 results · 2 need attention</div></div></div>
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">16 Apr</div><div class="tt">Hormone panel added</div><div class="tds">DDRC Agilus · 3 results · All normal</div></div></div>
+    <div class="ti"><div class="td vi">🏥</div><div class="tc"><div class="tdt">10 Apr</div><div class="tt">Pediatrician visit</div><div class="tds">Dr. Parvathy L · Routine checkup</div></div></div>
+    <div class="ti"><div class="td rx">💊</div><div class="tc"><div class="tdt">10 Apr</div><div class="tt">Prescription — Multivitamin drops</div><div class="tds">5 drops daily · Active</div></div></div>
+  </div>
+
+  <div style="font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;margin:16px 0 12px 2px">March 2026</div>
+
+  <div class="cd zp" style="padding:4px 16px">
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">28 Mar</div><div class="tt">CBC with Differential</div><div class="tds">Apollo Diagnostics · 12 results · All normal</div></div></div>
+    <div class="ti"><div class="td vi">🏥</div><div class="tc"><div class="tdt">15 Mar</div><div class="tt">First pediatrician visit</div><div class="tds">Dr. Suresh Patel · Newborn checkup</div></div></div>
+    <div class="ti"><div class="td lb">🧪</div><div class="tc"><div class="tdt">12 Mar</div><div class="tt">Newborn screening</div><div class="tds">Hospital lab · 6 results</div></div></div>
+  </div>
+</div>
+
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== LAB DETAIL (preserved from current app) ================== -->
+<div class="s" id="s-lab-detail">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--w);border-bottom:1px solid var(--brd);flex-shrink:0">
+  <div style="cursor:pointer;padding:4px" onclick="go('s-records-lab')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="flex:1">
+    <div style="font-size:15px;font-weight:700;color:var(--t)">Lab report</div>
+    <div style="font-size:12px;color:var(--p)">induchoodan</div>
+  </div>
+  <div style="font-size:12px;color:var(--p);font-weight:600;border:1px solid var(--p);padding:6px 10px;border-radius:14px;cursor:pointer">Open original</div>
+  <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--ts);cursor:pointer">🗑</div>
+</div>
+
+<div class="ct" style="padding-top:16px">
+  <div style="background:var(--pl);border:1px solid var(--p);border-radius:var(--r);padding:14px;margin-bottom:14px;cursor:pointer;display:flex;align-items:center;gap:12px" onclick="go('s-ask-ai')">
+    <div style="font-size:22px">💬</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:700;color:var(--t)">Ask about this report</div>
+      <div style="font-size:12px;color:var(--ts);margin-top:2px">Plain-language answers</div>
+    </div>
+    <span style="color:var(--p);font-size:18px">›</span>
+  </div>
+
+  <div class="ai-sum-alert" style="margin-bottom:14px">
+    <span style="font-size:14px">⚠️</span>
+    <span class="tx">Most results are fine, but some hormone levels need attention.</span>
+  </div>
+
+  <div class="detail-card">
+    <h3>What this means for you</h3>
+    <p>induchoodan's recent hormone tests show FSH, LH, and Androstenedione within the normal range for a 1-month-old. Total Testosterone is slightly higher than expected, and DHT was measured but has no established range for this age. Discuss with your pediatrician for context.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+    <div class="cd" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--tl);font-weight:600">HOSPITAL</div><div style="font-size:12px;color:var(--t);font-weight:600;margin-top:4px;line-height:1.3">DDRC Agilus</div></div>
+    <div class="cd" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--tl);font-weight:600">DOCTOR</div><div style="font-size:12px;color:var(--t);font-weight:600;margin-top:4px;line-height:1.3">Dr. Parvathy L</div></div>
+    <div class="cd" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--tl);font-weight:600">DATE</div><div style="font-size:12px;color:var(--t);font-weight:600;margin-top:4px;line-height:1.3">17 Apr 2026</div></div>
+  </div>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--t);margin-bottom:10px">Your Results</h3>
+
+  <div class="res-row w">
+    <div class="rn"><span>ALPHA-DIHYDROTESTOSTERONE</span><span class="val w">214.37 pg/mL</span></div>
+    <div class="rr">Normal range: Not established for age</div>
+    <div class="rd">Lab doesn't have a standard range for a 1-month-old. Your doctor will interpret this in context.</div>
+  </div>
+
+  <div class="res-row">
+    <div class="rn"><span>ANDROSTENEDIONE</span><span class="val n">&lt;0.3 ng/mL</span></div>
+    <div class="rr">Normal range: 0.08 – 0.50</div>
+    <div class="rd">Within the normal range for their age.</div>
+  </div>
+
+  <div class="res-row">
+    <div class="rn"><span>FSH (FOLLICLE STIMULATING)</span><span class="val n">2.58 mIU/mL</span></div>
+    <div class="rr">Normal range: 0.1 – 3.2</div>
+    <div class="rd">Plays a role in sexual development. induchoodan's level is normal.</div>
+  </div>
+
+  <div class="res-row w">
+    <div class="rn"><span>TESTOSTERONE TOTAL</span><span class="val w">200 ng/dL</span></div>
+    <div class="rr">Normal range: 1 – 177</div>
+    <div class="rd">Slightly higher than typical range for their age — worth discussing with the doctor.</div>
+  </div>
+
+  <div class="cd" style="border-left:3px solid var(--p);margin-top:4px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:16px">📅</span><span style="font-size:14px;font-weight:700;color:var(--t)">Next Steps</span></div>
+    <div style="font-size:13px;color:var(--t);font-weight:600">Repeat hormone estimation</div>
+    <div style="font-size:12px;color:var(--ts);margin-top:4px;line-height:1.5">Within 2 days if clinically not correlated. Recommended on fresh sample if results don't match clinical picture.</div>
+  </div>
+</div>
+</div>
+
+<!-- ================== SCAN (simple stub) ================== -->
+<div class="s" id="s-scan">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Scan Report</h1><div style="width:22px"></div></div></div>
+<div class="ct">
+  <div class="dropdown-lbl">Scanning for</div>
+  <div class="cd" onclick="toggleSwitcher()" style="cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div class="psh-av bl" style="width:36px;height:36px;font-size:14px">i</div>
+    <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">induchoodan</div><div style="font-size:12px;color:var(--ts);margin-top:2px">Child · Change</div></div>
+    <span class="chev">›</span>
+  </div>
+
+  <div style="border:2px dashed var(--p);border-radius:var(--r);padding:40px 24px;text-align:center;background:var(--pl);margin-bottom:14px">
+    <div style="font-size:44px;margin-bottom:14px">📷</div>
+    <div style="font-size:16px;font-weight:600;color:var(--pd);margin-bottom:4px">Take a Photo</div>
+    <div style="font-size:13px;color:var(--ts)">Point your camera at the document</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="bucket"><div class="bucket-ic" style="background:#F0FDF4">🖼️</div><div class="bucket-lbl">Gallery</div></div>
+    <div class="bucket"><div class="bucket-ic" style="background:#EBF5FF">📄</div><div class="bucket-lbl">PDF File</div></div>
+    <div class="bucket"><div class="bucket-ic" style="background:var(--wrnl)">📑</div><div class="bucket-lbl">Batch</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ================== SHARE (simplified) ================== -->
+<div class="s" id="s-share">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Share with Doctor</h1><div style="width:22px"></div></div><p>Let a doctor scan this QR to see induchoodan's summary</p></div>
+<div class="ct" style="display:flex;flex-direction:column;align-items:center">
+  <div style="width:220px;height:220px;background:var(--w);border:2px solid var(--p);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:20px 0;padding:14px;box-shadow:0 2px 12px rgba(20,184,184,.15)">
+    <div style="width:100%;height:100%;background:repeating-conic-gradient(var(--t) 0% 25%, #fff 0% 50%) 50%/12px 12px"></div>
+  </div>
+  <div style="font-size:13px;color:var(--ts);margin-bottom:16px">New QR in 58s · Access expires after visit</div>
+  <div style="background:var(--pl);border-radius:var(--r);padding:16px;width:100%;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700;color:var(--t);margin-bottom:8px">What your doctor will see</div>
+    <div style="font-size:12.5px;color:var(--ts);line-height:1.7">🩺 Active conditions<br>💊 Current medications<br>🧪 Recent lab values<br>⚠️ Allergies & alerts</div>
+  </div>
+  <div style="font-size:11px;color:var(--tl);text-align:center">🔒 Data encrypted. Doctor cannot save or re-share.</div>
+</div>
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni ac" onclick="go('s-dashboard-induchoodan')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== PROFILE (simplified) ================== -->
+<div class="s" id="s-profile">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><h1 style="font-size:20px">Profile</h1></div>
+<div class="ct">
+  <div style="display:flex;flex-direction:column;align-items:center;margin:20px 0 30px">
+    <div style="width:80px;height:80px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:32px;margin-bottom:14px">V</div>
+    <div style="font-size:19px;font-weight:700;color:var(--t)">Vijesh</div>
+    <div style="font-size:13px;color:var(--ts);margin-top:4px">+91 98765 43210</div>
+  </div>
+  <div class="cd" style="display:flex;align-items:center;gap:14px;cursor:pointer"><span style="font-size:20px">👤</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">Personal details</div></div><span style="color:var(--tl)">›</span></div>
+  <div class="cd" style="display:flex;align-items:center;gap:14px;cursor:pointer" onclick="go('s-family')"><span style="font-size:20px">👥</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">Family members</div><div style="font-size:12px;color:var(--ts);margin-top:2px">4 members</div></div><span style="color:var(--tl)">›</span></div>
+  <div class="cd" style="display:flex;align-items:center;gap:14px;cursor:pointer"><span style="font-size:20px">🔒</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">Privacy & consent</div></div><span style="color:var(--tl)">›</span></div>
+  <div class="cd" style="display:flex;align-items:center;gap:14px;cursor:pointer"><span style="font-size:20px">🌐</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">Language</div><div style="font-size:12px;color:var(--ts);margin-top:2px">English</div></div><span style="color:var(--tl)">›</span></div>
+  <div class="cd" style="display:flex;align-items:center;gap:14px;cursor:pointer"><span style="font-size:20px">📞</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t)">Help & support</div></div><span style="color:var(--tl)">›</span></div>
+</div>
+<div class="bn">
+  <div class="ni" onclick="go('s-family')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Family</span></div>
+  <div class="ni" onclick="go('s-dashboard-induchoodan')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span>Dashboard</span></div>
+  <div class="ni ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+</div>
+</div>
+
+<!-- ================== ADD MEMBER (stub) ================== -->
+<div class="s" id="s-add-member">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div class="hd"><div class="hr"><div style="cursor:pointer;padding:4px" onclick="go('s-family')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div><h1 style="font-size:20px">Add Family Member</h1><div style="width:22px"></div></div></div>
+<div class="ct">
+  <div style="font-size:12px;color:var(--ts);font-weight:600;margin-bottom:8px;text-transform:uppercase">Name</div>
+  <div style="padding:14px 16px;background:var(--w);border:2px solid var(--p);border-radius:var(--rs);font-size:16px;color:var(--t);margin-bottom:16px">Enter name</div>
+  <div style="font-size:12px;color:var(--ts);font-weight:600;margin-bottom:8px;text-transform:uppercase">Relationship</div>
+  <div style="padding:14px 16px;background:var(--w);border:1px solid var(--brd);border-radius:var(--rs);font-size:16px;color:var(--ts);margin-bottom:16px">Select · Spouse / Child / Parent / Other</div>
+  <div style="font-size:12px;color:var(--ts);font-weight:600;margin-bottom:8px;text-transform:uppercase">Date of Birth</div>
+  <div style="padding:14px 16px;background:var(--w);border:1px solid var(--brd);border-radius:var(--rs);font-size:16px;color:var(--ts);margin-bottom:28px">DD / MM / YYYY</div>
+  <button class="bp lg" onclick="go('s-family')">Add Member</button>
+</div>
+</div>
+
+<!-- ================== SEARCH (stub) ================== -->
+<div class="s" id="s-search">
+<div class="sb"><span>3:05</span><div class="r"><span>📶</span><span>🔋</span></div></div>
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--w);border-bottom:1px solid var(--brd);flex-shrink:0">
+  <div style="cursor:pointer;padding:4px" onclick="go('s-dashboard-induchoodan')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--t)" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></div>
+  <div style="flex:1;background:var(--bg);border-radius:20px;padding:10px 14px;font-size:14px;color:var(--ts)">Search induchoodan's records…</div>
+</div>
+<div class="ct" style="padding-top:16px">
+  <div class="filter-row">
+    <div class="fchip ac">All</div>
+    <div class="fchip">Labs</div>
+    <div class="fchip">Prescriptions</div>
+    <div class="fchip">Questions</div>
+  </div>
+  <div style="text-align:center;color:var(--tl);font-size:13px;padding:40px 20px">Start typing to search across all of induchoodan's records, values, and questions.</div>
+</div>
+</div>
+
+</div>
+
+<script>
+function go(id){document.querySelectorAll('.s').forEach(s=>s.classList.remove('a'));document.getElementById(id).classList.add('a');closeSwitcher()}
+function toggleSwitcher(){const s=document.getElementById('switcher');const sc=document.getElementById('scrim');if(s.classList.contains('a')){closeSwitcher()}else{s.classList.add('a');sc.classList.add('a')}}
+function closeSwitcher(){document.getElementById('switcher').classList.remove('a');document.getElementById('scrim').classList.remove('a')}
+function switchTo(who){closeSwitcher();if(who==='induchoodan')go('s-dashboard-induchoodan');else if(who==='vijesh')go('s-dashboard-vijesh');else go('s-dashboard-induchoodan')}
+</script>
+</body>
+</html>

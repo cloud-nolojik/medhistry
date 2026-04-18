@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
@@ -38,12 +39,13 @@ fun LabResultsScreen(
     api: MedHistryApi,
     onScanReport: () -> Unit = {},
     onManageFamily: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
+    initialActivePatientId: String? = null,
 ) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
-    // null = primary (logged-in user). Dependent ids filter to that member.
-    // No aggregate "All" view — default to "me" and let the user tap a
-    // family member chip to switch.
-    var activePatientId by remember { mutableStateOf<String?>(null) }
+    // Initialise from the Dashboard's active person so the sub-screen opens
+    // pre-scoped to the right family member.
+    var activePatientId by remember { mutableStateOf(initialActivePatientId) }
     var healthSummary by remember { mutableStateOf<PatientHealthSummary?>(null) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -58,24 +60,40 @@ fun LabResultsScreen(
         loading = false
     }
 
+    // Resolve display name for subtitle
+    val memberName: String = when {
+        activePatientId == null -> family?.primary?.name?.split(" ")?.first() ?: ""
+        else -> family?.dependents?.firstOrNull { it.id == activePatientId }?.name?.split(" ")?.first() ?: ""
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MedHistryColors.Background),
     ) {
-        Text(
-            "Lab Results",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MedHistryColors.TextPrimary,
-            modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 4.dp),
-        )
-        Text(
-            "Your test results and vitals",
-            fontSize = 14.sp,
-            color = MedHistryColors.TextSecondary,
-            modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
-        )
+        // Header row with optional back arrow (when used as sub-screen)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = if (onBack != null) 16.dp else 24.dp, end = 24.dp, top = 18.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MedHistryColors.TextPrimary,
+                    modifier = Modifier.size(24.dp).clickable { onBack() },
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Column {
+                Text("Lab Reports", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+                if (memberName.isNotBlank()) {
+                    Text("$memberName's results", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
+                }
+            }
+        }
 
         // Family member picker. Adapts to family size (chips for ≤4,
         // bottom-sheet for 5+). Null activePatientId means "me".

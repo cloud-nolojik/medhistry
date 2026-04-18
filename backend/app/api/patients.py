@@ -359,6 +359,34 @@ async def get_access_log(
     return entries
 
 
+@router.put("/family/{dependent_id}", response_model=DependentOut)
+async def update_dependent(
+    dependent_id: UUID,
+    data: DependentCreate,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a dependent's profile fields."""
+    dependent = await resolve_patient_context(dependent_id, primary, db)
+    if dependent.id == primary.id:
+        raise HTTPException(status_code=400, detail="Cannot edit self via this endpoint")
+    dependent.name = data.name
+    dependent.relationship = data.relationship
+    if data.date_of_birth is not None:
+        dependent.date_of_birth = data.date_of_birth
+    if data.gender is not None:
+        dependent.gender = data.gender
+    if data.blood_group is not None:
+        dependent.blood_group = data.blood_group
+    if data.allergies is not None:
+        dependent.allergies = data.allergies
+    if data.phone is not None:
+        dependent.phone = data.phone
+    await db.commit()
+    await db.refresh(dependent)
+    return _make_patient_out(dependent)
+
+
 @router.delete("/family/{dependent_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_dependent(
     dependent_id: UUID,

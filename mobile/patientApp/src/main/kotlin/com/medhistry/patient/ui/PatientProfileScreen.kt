@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Patient profile & settings. Shows name, phone, settings rows, and logout.
+ *
+ * [showBackArrow] should be false when used as the Profile bottom-nav tab
+ * (no parent screen to go back to) and true when pushed as a sub-screen.
  */
 @Composable
 fun PatientProfileScreen(
@@ -40,13 +43,14 @@ fun PatientProfileScreen(
     onManageFamily: () -> Unit,
     onAccessHistory: () -> Unit,
     onLogout: () -> Unit,
+    showBackArrow: Boolean = true,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MedHistryColors.Background)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 24.dp),
+            .padding(bottom = 96.dp), // space for bottom nav
     ) {
         Row(
             modifier = Modifier
@@ -54,13 +58,15 @@ fun PatientProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MedHistryColors.TextPrimary,
-                modifier = Modifier.size(24.dp).clickable { onBack() },
-            )
-            Spacer(Modifier.width(16.dp))
+            if (showBackArrow) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MedHistryColors.TextPrimary,
+                    modifier = Modifier.size(24.dp).clickable { onBack() },
+                )
+                Spacer(Modifier.width(16.dp))
+            }
             Text("Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
 
