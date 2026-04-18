@@ -92,6 +92,15 @@ class TokenResponse(BaseModel):
     patient: PatientOut
 
 
+class PatientUpdate(BaseModel):
+    """Fields the patient can edit on their own profile. All optional (PATCH)."""
+    name: str | None = Field(None, min_length=1, max_length=100)
+    date_of_birth: str | None = Field(None, examples=["1990-05-15"])
+    gender: str | None = None
+    blood_group: str | None = None
+    allergies: str | None = None
+
+
 class DependentCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, examples=["Ramesh Sharma"])
     relationship: str = Field(..., min_length=1, max_length=30, examples=["father"])

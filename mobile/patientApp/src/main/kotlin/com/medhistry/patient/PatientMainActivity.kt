@@ -42,6 +42,7 @@ import com.medhistry.patient.ui.DocumentDetailScreen
 import com.medhistry.patient.ui.PatientHomeScreen
 import com.medhistry.patient.ui.PatientLoginScreen
 import com.medhistry.patient.ui.PatientProfileScreen
+import com.medhistry.patient.ui.PersonalDetailsScreen
 import com.medhistry.patient.ui.PatientSignupScreen
 import com.medhistry.patient.ui.PatientTab
 import com.medhistry.patient.ui.PatientTimelineScreen
@@ -118,6 +119,7 @@ private sealed class Screen {
     data class AskAi(val session: PatientSession, val activePatientId: String?, val personName: String) : Screen()
     data class Share(val mode: ShareMode, val patientId: String?, val session: PatientSession) : Screen()
     data class AccessHistory(val session: PatientSession) : Screen()
+    data class PersonalDetails(val session: PatientSession) : Screen()
     data class DocumentDetail(val session: PatientSession, val documentId: String, val memberName: String) : Screen()
     data class DocumentChat(val session: PatientSession, val documentId: String, val docTypeLabel: String?, val memberName: String) : Screen()
     data class Upload(val session: PatientSession) : Screen()
@@ -160,6 +162,7 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             is Screen.AskAi -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.Share -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.AccessHistory -> screen = Screen.Home(s.session, PatientTab.Profile)
+            is Screen.PersonalDetails -> screen = Screen.Home(s.session, PatientTab.Profile)
             is Screen.DocumentDetail -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.DocumentChat -> screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName)
             is Screen.Upload -> screen = Screen.Home(s.session, PatientTab.Dashboard)
@@ -352,6 +355,16 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             patientId = s.session.patientId,
             onBack = { screen = Screen.Home(s.session, PatientTab.Profile) },
         )
+        is Screen.PersonalDetails -> PersonalDetailsScreen(
+            api = api,
+            onBack = { screen = Screen.Home(s.session, PatientTab.Profile) },
+            onSaved = { newName ->
+                screen = Screen.Home(
+                    s.session.copy(name = newName),
+                    PatientTab.Profile,
+                )
+            },
+        )
         is Screen.DocumentDetail -> {
             var docTypeLabel by remember(s.documentId) { mutableStateOf<String?>(null) }
             LaunchedEffect(s.documentId) {
@@ -514,6 +527,7 @@ private fun PatientShell(
                     name = session.name,
                     phone = session.phone,
                     onBack = { onTab(PatientTab.Dashboard) },
+                    onPersonalDetails = { onNavigate(Screen.PersonalDetails(session)) },
                     onManageFamily = { onTab(PatientTab.Family) },
                     onAccessHistory = { onNavigate(Screen.AccessHistory(session)) },
                     onLogout = onLogout,

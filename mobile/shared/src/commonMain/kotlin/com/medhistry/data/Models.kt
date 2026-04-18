@@ -188,6 +188,15 @@ data class PatientProfile(
 )
 
 @Serializable
+data class ProfileUpdateRequest(
+    val name: String? = null,
+    @SerialName("date_of_birth") val dateOfBirth: String? = null,
+    val gender: String? = null,
+    @SerialName("blood_group") val bloodGroup: String? = null,
+    val allergies: String? = null,
+)
+
+@Serializable
 data class QRGenerateRequest(
     @SerialName("patient_id") val patientId: String? = null,
 )

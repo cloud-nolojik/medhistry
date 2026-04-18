@@ -29,6 +29,7 @@ from app.schemas.patient import (
     CompleteRegistration, PinLoginRequest,
     PatientRegister, PatientLogin,
     PatientOut, TokenResponse,
+    PatientUpdate,
     DependentCreate, DependentOut, FamilyListResponse,
 )
 from app.schemas.qr import PatientAccessLogEntry
@@ -278,6 +279,28 @@ async def login(data: PatientLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=PatientOut)
 async def get_profile(patient: Patient = Depends(get_current_patient)):
     """Get the current patient's profile."""
+    return _make_patient_out(patient)
+
+
+@router.patch("/me", response_model=PatientOut)
+async def update_my_profile(
+    data: PatientUpdate,
+    patient: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the current patient's editable profile fields."""
+    if data.name is not None:
+        patient.name = data.name
+    if data.date_of_birth is not None:
+        patient.date_of_birth = data.date_of_birth
+    if data.gender is not None:
+        patient.gender = data.gender
+    if data.blood_group is not None:
+        patient.blood_group = data.blood_group
+    if data.allergies is not None:
+        patient.allergies = data.allergies
+    await db.commit()
+    await db.refresh(patient)
     return _make_patient_out(patient)
 
 

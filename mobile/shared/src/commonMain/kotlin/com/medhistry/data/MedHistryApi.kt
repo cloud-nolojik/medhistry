@@ -207,6 +207,22 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         }.body()
     }
 
+    // --- My Profile ---
+
+    suspend fun getMyProfile(): PatientProfile {
+        return client.get("$baseUrl/patients/me") {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
+    }
+
+    suspend fun updateMyProfile(request: ProfileUpdateRequest): PatientProfile {
+        return client.patch("$baseUrl/patients/me") {
+            contentType(ContentType.Application.Json)
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(request)
+        }.ensureSuccess().body()
+    }
+
     // --- Family / Dependents ---
 
     suspend fun listFamily(): FamilyListResponse {

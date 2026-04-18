@@ -17,9 +17,8 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,11 +39,51 @@ fun PatientProfileScreen(
     name: String,
     phone: String,
     onBack: () -> Unit,
+    onPersonalDetails: () -> Unit,
     onManageFamily: () -> Unit,
     onAccessHistory: () -> Unit,
     onLogout: () -> Unit,
     showBackArrow: Boolean = true,
 ) {
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MedHistryColors.Surface,
+            title = { Text("Language", fontWeight = FontWeight.Bold) },
+            text = { Text("Only English is supported right now. More languages are coming soon.", fontSize = 14.sp, color = MedHistryColors.TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
+                    Text("Got it", color = MedHistryColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+        )
+    }
+
+    if (showHelpDialog) {
+        AlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MedHistryColors.Surface,
+            title = { Text("Help & Support", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Need help with MedHistry?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                    Text("📧  support@medhistry.com", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
+                    Text("We typically reply within 24 hours.", fontSize = 13.sp, color = MedHistryColors.TextLight)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHelpDialog = false }) {
+                    Text("Close", color = MedHistryColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -95,13 +134,11 @@ fun PatientProfileScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        SettingsRow(Icons.Outlined.Person, "Personal Details", "Name, phone, date of birth", onClick = {})
+        SettingsRow(Icons.Outlined.Person, "Personal Details", "Name, date of birth, blood group", onClick = onPersonalDetails)
         SettingsRow(Icons.Outlined.People, "Family Members", "Manage the family this account covers", onClick = onManageFamily)
-        // Renamed from "Privacy & Consent" — patients know "who can see my
-        // records" immediately, whereas "consent" reads like a legal form.
         SettingsRow(Icons.Outlined.Lock, "Who can see my records", "Review access and sharing", onClick = onAccessHistory)
-        SettingsRow(Icons.Outlined.Language, "Language", "English", onClick = {})
-        SettingsRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support", "FAQs, contact us", onClick = {})
+        SettingsRow(Icons.Outlined.Language, "Language", "English", onClick = { showLanguageDialog = true })
+        SettingsRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support", "FAQs, contact us", onClick = { showHelpDialog = true })
         SettingsRow(Icons.AutoMirrored.Outlined.Logout, "Log Out", null, onClick = onLogout, danger = true)
     }
 }

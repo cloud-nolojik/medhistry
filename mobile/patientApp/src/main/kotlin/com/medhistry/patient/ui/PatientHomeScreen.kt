@@ -122,7 +122,11 @@ fun PatientHomeScreen(
                 ) {
                     CircularProgressIndicator(color = MedHistryColors.Primary)
                 }
+            } else if (!hasRecords) {
+                    // ── Empty state — no records yet, keep it clean ───────────
+                    EmptyDashboard(personName = activeName, onScan = onScanReport)
             } else {
+                // ── Records exist — show full dashboard ───────────────────────
                 AiSummaryCard(
                     personName = activeName,
                     summary = hs?.patientSummary ?: hs?.overallSummary,
@@ -131,25 +135,19 @@ fun PatientHomeScreen(
                         "needs_attention" -> hs.overallStatusMessage
                         else -> null
                     },
-                    hasRecords = hasRecords,
+                    hasRecords = true,
                 )
                 Spacer(Modifier.height(12.dp))
 
                 // ── 3. Ask AI CTA ─────────────────────────────────────────────
-                if (hasRecords) {
-                    AskAiCard(personName = activeName, onClick = onAskAi)
-                    Spacer(Modifier.height(10.dp))
-                }
+                AskAiCard(personName = activeName, onClick = onAskAi)
+                Spacer(Modifier.height(10.dp))
 
                 // ── 4. Share with Doctor CTA ──────────────────────────────────
                 ShareDoctorCard(onClick = onShareDoctor)
                 Spacer(Modifier.height(20.dp))
 
-                if (!hasRecords) {
-                    // ── 10. Empty state ───────────────────────────────────────
-                    EmptyDashboard(personName = activeName, onScan = onScanReport)
-                } else {
-                    // ── 5. Upcoming ───────────────────────────────────────────
+                // ── 5. Upcoming ───────────────────────────────────────────
                     UpcomingEventsCard(api = api, activePatientId = activePatientId)
 
                     // ── 6. Currently Taking ───────────────────────────────────
@@ -296,7 +294,6 @@ fun PatientHomeScreen(
                         onTimeline = onViewTimeline,
                     )
                     Spacer(Modifier.height(16.dp))
-                }
             }
         }
 
