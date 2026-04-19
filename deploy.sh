@@ -90,8 +90,17 @@ cmd_setup() {
     # Step 3: Init database
     log "Initializing database..."
     remote "$COMPOSE exec -T api python -c \"
-import app.main  # registers every model via its noqa imports
 from app.core.database import engine, Base
+from app.models.patient import Patient                          # noqa
+from app.models.otp import OTP                                  # noqa
+from app.models.doctor import Doctor                            # noqa
+from app.models.hospital import Hospital                        # noqa
+from app.models.medical_document import MedicalDocument         # noqa
+from app.models.document_chat_message import DocumentChatMessage # noqa
+from app.models.patient_chat_message import PatientChatMessage  # noqa
+from app.models.patient_upcoming_event import PatientUpcomingEvent # noqa
+from app.models.patient_access_log import PatientAccessLog      # noqa
+from app.models.super_admin import SuperAdmin                   # noqa
 import asyncio
 async def init():
     async with engine.begin() as conn:
@@ -182,12 +191,21 @@ cmd_deploy() {
     remote "docker image prune -f >/dev/null 2>&1 || true"
 
     # Init DB (in case new models)
-    # Import app.main so ALL models are registered before create_all runs —
-    # otherwise only models imported by database.py itself get their tables.
+    # Explicitly import every model so Base.metadata knows all tables
+    # before create_all runs. Add new models here when they are created.
     log "Checking database..."
     remote "$COMPOSE exec -T api python -c \"
-import app.main  # registers every model via its noqa imports
 from app.core.database import engine, Base
+from app.models.patient import Patient                          # noqa
+from app.models.otp import OTP                                  # noqa
+from app.models.doctor import Doctor                            # noqa
+from app.models.hospital import Hospital                        # noqa
+from app.models.medical_document import MedicalDocument         # noqa
+from app.models.document_chat_message import DocumentChatMessage # noqa
+from app.models.patient_chat_message import PatientChatMessage  # noqa
+from app.models.patient_upcoming_event import PatientUpcomingEvent # noqa
+from app.models.patient_access_log import PatientAccessLog      # noqa
+from app.models.super_admin import SuperAdmin                   # noqa
 import asyncio
 async def init():
     async with engine.begin() as conn:
