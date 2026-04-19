@@ -79,10 +79,11 @@ fun PinScreen(
                     endY = 600f,
                 )
             )
+            .statusBarsPadding()             // keep content below the status bar
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(24.dp))
         if (onBack != null) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -168,7 +169,7 @@ fun PinScreen(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.weight(1f))  // push keypad to the bottom
 
         // Numeric keypad
         PinKeypad(
@@ -216,6 +217,7 @@ fun PinScreen(
                 }
             },
         )
+        Spacer(Modifier.navigationBarsPadding())  // clear Android gesture bar
     }
 }
 

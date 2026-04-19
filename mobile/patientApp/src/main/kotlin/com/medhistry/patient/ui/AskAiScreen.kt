@@ -6,14 +6,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
@@ -62,6 +65,9 @@ fun AskAiScreen(
     activePatientId: String?,
     onBack: () -> Unit,
     onUpload: () -> Unit = {},
+    onViewDocument: (documentId: String, memberName: String) -> Unit = { _, _ -> },
+    // When opened from DocumentDetail, inject that document's summary immediately
+    injectDocumentId: String? = null,
 ) {
     BackHandler { onBack() }
 
@@ -70,6 +76,10 @@ fun AskAiScreen(
         val isUser: Boolean,
         val isError: Boolean = false,
         val isDocCard: Boolean = false,   // AI-injected document summary bubble
+        // Populated when this bubble is a tappable document attachment
+        val documentId: String? = null,
+        val docLabel: String? = null,
+        val docDate: String? = null,
     )
 
     val scope = rememberCoroutineScope()
@@ -129,7 +139,7 @@ fun AskAiScreen(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    // Inject a document's AI summary as an AI bubble, then follow with chips
+    // Inject a document attachment bubble (user side) + AI summary bubble below it
     fun injectDocumentSummary(doc: DocumentOut) {
         val label = doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: "Report"
         val dateStr = (doc.documentDate ?: doc.createdAt).take(10).let { d ->
@@ -139,11 +149,34 @@ fun AskAiScreen(
                 "${parts[2].trimStart('0')} ${months[parts[1].toInt()-1]} ${parts[0]}"
             }.getOrDefault(d)
         }
-        val intro = "Here's a summary of the **$label** from $dateStr:"
-        val summary = doc.aiSummary ?: "No summary available yet — the record is still being processed."
-        messages = messages + Message("$intro\n\n$summary", isUser = false, isDocCard = true)
+        // 1. Document attachment card — appears on the user side like a shared file
+        val docBubble = Message(
+            text = label,
+            isUser = true,
+            documentId = doc.id,
+            docLabel = label,
+            docDate = dateStr,
+        )
+        // 2. AI summary reply below it
+        val summary = doc.aiSummary
+            ?: "No summary available yet — the record is still being processed."
+        val summaryBubble = Message(
+            text = "Here's a summary of the **$label** from $dateStr:\n\n$summary",
+            isUser = false,
+            isDocCard = true,
+        )
+        messages = messages + docBubble + summaryBubble
         scope.launch {
             if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    // Auto-inject when opened from DocumentDetail — runs after documents are loaded
+    // (defined here so injectDocumentSummary is already in scope)
+    LaunchedEffect(documents, injectDocumentId) {
+        if (injectDocumentId != null && documents.isNotEmpty() && messages.isEmpty()) {
+            documents.firstOrNull { it.id == injectDocumentId }
+                ?.let { injectDocumentSummary(it) }
         }
     }
 
@@ -244,34 +277,80 @@ fun AskAiScreen(
                 }
             }
 
-            // Empty state — show document cards + welcome
+            // Welcome hint — only when no messages yet
             if (!historyLoading && messages.isEmpty()) {
                 item { WelcomeHint(personName) }
+            }
 
-                if (documents.isNotEmpty()) {
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Tap a record to discuss it",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MedHistryColors.TextSecondary,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                        )
-                    }
-                    item {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(end = 8.dp),
+            // Records timeline — always visible so patient can access reports
+            // even mid-conversation; scrollable as part of the chat column
+            if (!historyLoading && documents.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Your records",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MedHistryColors.TextSecondary,
+                        modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
+                    )
+                }
+
+                val byDate = documents.groupBy { doc ->
+                    (doc.documentDate ?: doc.createdAt).take(10)
+                }
+                byDate.entries.sortedByDescending { it.key }.forEach { (dateKey, docs) ->
+                    item(key = "header_$dateKey") {
+                        val friendlyDate = runCatching {
+                            val parts = dateKey.split("-")
+                            val months = listOf("Jan","Feb","Mar","Apr","May","Jun",
+                                "Jul","Aug","Sep","Oct","Nov","Dec")
+                            "${parts[2].trimStart('0')} ${months[parts[1].toInt()-1]} ${parts[0]}"
+                        }.getOrDefault(dateKey)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            items(documents) { doc ->
-                                DocumentContextCard(
-                                    doc = doc,
-                                    onClick = { injectDocumentSummary(doc) },
-                                )
-                            }
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
+                            Text(
+                                friendlyDate,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MedHistryColors.TextSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
                         }
                     }
+                    items(docs, key = { it.id }) { doc ->
+                        TimelineDocCard(
+                            doc = doc,
+                            onClick = { onViewDocument(doc.id, personName) },
+                        )
+                    }
+                }
+
+                // Divider between records and chat messages
+                if (messages.isNotEmpty()) {
+                    item(key = "chat_divider") {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
+                            Text(
+                                "  Conversation  ",
+                                fontSize = 11.sp,
+                                color = MedHistryColors.TextSecondary,
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
+                        }
+                    }
+                } else {
+                    item { Spacer(Modifier.height(8.dp)) }
                 }
             }
 
@@ -282,6 +361,10 @@ fun AskAiScreen(
                     isUser = msg.isUser,
                     isError = msg.isError,
                     isDocCard = msg.isDocCard,
+                    documentId = msg.documentId,
+                    docLabel = msg.docLabel,
+                    docDate = msg.docDate,
+                    onViewDocument = { docId -> onViewDocument(docId, personName) },
                 )
             }
 
@@ -294,7 +377,8 @@ fun AskAiScreen(
                 }
             }
 
-            // Suggestion chips — shown below the first AI reply if thread is short
+            // Suggestion chips — plain Row with horizontalScroll to avoid
+            // nested LazyRow-in-LazyColumn gesture conflicts
             if (!historyLoading && messages.isEmpty()) {
                 item {
                     Spacer(Modifier.height(12.dp))
@@ -303,12 +387,15 @@ fun AskAiScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MedHistryColors.TextSecondary,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+                        modifier = Modifier.padding(start = 2.dp, bottom = 8.dp),
                     )
-                    LazyRow(
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(suggestedChips) { chip ->
+                        suggestedChips.forEach { chip ->
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
@@ -471,10 +558,10 @@ private fun DocumentContextCard(doc: DocumentOut, onClick: () -> Unit) {
             fontSize = 11.sp,
             color = MedHistryColors.TextSecondary,
         )
-        if (doc.aiSummary != null) {
+        doc.aiSummary?.let { summary ->
             Spacer(Modifier.height(6.dp))
             Text(
-                doc.aiSummary,
+                summary,
                 fontSize = 11.sp,
                 color = MedHistryColors.TextSecondary,
                 maxLines = 2,
@@ -482,6 +569,81 @@ private fun DocumentContextCard(doc: DocumentOut, onClick: () -> Unit) {
                 lineHeight = 15.sp,
             )
         }
+    }
+}
+
+// ── Timeline doc card (vertical, full-width) ─────────────────────────────────
+
+@Composable
+private fun TimelineDocCard(doc: DocumentOut, onClick: () -> Unit) {
+    val (icon, iconTint, iconBg) = when (doc.docType) {
+        "lab_report"   -> Triple(Icons.Outlined.Science,     Color(0xFF0EA5E9), Color(0xFFE0F2FE))
+        "prescription" -> Triple(Icons.Outlined.Description, Color(0xFF7C3AED), Color(0xFFEDE9FE))
+        else -> when (doc.fileType) {
+            "pdf"  -> Triple(Icons.Outlined.PictureAsPdf, MedHistryColors.Primary, Color(0xFFEBF5FF))
+            else   -> Triple(Icons.Outlined.Image,        MedHistryColors.Accent,  Color(0xFFF0FDF4))
+        }
+    }
+    val label = doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() }
+        ?: doc.filename.take(28)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MedHistryColors.Surface)
+            .border(1.dp, MedHistryColors.Border, RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MedHistryColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val meta = listOfNotNull(doc.hospitalName, doc.doctorName).joinToString(" · ")
+            if (meta.isNotBlank()) {
+                Text(
+                    meta,
+                    fontSize = 12.sp,
+                    color = MedHistryColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            doc.aiSummary?.let { summary ->
+                Text(
+                    summary,
+                    fontSize = 12.sp,
+                    color = MedHistryColors.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp,
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MedHistryColors.TextLight,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
@@ -493,31 +655,12 @@ private fun ChatBubble(
     isUser: Boolean,
     isError: Boolean = false,
     isDocCard: Boolean = false,
+    // Document attachment fields — non-null when this bubble is a tapped report card
+    documentId: String? = null,
+    docLabel: String? = null,
+    docDate: String? = null,
+    onViewDocument: (String) -> Unit = {},
 ) {
-    val bgColor = when {
-        isError   -> Color(0xFFFEF2F2)
-        isUser    -> MedHistryColors.Primary
-        isDocCard -> Color(0xFFF0F9FF)
-        else      -> MedHistryColors.Surface
-    }
-    val textColor = when {
-        isError -> MedHistryColors.Danger
-        isUser  -> Color.White
-        else    -> MedHistryColors.TextPrimary
-    }
-    val borderColor = when {
-        isError   -> MedHistryColors.Danger.copy(alpha = 0.3f)
-        isDocCard -> Color(0xFFBAE6FD)
-        isUser    -> Color.Transparent
-        else      -> MedHistryColors.Border
-    }
-    val shape = RoundedCornerShape(
-        topStart = 18.dp,
-        topEnd = 18.dp,
-        bottomStart = if (isUser) 18.dp else 4.dp,
-        bottomEnd = if (isUser) 4.dp else 18.dp,
-    )
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -527,6 +670,96 @@ private fun ChatBubble(
             ),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
+        // ── Document attachment card ──────────────────────────────────────────
+        if (documentId != null && docLabel != null) {
+            val shape = RoundedCornerShape(
+                topStart = 18.dp, topEnd = 18.dp,
+                bottomStart = 18.dp, bottomEnd = 4.dp,
+            )
+            Column(
+                modifier = Modifier
+                    .clip(shape)
+                    .background(MedHistryColors.Primary)
+                    .clickable { onViewDocument(documentId) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Description,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            docLabel,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                        if (docDate != null) {
+                            Text(
+                                docDate,
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.75f),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "View original report",
+                        fontSize = 12.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("→", fontSize = 12.sp, color = Color.White)
+                }
+            }
+            return
+        }
+
+        // ── Normal text bubble ────────────────────────────────────────────────
+        val bgColor = when {
+            isError   -> Color(0xFFFEF2F2)
+            isUser    -> MedHistryColors.Primary
+            isDocCard -> Color(0xFFF0F9FF)
+            else      -> MedHistryColors.Surface
+        }
+        val textColor = when {
+            isError -> MedHistryColors.Danger
+            isUser  -> Color.White
+            else    -> MedHistryColors.TextPrimary
+        }
+        val borderColor = when {
+            isError   -> MedHistryColors.Danger.copy(alpha = 0.3f)
+            isDocCard -> Color(0xFFBAE6FD)
+            isUser    -> Color.Transparent
+            else      -> MedHistryColors.Border
+        }
+        val shape = RoundedCornerShape(
+            topStart = 18.dp,
+            topEnd = 18.dp,
+            bottomStart = if (isUser) 18.dp else 4.dp,
+            bottomEnd = if (isUser) 4.dp else 18.dp,
+        )
         Box(
             modifier = Modifier
                 .clip(shape)

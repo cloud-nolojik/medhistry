@@ -52,7 +52,8 @@ fun PatientBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .background(MedHistryColors.Surface)
-            .padding(top = 10.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
+            .navigationBarsPadding()          // clears Android gesture / button bar
+            .padding(top = 10.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         for (tab in PatientTab.values()) {

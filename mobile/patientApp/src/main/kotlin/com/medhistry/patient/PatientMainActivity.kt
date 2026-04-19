@@ -5,10 +5,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -37,7 +42,6 @@ import com.medhistry.patient.ui.Onboarding2
 import com.medhistry.patient.ui.Onboarding3
 import com.medhistry.patient.ui.OtpScreen
 import com.medhistry.patient.ui.PatientBottomNav
-import com.medhistry.patient.ui.DocumentChatScreen
 import com.medhistry.patient.ui.DocumentDetailScreen
 import com.medhistry.patient.ui.PatientHomeScreen
 import com.medhistry.patient.ui.PatientLoginScreen
@@ -90,6 +94,11 @@ class PatientMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Let Compose own all insets (status bar, nav bar, IME).
+        // Combined with imePadding() / statusBarsPadding() / navigationBarsPadding()
+        // in composables this gives proper keyboard-avoidance without the system
+        // double-resizing the window.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         // Extract deep-link extras set by the "report ready" notification.
         val deepLinkDocId  = intent?.getStringExtra(EXTRA_DOCUMENT_ID)
         val deepLinkPatientId = intent?.getStringExtra(EXTRA_PATIENT_ID)
@@ -133,12 +142,25 @@ private sealed class Screen {
     data class Home(val session: PatientSession, val tab: PatientTab = PatientTab.Dashboard) : Screen()
 
     // Sub-screens — all navigate back to Dashboard
-    data class AskAi(val session: PatientSession, val activePatientId: String?, val personName: String) : Screen()
+    data class AskAi(
+        val session: PatientSession,
+        val activePatientId: String?,
+        val personName: String,
+        // When opened from DocumentDetail, auto-inject this document into chat
+        val injectDocumentId: String? = null,
+    ) : Screen()
     data class Share(val mode: ShareMode, val patientId: String?, val session: PatientSession) : Screen()
     data class AccessHistory(val session: PatientSession) : Screen()
     data class PersonalDetails(val session: PatientSession) : Screen()
-    data class DocumentDetail(val session: PatientSession, val documentId: String, val memberName: String) : Screen()
-    data class DocumentChat(val session: PatientSession, val documentId: String, val docTypeLabel: String?, val memberName: String) : Screen()
+    data class DocumentDetail(
+        val session: PatientSession,
+        val documentId: String,
+        val memberName: String,
+        // When opened from AskAi chat, back should return there instead of Dashboard
+        val returnToAskAi: Boolean = false,
+        val askAiPatientId: String? = null,
+        val askAiPersonName: String = "",
+    ) : Screen()
     data class Upload(val session: PatientSession) : Screen()
     // Records sub-screens (drill-in from Dashboard sections)
     data class LabReportsList(val session: PatientSession, val activePatientId: String?) : Screen()
@@ -207,8 +229,10 @@ private fun PatientAppRoot(
             is Screen.Share -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.AccessHistory -> screen = Screen.Home(s.session, PatientTab.Profile)
             is Screen.PersonalDetails -> screen = Screen.Home(s.session, PatientTab.Profile)
-            is Screen.DocumentDetail -> screen = Screen.Home(s.session, PatientTab.Dashboard)
-            is Screen.DocumentChat -> screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName)
+            is Screen.DocumentDetail -> screen = if (s.returnToAskAi)
+                Screen.AskAi(s.session, s.askAiPatientId, s.askAiPersonName)
+            else
+                Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.Upload -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.LabReportsList -> screen = Screen.Home(s.session, PatientTab.Dashboard)
             is Screen.PrescriptionsList -> screen = Screen.Home(s.session, PatientTab.Dashboard)
@@ -405,8 +429,19 @@ private fun PatientAppRoot(
             api = api,
             personName = s.personName,
             activePatientId = s.activePatientId,
+            injectDocumentId = s.injectDocumentId,
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
             onUpload = { screen = Screen.Upload(s.session) },
+            onViewDocument = { docId, memberName ->
+                screen = Screen.DocumentDetail(
+                    session = s.session,
+                    documentId = docId,
+                    memberName = memberName,
+                    returnToAskAi = true,
+                    askAiPatientId = s.activePatientId,
+                    askAiPersonName = s.personName,
+                )
+            },
         )
         is Screen.Share -> ShareScreen(
             api = api,
@@ -431,31 +466,27 @@ private fun PatientAppRoot(
             },
         )
         is Screen.DocumentDetail -> {
-            var docTypeLabel by remember(s.documentId) { mutableStateOf<String?>(null) }
-            LaunchedEffect(s.documentId) {
-                runCatching { api.getDocument(s.documentId) }.onSuccess { docTypeLabel = it.docType }
-            }
             DocumentDetailScreen(
                 api = api,
                 documentId = s.documentId,
                 memberName = s.memberName,
-                onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
+                onBack = {
+                    screen = if (s.returnToAskAi)
+                        Screen.AskAi(s.session, s.askAiPatientId, s.askAiPersonName)
+                    else
+                        Screen.Home(s.session, PatientTab.Dashboard)
+                },
+                // "Ask questions about this record" → open patient-level AI chat
                 onOpenChat = {
-                    screen = Screen.DocumentChat(
+                    val personName = s.askAiPersonName.ifBlank { s.memberName }
+                    screen = Screen.AskAi(
                         session = s.session,
-                        documentId = s.documentId,
-                        docTypeLabel = docTypeLabel,
-                        memberName = s.memberName,
+                        activePatientId = s.askAiPatientId ?: activePatientId,
+                        personName = personName,
                     )
                 },
             )
         }
-        is Screen.DocumentChat -> DocumentChatScreen(
-            api = api,
-            documentId = s.documentId,
-            docTypeLabel = s.docTypeLabel,
-            onBack = { screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName) },
-        )
         is Screen.Upload -> PatientUploadScreen(
             api = api,
             family = globalFamily,  // already loaded — no timing gap
@@ -562,9 +593,13 @@ private fun PatientShell(
         )
     }
 
+    // Nav bar height so content + FAB clear the gesture strip on all devices
+    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val contentBottomPad = 72.dp + navBarHeight   // tab bar (72) + gesture strip
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Tab content — pad bottom for nav bar
-        Column(modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)) {
+        // Tab content — pad top for status bar, bottom for nav bar + gesture strip
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(bottom = contentBottomPad)) {
             when (currentTab) {
                 PatientTab.Dashboard -> PatientHomeScreen(
                     api = api,
@@ -626,7 +661,7 @@ private fun PatientShell(
             onClick = { onNavigate(Screen.Upload(session)) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 88.dp),
+                .padding(end = 20.dp, bottom = 88.dp + navBarHeight),
             containerColor = MedHistryColors.Primary,
             contentColor = Color.White,
             shape = CircleShape,

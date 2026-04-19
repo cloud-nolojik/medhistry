@@ -90,6 +90,7 @@ cmd_setup() {
     # Step 3: Init database
     log "Initializing database..."
     remote "$COMPOSE exec -T api python -c \"
+import app.main  # registers every model via its noqa imports
 from app.core.database import engine, Base
 import asyncio
 async def init():
@@ -181,8 +182,11 @@ cmd_deploy() {
     remote "docker image prune -f >/dev/null 2>&1 || true"
 
     # Init DB (in case new models)
+    # Import app.main so ALL models are registered before create_all runs —
+    # otherwise only models imported by database.py itself get their tables.
     log "Checking database..."
     remote "$COMPOSE exec -T api python -c \"
+import app.main  # registers every model via its noqa imports
 from app.core.database import engine, Base
 import asyncio
 async def init():
