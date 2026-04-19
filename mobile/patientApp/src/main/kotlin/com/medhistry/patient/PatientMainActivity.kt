@@ -72,7 +72,7 @@ import org.koin.android.ext.android.inject
  *     AskAi, Share, LabReportsList, PrescriptionsList, FullTimeline,
  *     DocumentDetail, DocumentChat, Upload, AccessHistory
  *
- *   activePatientId (null = owner/primary) is lifted to PatientShell
+ *   activePatientId (null = owner/primary) is lifted to MainActivityContent
  *   and passed to all tab screens + sub-screens.
  *
  * Key changes from previous nav:
@@ -90,11 +90,28 @@ class PatientMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Extract deep-link extras set by the "report ready" notification.
+        val deepLinkDocId  = intent?.getStringExtra(EXTRA_DOCUMENT_ID)
+        val deepLinkPatientId = intent?.getStringExtra(EXTRA_PATIENT_ID)
+        val deepLinkMemberName = intent?.getStringExtra(EXTRA_MEMBER_NAME) ?: ""
         setContent {
             MedHistryTheme {
-                PatientAppRoot(api = api, sessionManager = sessionManager, authStore = authStore)
+                PatientAppRoot(
+                    api = api,
+                    sessionManager = sessionManager,
+                    authStore = authStore,
+                    deepLinkDocumentId = deepLinkDocId,
+                    deepLinkPatientId = deepLinkPatientId,
+                    deepLinkMemberName = deepLinkMemberName,
+                )
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_DOCUMENT_ID  = "deep_link_document_id"
+        const val EXTRA_PATIENT_ID   = "deep_link_patient_id"
+        const val EXTRA_MEMBER_NAME  = "deep_link_member_name"
     }
 }
 
@@ -132,15 +149,42 @@ private sealed class Screen {
 data class PatientSession(val name: String, val phone: String, val patientId: String = "")
 
 @Composable
-private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, authStore: AuthStore) {
-    val initialScreen = if (authStore.isLoggedIn) {
-        api.setToken(authStore.token!!)
-        Screen.PinLogin(phone = authStore.phone!!.removePrefix("+91"))
-    } else {
-        Screen.Splash
+private fun PatientAppRoot(
+    api: MedHistryApi,
+    sessionManager: QRSessionManager,
+    authStore: AuthStore,
+    deepLinkDocumentId: String? = null,
+    deepLinkPatientId: String? = null,
+    deepLinkMemberName: String = "",
+) {
+    val initialScreen = when {
+        authStore.isLoggedIn -> {
+            // Active session — go straight to PIN screen (quick re-auth)
+            api.setToken(authStore.token!!)
+            Screen.PinLogin(phone = authStore.phone!!.removePrefix("+91"))
+        }
+        authStore.phone != null -> {
+            // Logged out but phone remembered — go straight to PIN, skip OTP
+            Screen.PinLogin(phone = authStore.phone!!.removePrefix("+91"))
+        }
+        else -> Screen.Splash
     }
 
     var screen: Screen by remember { mutableStateOf<Screen>(initialScreen) }
+    // Global active patient — persists across all screen navigations so
+    // switching family member on any screen carries through everywhere.
+    var activePatientId by remember { mutableStateOf<String?>(null) }
+    // Family loaded once here so Upload screen and all sub-screens get it
+    // immediately without a fresh API call (avoids the timing bug where
+    // the upload dialog opens before dependents have loaded).
+    var globalFamily by remember { mutableStateOf<FamilyListResponse?>(null) }
+    var globalFamilyTrigger by remember { mutableStateOf(0) }
+    val globalScope = rememberCoroutineScope()
+    LaunchedEffect(globalFamilyTrigger) {
+        if (authStore.isLoggedIn) {
+            runCatching { api.listFamily() }.onSuccess { globalFamily = it }
+        }
+    }
     var pinError by remember { mutableStateOf<String?>(null) }
     var pinLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -311,13 +355,26 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
                         val result = api.pinLogin("+91${s.phone}", pin)
                         pinLoading = false
                         authStore.save(result.accessToken, "+91${s.phone}", result.patient.name)
-                        screen = Screen.Home(
-                            PatientSession(
-                                name = result.patient.name,
-                                phone = s.phone,
-                                patientId = result.patient.id,
-                            )
+                        val session = PatientSession(
+                            name = result.patient.name,
+                            phone = s.phone,
+                            patientId = result.patient.id,
                         )
+                        // If launched via a "report ready" notification, go straight
+                        // to that document. Otherwise land on the home dashboard.
+                        if (deepLinkDocumentId != null) {
+                            activePatientId = deepLinkPatientId
+                            screen = Screen.DocumentDetail(
+                                session = session,
+                                documentId = deepLinkDocumentId,
+                                memberName = deepLinkMemberName,
+                            )
+                        } else {
+                            screen = Screen.Home(session)
+                        }
+                        // Load family immediately after login so Upload and
+                        // other sub-screens have it ready without extra API calls.
+                        globalFamilyTrigger++
                     } catch (e: Exception) {
                         pinLoading = false
                         pinError = MedHistryApi.friendlyMessage(e)
@@ -331,8 +388,15 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             currentTab = s.tab,
             session = s.session,
             api = api,
+            activePatientId = activePatientId,
+            onSetActivePerson = { activePatientId = it },
+            initialFamily = globalFamily,
+            onFamilyChanged = { globalFamilyTrigger++ },
             onTab = { tab -> screen = Screen.Home(s.session, tab) },
-            onLogout = { authStore.clear(); screen = Screen.Splash },
+            onLogout = {
+                authStore.logout()
+                screen = Screen.PinLogin(phone = authStore.phone!!.removePrefix("+91"))
+            },
             onNavigate = { nextScreen -> screen = nextScreen },
         )
 
@@ -342,6 +406,7 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             personName = s.personName,
             activePatientId = s.activePatientId,
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
+            onUpload = { screen = Screen.Upload(s.session) },
         )
         is Screen.Share -> ShareScreen(
             api = api,
@@ -391,31 +456,32 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             docTypeLabel = s.docTypeLabel,
             onBack = { screen = Screen.DocumentDetail(s.session, s.documentId, s.memberName) },
         )
-        is Screen.Upload -> {
-            var family by remember { mutableStateOf<FamilyListResponse?>(null) }
-            LaunchedEffect(Unit) {
-                runCatching { api.listFamily() }.onSuccess { family = it }
-            }
-            PatientUploadScreen(
-                api = api,
-                family = family,
-                onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
-                onAddMember = { screen = Screen.Home(s.session, PatientTab.Family) },
-            )
-        }
+        is Screen.Upload -> PatientUploadScreen(
+            api = api,
+            family = globalFamily,  // already loaded — no timing gap
+            onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
+            onAddMember = {
+                globalFamilyTrigger++ // refresh after adding
+                screen = Screen.Home(s.session, PatientTab.Family)
+            },
+            initialActivePatientId = activePatientId,
+            onSetActivePerson = { activePatientId = it },
+        )
         is Screen.LabReportsList -> LabResultsScreen(
             api = api,
             onScanReport = { screen = Screen.Upload(s.session) },
             onManageFamily = { screen = Screen.Home(s.session, PatientTab.Family) },
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
-            initialActivePatientId = s.activePatientId,
+            initialActivePatientId = activePatientId,
+            onSetActivePerson = { activePatientId = it },
         )
         is Screen.PrescriptionsList -> MedicinesScreen(
             api = api,
             onScanReport = { screen = Screen.Upload(s.session) },
             onManageFamily = { screen = Screen.Home(s.session, PatientTab.Family) },
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
-            initialActivePatientId = s.activePatientId,
+            initialActivePatientId = activePatientId,
+            onSetActivePerson = { activePatientId = it },
         )
         is Screen.FullTimeline -> PatientTimelineScreen(
             api = api,
@@ -425,7 +491,8 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
             onScanReport = { screen = Screen.Upload(s.session) },
             onManageFamily = { screen = Screen.Home(s.session, PatientTab.Family) },
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
-            initialActivePatientId = s.activePatientId,
+            initialActivePatientId = activePatientId,
+            onSetActivePerson = { activePatientId = it },
         )
     }
 }
@@ -433,28 +500,41 @@ private fun PatientAppRoot(api: MedHistryApi, sessionManager: QRSessionManager, 
 /**
  * Shell for the main app — hosts the 3-tab bottom nav and the ScanFAB.
  *
- * Lifts [activePatientId] (null = owner/primary) here so all tabs share
- * the same "currently viewing" context. Family list is loaded once and
- * passed down to avoid redundant API calls per-tab.
+ * Receives [activePatientId] from [MainActivityContent] so the selection
+ * persists across all screens and tabs. Family list is loaded once here
+ * and passed down to avoid redundant API calls per-tab.
  */
 @Composable
 private fun PatientShell(
     currentTab: PatientTab,
     session: PatientSession,
     api: MedHistryApi,
+    activePatientId: String?,
+    onSetActivePerson: (String?) -> Unit,
+    initialFamily: FamilyListResponse?,
+    onFamilyChanged: () -> Unit,
     onTab: (PatientTab) -> Unit,
     onLogout: () -> Unit,
     onNavigate: (Screen) -> Unit,
 ) {
-    var activePatientId by remember { mutableStateOf<String?>(null) }
-    var family by remember { mutableStateOf<FamilyListResponse?>(null) }
+    // Seed from the globally-loaded family so it's immediately available;
+    // keep a local copy so tabs can trigger refreshes without full recompose.
+    var family by remember { mutableStateOf(initialFamily) }
     var familyLoadTrigger by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Load / reload family
+    // Sync if parent's global family updates (e.g. after adding a member)
+    LaunchedEffect(initialFamily) { if (family == null) family = initialFamily }
+
+    // Reload family when triggered (add/edit/remove member)
     LaunchedEffect(familyLoadTrigger) {
-        runCatching { api.listFamily() }.onSuccess { family = it }
+        if (familyLoadTrigger > 0) {
+            runCatching { api.listFamily() }.onSuccess {
+                family = it
+                onFamilyChanged() // keep global copy in sync
+            }
+        }
     }
 
     BackHandler {
@@ -490,7 +570,7 @@ private fun PatientShell(
                     api = api,
                     family = family,
                     activePatientId = activePatientId,
-                    onSetActivePerson = { activePatientId = it },
+                    onSetActivePerson = { onSetActivePerson(it) },
                     onAskAi = {
                         val f = family
                         val personName = if (activePatientId == null) {
@@ -520,7 +600,7 @@ private fun PatientShell(
                     api = api,
                     family = family,
                     onRefreshFamily = { familyLoadTrigger++ },
-                    onSelectMember = { activePatientId = it },
+                    onSelectMember = { onSetActivePerson(it) },
                     onNavigateToDashboard = { onTab(PatientTab.Dashboard) },
                 )
                 PatientTab.Profile -> PatientProfileScreen(

@@ -136,7 +136,7 @@ fun PatientProfileScreen(
 
         SettingsRow(Icons.Outlined.Person, "Personal Details", "Name, date of birth, blood group", onClick = onPersonalDetails)
         SettingsRow(Icons.Outlined.People, "Family Members", "Manage the family this account covers", onClick = onManageFamily)
-        SettingsRow(Icons.Outlined.Lock, "Who can see my records", "Review access and sharing", onClick = onAccessHistory)
+        SettingsRow(Icons.Outlined.Lock, "Who has seen my records", "See which doctors have opened your summary", onClick = onAccessHistory)
         SettingsRow(Icons.Outlined.Language, "Language", "English", onClick = { showLanguageDialog = true })
         SettingsRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & Support", "FAQs, contact us", onClick = { showHelpDialog = true })
         SettingsRow(Icons.AutoMirrored.Outlined.Logout, "Log Out", null, onClick = onLogout, danger = true)

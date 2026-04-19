@@ -155,7 +155,7 @@ fun DocumentDetailScreen(
         // the top bar so the user sees it without losing context.
         deleteError?.let { msg ->
             Text(
-                "Delete failed: $msg",
+                "Couldn't remove this record — $msg",
                 fontSize = 13.sp,
                 color = MedHistryColors.Danger,
                 modifier = Modifier
@@ -189,13 +189,13 @@ fun DocumentDetailScreen(
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Ask about this report",
+                        "Ask questions about this record",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MedHistryColors.TextPrimary,
                     )
                     Text(
-                        "Get simple, plain-language answers about what's in this record",
+                        "Get plain-language answers about what this report means for you",
                         fontSize = 12.sp,
                         color = MedHistryColors.TextSecondary,
                     )
@@ -232,10 +232,10 @@ fun DocumentDetailScreen(
             onDismissRequest = { if (!deleting) showDeleteConfirm = false },
             shape = RoundedCornerShape(20.dp),
             containerColor = MedHistryColors.Surface,
-            title = { Text("Delete this report?", fontWeight = FontWeight.Bold) },
+            title = { Text("Remove this record?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This will permanently remove \"${currentDoc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: currentDoc.filename}\" and update your health summary.",
+                    "This record will be removed from your account and your health summary will be updated. This can't be undone.",
                     color = MedHistryColors.TextSecondary,
                 )
             },
@@ -262,7 +262,7 @@ fun DocumentDetailScreen(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
-                        if (deleting) "Deleting…" else "Delete",
+                        if (deleting) "Removing…" else "Yes, remove it",
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -473,7 +473,7 @@ private fun OverallStatusBanner(status: String, message: String?) {
         "all_good" -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, Icons.Outlined.CheckCircle, "Everything looks good!")
         "attention_needed" -> StatusColors(StatusYellowBg, StatusYellowBorder, StatusYellow, Icons.Outlined.WarningAmber, "Most results are fine, some need attention")
         "critical" -> StatusColors(StatusRedBg, StatusRedBorder, StatusRed, Icons.Outlined.PriorityHigh, "Some results need prompt medical attention")
-        else -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, Icons.Outlined.CheckCircle, "Results reviewed")
+        else -> StatusColors(StatusGreenBg, StatusGreenBorder, StatusGreen, Icons.Outlined.CheckCircle, "Looks good")
     }
 
     Row(

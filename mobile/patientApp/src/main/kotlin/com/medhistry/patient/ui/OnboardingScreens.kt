@@ -188,12 +188,8 @@ fun Onboarding1(onBack: () -> Unit, onNext: () -> Unit) = OnboardingShell(
     icon = Icons.Outlined.Description,
     iconTint = MedHistryColors.Primary,
     bubbleBg = MedHistryColors.PrimaryLight,
-    title = "Keep your\nmedical records",
-    // Subtitle covers three things the app does with scanned records:
-    // organize, flag follow-ups, and answer questions. Surfacing chat
-    // + follow-up tracking here primes users to look for those features
-    // once they're in the app — otherwise they go unnoticed.
-    subtitle = "Take photos of prescriptions, lab reports, and old records. We'll organize everything, flag follow-up dates, and let you ask questions about any report.",
+    title = "All your records,\nalways with you",
+    subtitle = "Scan a prescription or lab report with your phone. We'll read it, organise it, and flag any follow-up dates — so nothing slips through the cracks.",
     step = 1, ctaLabel = "Next", onBack = onBack, onNext = onNext,
 )
 
@@ -203,7 +199,7 @@ fun Onboarding2(onBack: () -> Unit, onNext: () -> Unit) = OnboardingShell(
     iconTint = MedHistryColors.AccentDark,
     bubbleBg = Color(0xFFF0FDF4),
     title = "Share with your\ndoctor instantly",
-    subtitle = "Show a QR code to your doctor. They scan it and see your health summary instantly — no digging through paper files.",
+    subtitle = "Show a QR code and your doctor sees your health summary instantly — no more carrying paper files or trying to remember everything.",
     step = 2, ctaLabel = "Next", onBack = onBack, onNext = onNext,
 )
 

@@ -99,7 +99,7 @@ fun PatientRegistrationScreen(
 
             // Optional fields
             Text(
-                "Optional Details",
+                "A little more about you (optional)",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -129,7 +129,7 @@ fun PatientRegistrationScreen(
             OutlinedTextField(
                 value = allergies,
                 onValueChange = { allergies = it },
-                label = { Text("Known Allergies") },
+                label = { Text("Any allergies?") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
             )

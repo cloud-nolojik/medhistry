@@ -422,3 +422,167 @@ async def remove_dependent(
         raise HTTPException(status_code=400, detail="Cannot remove self via this endpoint")
     dependent.is_active = False
     await db.commit()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Patient-level AI chat
+# ─────────────────────────────────────────────────────────────────────────────
+
+from app.models.medical_document import MedicalDocument
+from app.models.patient_chat_message import PatientChatMessage
+from app.services import patient_chat_service
+from app.schemas.patient_chat import (
+    PatientChatSendRequest, PatientChatSendResponse, PatientChatMessageOut,
+)
+
+
+async def _patient_chat_reply(
+    target_patient: Patient,
+    request: PatientChatSendRequest,
+    db: AsyncSession,
+) -> PatientChatSendResponse:
+    """Shared logic for self-chat and dependent-chat."""
+    patient_id = target_patient.id
+
+    # Rate limit
+    msg_count = await patient_chat_service.count_user_messages_today(db, patient_id)
+    remaining = max(0, patient_chat_service.DAILY_MESSAGE_QUOTA - msg_count - 1)
+    if msg_count >= patient_chat_service.DAILY_MESSAGE_QUOTA:
+        raise HTTPException(
+            status_code=429,
+            detail="Daily message limit reached. Please try again tomorrow.",
+        )
+
+    # Load all completed documents for this patient
+    docs_result = await db.execute(
+        select(MedicalDocument).where(
+            MedicalDocument.patient_id == patient_id,
+            MedicalDocument.processing_status == "completed",
+            MedicalDocument.is_active == True,
+        ).order_by(MedicalDocument.created_at.desc())
+    )
+    documents = list(docs_result.scalars().all())
+
+    # Generate reply (has full context of all docs)
+    reply = await patient_chat_service.generate_reply(
+        db=db,
+        patient_id=patient_id,
+        user_message=request.message,
+        documents=documents,
+    )
+
+    # Persist user message
+    user_msg = PatientChatMessage(
+        patient_id=patient_id,
+        role="user",
+        content=request.message,
+    )
+    db.add(user_msg)
+    await db.flush()  # get user_msg.id before commit
+
+    # Persist assistant reply
+    assistant_msg = PatientChatMessage(
+        patient_id=patient_id,
+        role="assistant",
+        content=reply.text,
+        refusal_reason=reply.refusal_reason,
+    )
+    db.add(assistant_msg)
+    await db.commit()
+    await db.refresh(user_msg)
+    await db.refresh(assistant_msg)
+
+    return PatientChatSendResponse(
+        user_message=PatientChatMessageOut(
+            id=str(user_msg.id),
+            role="user",
+            content=request.message,
+            created_at=user_msg.created_at,
+        ),
+        assistant_message=PatientChatMessageOut(
+            id=str(assistant_msg.id),
+            role="assistant",
+            content=reply.text,
+            refusal_reason=reply.refusal_reason,
+            created_at=assistant_msg.created_at,
+        ),
+        remaining_messages_today=remaining,
+    )
+
+
+@router.post("/chat", response_model=PatientChatSendResponse)
+async def patient_self_chat(
+    request: PatientChatSendRequest,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Patient-level AI chat — full context of all the logged-in patient's records."""
+    return await _patient_chat_reply(primary, request, db)
+
+
+@router.post("/{dependent_id}/chat", response_model=PatientChatSendResponse)
+async def patient_dependent_chat(
+    dependent_id: UUID,
+    request: PatientChatSendRequest,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Patient-level AI chat for a dependent — full context of their records."""
+    target = await resolve_patient_context(dependent_id, primary, db)
+    return await _patient_chat_reply(target, request, db)
+
+
+@router.get("/chat", response_model=list[PatientChatMessageOut])
+async def get_patient_chat_history(
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+):
+    """Fetch recent chat history for the logged-in patient."""
+    result = await db.execute(
+        select(PatientChatMessage)
+        .where(PatientChatMessage.patient_id == primary.id)
+        .order_by(PatientChatMessage.created_at.desc())
+        .limit(limit)
+    )
+    rows = list(result.scalars().all())
+    rows.reverse()
+    return [
+        PatientChatMessageOut(
+            id=str(r.id),
+            role=r.role,
+            content=r.content,
+            refusal_reason=r.refusal_reason,
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]
+
+
+@router.get("/{dependent_id}/chat", response_model=list[PatientChatMessageOut])
+async def get_dependent_chat_history(
+    dependent_id: UUID,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+):
+    """Fetch recent chat history for a dependent."""
+    target = await resolve_patient_context(dependent_id, primary, db)
+    result = await db.execute(
+        select(PatientChatMessage)
+        .where(PatientChatMessage.patient_id == target.id)
+        .order_by(PatientChatMessage.created_at.desc())
+        .limit(limit)
+    )
+    rows = list(result.scalars().all())
+    rows.reverse()
+    return [
+        PatientChatMessageOut(
+            id=str(r.id),
+            role=r.role,
+            content=r.content,
+            refusal_reason=r.refusal_reason,
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]

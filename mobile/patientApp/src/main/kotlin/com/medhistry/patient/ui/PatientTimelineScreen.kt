@@ -55,6 +55,7 @@ fun PatientTimelineScreen(
     onManageFamily: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     initialActivePatientId: String? = null,
+    onSetActivePerson: ((String?) -> Unit)? = null,
 ) {
     var documents by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
@@ -180,7 +181,12 @@ fun PatientTimelineScreen(
         MemberPicker(
             family = family,
             selectedId = filterPatientId,
-            onSelect = { filterPatientId = it },
+            onSelect = { id ->
+                filterPatientId = id
+                // Normalise: primary → null so global state uses the same convention
+                val normalized = if (id == family?.primary?.id) null else id
+                onSetActivePerson?.invoke(normalized)
+            },
             onAddFamilyMember = onManageFamily,
         )
 

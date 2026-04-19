@@ -65,6 +65,7 @@ fun MedicinesScreen(
     onManageFamily: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     initialActivePatientId: String? = null,
+    onSetActivePerson: ((String?) -> Unit)? = null,
 ) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
     // Pre-scoped to the active person from the Dashboard if provided.
@@ -106,8 +107,19 @@ fun MedicinesScreen(
                 Spacer(Modifier.width(12.dp))
             }
             Column {
-                Text("Prescriptions", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
-                Text("Currently taking and past medicines", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
+                val activeName = if (activePatientId == null)
+                    "My"
+                else
+                    (family?.dependents?.find { it.id == activePatientId }?.name
+                        ?.split(" ")?.firstOrNull()?.replaceFirstChar { it.uppercase() } ?: "Their")
+                Text(
+                    if (activeName == "My") "My prescriptions" else "$activeName's prescriptions",
+                    fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary,
+                )
+                Text(
+                    if (activeName == "My") "Your current and past medicines" else "$activeName's current and past medicines",
+                    fontSize = 13.sp, color = MedHistryColors.TextSecondary,
+                )
             }
         }
 
@@ -118,7 +130,9 @@ fun MedicinesScreen(
             family = family,
             selectedId = activePatientId ?: family?.primary?.id,
             onSelect = { id ->
-                activePatientId = if (id == family?.primary?.id) null else id
+                val newId = if (id == family?.primary?.id) null else id
+                activePatientId = newId
+                onSetActivePerson?.invoke(newId)
             },
             onAddFamilyMember = onManageFamily,
         )

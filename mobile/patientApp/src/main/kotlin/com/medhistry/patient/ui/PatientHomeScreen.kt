@@ -144,7 +144,7 @@ fun PatientHomeScreen(
                 Spacer(Modifier.height(10.dp))
 
                 // ── 4. Share with Doctor CTA ──────────────────────────────────
-                ShareDoctorCard(onClick = onShareDoctor)
+                ShareDoctorCard(personName = activeName, onClick = onShareDoctor)
                 Spacer(Modifier.height(20.dp))
 
                 // ── 5. Upcoming ───────────────────────────────────────────
@@ -547,7 +547,8 @@ private fun AskAiCard(personName: String, onClick: () -> Unit) {
 // ── Share with Doctor CTA ───────────────────────────────────────────────────────
 
 @Composable
-private fun ShareDoctorCard(onClick: () -> Unit) {
+private fun ShareDoctorCard(personName: String, onClick: () -> Unit) {
+    val isOwner = personName == "You" || personName.isBlank()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -562,8 +563,11 @@ private fun ShareDoctorCard(onClick: () -> Unit) {
         Icon(Icons.Outlined.MedicalServices, contentDescription = null, tint = MedHistryColors.Primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("Share with Doctor", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.Primary)
-            Text("Show QR for instant access — expires after visit", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
+            Text(
+                if (isOwner) "Share with Doctor" else "Share $personName's records with Doctor",
+                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.Primary,
+            )
+            Text("Show QR for instant access — expires after the visit", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MedHistryColors.Primary, modifier = Modifier.size(20.dp))
     }
@@ -587,7 +591,7 @@ private fun AllRecordsGrid(
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RecordBucket("📋", "All Documents", totalDocs, Modifier.weight(1f), onTimeline)
+            RecordBucket("📋", "All Records", totalDocs, Modifier.weight(1f), onTimeline)
             RecordBucket("📅", "Timeline", null, Modifier.weight(1f), onTimeline)
         }
     }
@@ -613,7 +617,7 @@ private fun RecordBucket(
         Spacer(Modifier.height(8.dp))
         Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
         if (count != null) {
-            Text("$count ${if (count == 1) "item" else "items"}", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
+            Text("$count ${if (count == 1) "record" else "records"}", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
         }
     }
 }

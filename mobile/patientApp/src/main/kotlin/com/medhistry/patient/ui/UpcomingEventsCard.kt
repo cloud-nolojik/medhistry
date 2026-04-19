@@ -285,17 +285,18 @@ private fun EventRow(
     val dueOn = event.dueOn
     val daysUntil = event.daysUntilDue
     val dueHint = event.dueHintText
+    val friendlyDate = dueOn?.friendlyDate()
     val dueText: String = when {
         dueOn != null && daysUntil != null -> when {
-            daysUntil < 0 -> "${-daysUntil}d overdue · $dueOn"
-            daysUntil == 0 -> "Today · $dueOn"
-            daysUntil == 1 -> "Tomorrow · $dueOn"
-            daysUntil <= 7 -> "In ${daysUntil}d · $dueOn"
-            else -> dueOn
+            daysUntil < 0 -> "${-daysUntil} days overdue · $friendlyDate"
+            daysUntil == 0 -> "Today · $friendlyDate"
+            daysUntil == 1 -> "Tomorrow · $friendlyDate"
+            daysUntil <= 7 -> "In ${daysUntil} days · $friendlyDate"
+            else -> friendlyDate ?: dueOn
         }
-        dueOn != null -> dueOn
+        dueOn != null -> friendlyDate ?: dueOn
         dueHint != null -> dueHint
-        else -> "No date given"
+        else -> "No date set"
     }
 
     // Smart-cast shields for cross-module suggestion fields.
@@ -334,12 +335,15 @@ private fun EventRow(
                         color = if (event.isOverdue) MedHistryColors.Danger else MedHistryColors.TextSecondary,
                         fontWeight = if (event.isOverdue) FontWeight.SemiBold else FontWeight.Normal,
                     )
-                    if (event.urgency != "routine") {
+                    // Only show urgency label for overdue/urgent — "Soon" is redundant
+                    // when the date already tells the story.
+                    if (event.isOverdue || event.urgency == "urgent") {
                         Spacer(Modifier.width(6.dp))
                         Text(
                             "· $urgencyLabel",
                             fontSize = 12.sp,
-                            color = MedHistryColors.TextLight,
+                            color = MedHistryColors.Danger,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
@@ -467,4 +471,16 @@ private fun SmallIconButton(
             modifier = Modifier.size(16.dp),
         )
     }
+}
+
+/** "2026-04-19" → "19 Apr" — friendly date without the year clutter. */
+private fun String.friendlyDate(): String? {
+    return try {
+        val parts = trim().split("-")
+        if (parts.size < 3) return null
+        val day = parts[2].toInt()
+        val monthNames = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+        val month = monthNames.getOrNull(parts[1].toInt() - 1) ?: return null
+        "$day $month"
+    } catch (e: Exception) { null }
 }

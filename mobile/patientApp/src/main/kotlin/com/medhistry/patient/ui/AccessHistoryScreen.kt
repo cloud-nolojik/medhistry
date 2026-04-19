@@ -69,10 +69,10 @@ fun AccessHistoryScreen(
             )
             Spacer(Modifier.width(16.dp))
             // Patient-friendly rename: "Access History" → "Who viewed my records".
-            Text("Who viewed my records", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            Text("Who has seen my records", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
         Text(
-            "Every time a doctor opens your health summary, it's recorded here — so you always know who's seen what.",
+            "Every time a doctor opens your health summary, it's logged here — so you always know exactly who has seen what.",
             fontSize = 14.sp,
             color = MedHistryColors.TextSecondary,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),

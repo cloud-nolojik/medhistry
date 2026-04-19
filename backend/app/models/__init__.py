@@ -8,9 +8,10 @@ from app.models.medical_document import MedicalDocument
 from app.models.patient_access_log import PatientAccessLog
 from app.models.patient_upcoming_event import PatientUpcomingEvent
 from app.models.document_chat_message import DocumentChatMessage
+from app.models.patient_chat_message import PatientChatMessage
 
 __all__ = [
     "Patient", "QRSession", "Hospital", "Doctor", "Invitation",
     "SuperAdmin", "MedicalDocument", "PatientAccessLog",
-    "PatientUpcomingEvent", "DocumentChatMessage",
+    "PatientUpcomingEvent", "DocumentChatMessage", "PatientChatMessage",
 ]

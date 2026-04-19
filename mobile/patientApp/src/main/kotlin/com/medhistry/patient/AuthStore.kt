@@ -33,6 +33,19 @@ class AuthStore(context: Context) {
         this.name = name
     }
 
+    /**
+     * Log out — clears the session token but keeps the phone number and name
+     * so the app can go straight to the PIN screen next time instead of
+     * asking for OTP again.
+     */
+    fun logout() {
+        this.token = null
+    }
+
+    /**
+     * Full reset — used only when the user explicitly wants to switch accounts
+     * or when the account is deleted. Clears everything including phone.
+     */
     fun clear() {
         prefs.edit().clear().apply()
     }

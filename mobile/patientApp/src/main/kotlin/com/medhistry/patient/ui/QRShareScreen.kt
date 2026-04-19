@@ -319,7 +319,7 @@ private fun QRMode(sessionManager: QRSessionManager, patientId: String?) {
                             .background(MedHistryColors.AccentDark),
                     )
                     Text(
-                        "Live \u2022 refreshes every 60s \u2022 #${s.tokenVersion}",
+                        "Live \u2022 updates automatically \u2022 expires after your visit",
                         color = MedHistryColors.AccentDark,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,

@@ -41,6 +41,7 @@ fun LabResultsScreen(
     onManageFamily: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     initialActivePatientId: String? = null,
+    onSetActivePerson: ((String?) -> Unit)? = null,
 ) {
     var family by remember { mutableStateOf<FamilyListResponse?>(null) }
     // Initialise from the Dashboard's active person so the sub-screen opens
@@ -88,10 +89,15 @@ fun LabResultsScreen(
                 Spacer(Modifier.width(12.dp))
             }
             Column {
-                Text("Lab Reports", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
-                if (memberName.isNotBlank()) {
-                    Text("$memberName's results", fontSize = 13.sp, color = MedHistryColors.TextSecondary)
-                }
+                val isOwner = activePatientId == null
+                Text(
+                    if (isOwner) "My lab reports" else "$memberName's lab reports",
+                    fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary,
+                )
+                Text(
+                    if (isOwner) "Your test results in plain language" else "$memberName's test results in plain language",
+                    fontSize = 13.sp, color = MedHistryColors.TextSecondary,
+                )
             }
         }
 
@@ -101,7 +107,9 @@ fun LabResultsScreen(
             family = family,
             selectedId = activePatientId ?: family?.primary?.id,
             onSelect = { id ->
-                activePatientId = if (id == family?.primary?.id) null else id
+                val newId = if (id == family?.primary?.id) null else id
+                activePatientId = newId
+                onSetActivePerson?.invoke(newId)
             },
             onAddFamilyMember = onManageFamily,
         )
@@ -127,10 +135,16 @@ fun LabResultsScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Spacer(Modifier.height(16.dp))
-                    Text("No lab results yet", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                    Text(
+                        if (activePatientId == null) "No lab reports yet" else "No lab reports for $memberName yet",
+                        fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary,
+                    )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Scan a lab report and we'll lay out your results in plain language with color-coded highlights.",
+                        if (activePatientId == null)
+                            "Scan a lab report and we'll lay out your results in plain language with colour-coded highlights."
+                        else
+                            "Scan a lab report for $memberName and we'll explain the results in plain language.",
                         fontSize = 14.sp,
                         color = MedHistryColors.TextSecondary,
                         lineHeight = 20.sp,

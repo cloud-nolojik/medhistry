@@ -102,19 +102,19 @@ fun OtpScreen(
         }
         Spacer(Modifier.height(16.dp))
         Text(
-            "Verify your number",
+            "Let's confirm it's you",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MedHistryColors.TextPrimary,
         )
         Text(
-            "Enter the 4-digit code sent to +91 $phoneNumber",
+            "Enter the 4-digit code we sent to +91 $phoneNumber",
             fontSize = 14.sp,
             color = MedHistryColors.TextSecondary,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "Check SMS or WhatsApp",
+            "It may arrive by SMS or WhatsApp",
             fontSize = 12.sp,
             color = MedHistryColors.TextLight,
         )

@@ -312,14 +312,6 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         }.body()
     }
 
-    // --- Patient Profile ---
-
-    suspend fun getMyProfile(): PatientProfile {
-        return client.get("$baseUrl/patients/me") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-        }.body()
-    }
-
     /**
      * Upload file bytes directly to Azure Blob Storage using SAS URL.
      * Returns the HTTP status code.
@@ -552,6 +544,18 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             setBody(ChatSendRequest(message))
         }.ensureSuccess().body<ChatSendResponse>()
         return response.assistantMessage.content
+    }
+
+    /** Load persistent chat history for a patient (or dependent). */
+    suspend fun getPersonChatHistory(patientId: String? = null): List<ChatMessage> {
+        val url = if (patientId != null) {
+            "$baseUrl/patients/$patientId/chat"
+        } else {
+            "$baseUrl/patients/chat"
+        }
+        return client.get(url) {
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+        }.ensureSuccess().body()
     }
 
     // --- Per-document Chat ---

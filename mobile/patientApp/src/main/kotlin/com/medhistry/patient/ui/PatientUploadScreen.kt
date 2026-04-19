@@ -1,6 +1,12 @@
 package com.medhistry.patient.ui
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,7 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationCompat
 import com.medhistry.data.*
+import com.medhistry.patient.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -54,6 +62,53 @@ sealed class UploadState {
     data class Error(val message: String) : UploadState()
 }
 
+private const val NOTIF_CHANNEL_ID = "medhistry_reports"
+private const val NOTIF_CHANNEL_NAME = "Report Ready"
+
+private fun sendReportReadyNotification(
+    context: Context,
+    docType: String?,
+    documentId: String,
+    patientId: String?,
+    memberName: String,
+) {
+    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        nm.createNotificationChannel(
+            NotificationChannel(NOTIF_CHANNEL_ID, NOTIF_CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT)
+                .apply { description = "Notifies when a medical record is ready to view" }
+        )
+    }
+    // Build an intent that opens PatientMainActivity and deep-links straight
+    // to the document detail screen for this specific record + family member.
+    val deepLinkIntent = context.packageManager
+        .getLaunchIntentForPackage(context.packageName)
+        ?.apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(com.medhistry.patient.PatientMainActivity.EXTRA_DOCUMENT_ID, documentId)
+            putExtra(com.medhistry.patient.PatientMainActivity.EXTRA_PATIENT_ID, patientId)
+            putExtra(com.medhistry.patient.PatientMainActivity.EXTRA_MEMBER_NAME, memberName)
+        }
+    val pendingIntent = PendingIntent.getActivity(
+        context,
+        documentId.hashCode(),
+        deepLinkIntent ?: Intent(),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    val label = docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: "Your report"
+    val body = if (memberName.isNotBlank()) "$memberName's record has been organised."
+               else "Your record has been organised and is ready to view."
+    val notif = NotificationCompat.Builder(context, NOTIF_CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_notification)
+        .setContentTitle("$label is ready")
+        .setContentText(body)
+        .setAutoCancel(true)
+        .setContentIntent(pendingIntent)
+        .build()
+    nm.notify(documentId.hashCode(), notif)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientUploadScreen(
@@ -61,12 +116,17 @@ fun PatientUploadScreen(
     family: FamilyListResponse?,
     onBack: () -> Unit,
     onAddMember: (() -> Unit)? = null,
+    initialActivePatientId: String? = null,
+    onSetActivePerson: ((String?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var uploadState by remember { mutableStateOf<UploadState>(UploadState.Idle) }
     var recentDocs by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
+    // Which family member's reports to show in the recent list. Follows the global
+    // active patient; user can also change it via the member picker on this screen.
+    var filterPatientId by remember { mutableStateOf(initialActivePatientId) }
 
     // Pending URI waiting for user confirmation before upload
     var pendingUploadUri by remember { mutableStateOf<Uri?>(null) }
@@ -148,19 +208,31 @@ fun PatientUploadScreen(
                 uploadState = UploadState.Processing
                 val doc = api.confirmUpload(uploadResp.documentId)
 
-                uploadState = UploadState.Done(doc)
+                // Show "organising" banner immediately — no AI summary yet.
+                uploadState = UploadState.Processing
 
-                // Refresh list
+                // Refresh list so the new doc appears (status = processing/pending)
                 delay(500)
                 runCatching { api.listDocuments(includeFamily = true) }
                     .onSuccess { recentDocs = it.documents }
 
-                // Poll for processing completion
+                // Poll for AI processing to finish — fire a notification when ready,
+                // then update banner and list. User may have navigated away by now.
                 var polls = 0
                 while (polls < 30) { // max ~60 seconds
                     delay(2000)
                     val updated = runCatching { api.getDocument(doc.id) }.getOrNull()
                     if (updated != null && updated.processingStatus == "completed") {
+                        // Notify the user and refresh the list.
+                        val memberLabel = if (targetPatientId == null || targetPatientId == family?.primary?.id) ""
+                                         else family?.dependents?.firstOrNull { it.id == targetPatientId }?.name?.split(" ")?.first() ?: ""
+                        sendReportReadyNotification(
+                            context = context,
+                            docType = updated.docType,
+                            documentId = updated.id,
+                            patientId = targetPatientId,
+                            memberName = memberLabel,
+                        )
                         uploadState = UploadState.Done(updated)
                         runCatching { api.listDocuments(includeFamily = true) }
                             .onSuccess { recentDocs = it.documents }
@@ -209,9 +281,32 @@ fun PatientUploadScreen(
         ActivityResultContracts.GetContent()
     ) { uri -> uri?.let { pendingUploadUri = it } }
 
+    // Notification permission (Android 13+) — requested on first upload attempt
+    val notifPermissionLauncher = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op, best effort */ }
+    } else null
+
+    // Filtered recent docs — only show records belonging to the selected family member.
+    val filteredRecentDocs = remember(recentDocs, filterPatientId, family) {
+        val primaryId = family?.primary?.id
+        if (filterPatientId == null) {
+            // null = primary
+            recentDocs.filter { it.patientId == primaryId }
+        } else {
+            recentDocs.filter { it.patientId == filterPatientId }
+        }
+    }
+
     // --- Upload confirmation dialog with member selector ---
     pendingUploadUri?.let { uri ->
-        var selectedMember by remember { mutableStateOf(memberOptions.first()) }
+        // Pre-select whoever is currently active (filterPatientId follows global active); fall back to primary.
+        val defaultMember = remember(memberOptions, filterPatientId) {
+            if (filterPatientId == null) memberOptions.first()
+            else memberOptions.firstOrNull { it.id == filterPatientId } ?: memberOptions.first()
+        }
+        var selectedMember by remember { mutableStateOf(defaultMember) }
+        // If family loaded after the dialog opened, correct the selection.
+        LaunchedEffect(defaultMember) { selectedMember = defaultMember }
         var memberDropdownExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -252,6 +347,11 @@ fun PatientUploadScreen(
                                     text = { Text(option.label) },
                                     onClick = {
                                         selectedMember = option
+                                        filterPatientId = option.id
+                                        // Sync back to global so the rest of the app
+                                        // follows whoever was selected here.
+                                        val normalized = if (option.id == family?.primary?.id) null else option.id
+                                        onSetActivePerson?.invoke(normalized)
                                         memberDropdownExpanded = false
                                     },
                                 )
@@ -280,7 +380,14 @@ fun PatientUploadScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { doUpload(uri, selectedMember.id); pendingUploadUri = null },
+                    onClick = {
+                        // Request notification permission so we can alert when AI finishes
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notifPermissionLauncher?.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        doUpload(uri, selectedMember.id)
+                        pendingUploadUri = null
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = MedHistryColors.Primary),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Add", color = Color.White, fontWeight = FontWeight.SemiBold) }
@@ -299,10 +406,10 @@ fun PatientUploadScreen(
             onDismissRequest = { pendingDeleteDoc = null },
             shape = RoundedCornerShape(20.dp),
             containerColor = MedHistryColors.Surface,
-            title = { Text("Delete this report?", fontWeight = FontWeight.Bold) },
+            title = { Text("Remove this record?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This will permanently remove \"${doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: doc.filename}\" and update your health summary.",
+                    "This record will be removed from your account and your health summary will be updated. This can't be undone.",
                     fontSize = 14.sp,
                 )
             },
@@ -318,7 +425,7 @@ fun PatientUploadScreen(
                                 runCatching { api.listDocuments(includeFamily = true) }
                                     .onSuccess { recentDocs = it.documents }
                             } catch (e: Exception) {
-                                uploadState = UploadState.Error("Delete failed: ${e.message}")
+                                uploadState = UploadState.Error("Couldn't remove this record — ${e.message}")
                             }
                         }
                     },
@@ -357,7 +464,7 @@ fun PatientUploadScreen(
                 modifier = Modifier.size(24.dp).clickable { onBack() },
             )
             Spacer(Modifier.width(16.dp))
-            Text("Add a Report", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            Text("Scan a Record", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
         }
 
         // Upload progress / status banner
@@ -432,10 +539,22 @@ fun PatientUploadScreen(
             ) { pdfLauncher.launch("application/pdf") }
         }
 
-        // Recent Reports — only shown once the user has at least one, so the
-        // empty state doesn't compete with the big "Take a Photo" CTA.
+        // Member picker + Recent Reports — only shown when there are uploads.
         if (recentDocs.isNotEmpty()) {
             Spacer(Modifier.height(24.dp))
+
+            // Family member filter — lets user switch whose reports they're seeing.
+            // Follows the global active patient on entry; changes are local to this screen.
+            MemberPicker(
+                family = family,
+                selectedId = filterPatientId ?: family?.primary?.id,
+                onSelect = { id ->
+                    filterPatientId = if (id == family?.primary?.id) null else id
+                },
+                onAddFamilyMember = onAddMember ?: {},
+            )
+
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 "Recent Reports",
@@ -445,12 +564,21 @@ fun PatientUploadScreen(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
             )
 
-            recentDocs.forEach { doc ->
-                DocumentRow(
-                    doc = doc,
-                    memberName = memberNameFor(doc.patientId),
-                    onDelete = { pendingDeleteDoc = doc },
+            if (filteredRecentDocs.isEmpty()) {
+                Text(
+                    "No reports added yet for this person.",
+                    fontSize = 14.sp,
+                    color = MedHistryColors.TextSecondary,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 )
+            } else {
+                filteredRecentDocs.forEach { doc ->
+                    DocumentRow(
+                        doc = doc,
+                        memberName = memberNameFor(doc.patientId),
+                        onDelete = { pendingDeleteDoc = doc },
+                    )
+                }
             }
         }
     }
@@ -515,8 +643,8 @@ private fun UploadSuccessBanner(doc: DocumentOut, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (doc.processingStatus == "completed") "Report added — everything is organized!"
-                    else "Report added — organizing your records…",
+                    if (doc.processingStatus == "completed") "Report ready! Tap the record to read it."
+                    else "Report uploaded — we're organising it now.",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF166534),
@@ -531,10 +659,10 @@ private fun UploadSuccessBanner(doc: DocumentOut, onDismiss: () -> Unit) {
                     .clickable { onDismiss() },
             )
         }
-        doc.aiSummary?.let { summary ->
-            Spacer(Modifier.height(8.dp))
+        if (doc.processingStatus != "completed") {
+            Spacer(Modifier.height(6.dp))
             Text(
-                summary,
+                "We'll send you a notification when it's ready to view.",
                 fontSize = 13.sp,
                 color = Color(0xFF166534),
                 lineHeight = 18.sp,
@@ -604,7 +732,7 @@ private fun DocumentRow(doc: DocumentOut, memberName: String, onDelete: () -> Un
         "completed" -> "Ready"
         "processing", "pending" -> "Organizing…"
         "pending_upload" -> "Uploading…"
-        "failed" -> "Failed"
+        "failed" -> "Upload failed"
         else -> doc.processingStatus
     }
     val statusColor = when (doc.processingStatus) {

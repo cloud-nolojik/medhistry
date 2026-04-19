@@ -188,7 +188,7 @@ fun PinScreen(
                             if (confirmPin == pin) {
                                 onPinEntered(pin)
                             } else {
-                                localError = "PINs don't match. Try again."
+                                localError = "Those PINs don't match — please try again."
                                 pin = ""
                                 confirmPin = ""
                                 isConfirming = false

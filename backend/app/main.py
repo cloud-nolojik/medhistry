@@ -17,6 +17,7 @@ from app.models.super_admin import SuperAdmin
 from app.models.otp import OTP  # noqa: F401 — ensures create_all picks up the table
 from app.models.patient_upcoming_event import PatientUpcomingEvent  # noqa: F401 — registers table
 from app.models.document_chat_message import DocumentChatMessage  # noqa: F401 — registers table
+from app.models.patient_chat_message import PatientChatMessage  # noqa: F401 — registers table
 from app.api.patients import router as patients_router
 from app.api.qr import router as qr_router
 from app.api.hospitals import router as hospitals_router
