@@ -72,6 +72,7 @@ fun AskAiScreen(
     BackHandler { onBack() }
 
     data class Message(
+        val id: String = java.util.UUID.randomUUID().toString(),
         val text: String,
         val isUser: Boolean,
         val isError: Boolean = false,
@@ -124,16 +125,16 @@ fun AskAiScreen(
     suspend fun sendMessage(text: String) {
         if (text.isBlank() || sending) return
         val trimmed = text.trim()
-        messages = messages + Message(trimmed, isUser = true)
+        messages = messages + Message(text = trimmed, isUser = true)
         input = ""
         sending = true
         listState.animateScrollToItem(messages.size - 1)
         try {
             val reply = api.sendPersonChat(activePatientId, trimmed)
-            messages = messages + Message(reply, isUser = false)
+            messages = messages + Message(text = reply, isUser = false)
         } catch (e: Exception) {
             val errText = MedHistryApi.friendlyMessage(e)
-            messages = messages + Message(errText, isUser = false, isError = true)
+            messages = messages + Message(text = errText, isUser = false, isError = true)
         }
         sending = false
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
@@ -355,7 +356,7 @@ fun AskAiScreen(
             }
 
             // Actual chat messages
-            items(messages, key = { it.hashCode() }) { msg ->
+            items(messages, key = { it.id }) { msg ->
                 ChatBubble(
                     text = msg.text,
                     isUser = msg.isUser,

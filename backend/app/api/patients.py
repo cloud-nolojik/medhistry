@@ -458,7 +458,6 @@ async def _patient_chat_reply(
         select(MedicalDocument).where(
             MedicalDocument.patient_id == patient_id,
             MedicalDocument.processing_status == "completed",
-            MedicalDocument.is_active == True,
         ).order_by(MedicalDocument.created_at.desc())
     )
     documents = list(docs_result.scalars().all())
