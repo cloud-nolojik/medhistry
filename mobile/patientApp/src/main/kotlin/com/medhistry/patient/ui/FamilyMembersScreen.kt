@@ -70,7 +70,7 @@ fun FamilyMembersScreen(
             .padding(bottom = 96.dp),
     ) {
         // Header
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
+        Column(modifier = Modifier.statusBarsPadding().padding(horizontal = 20.dp, vertical = 18.dp)) {
             Text(
                 "Family",
                 fontSize = 26.sp,

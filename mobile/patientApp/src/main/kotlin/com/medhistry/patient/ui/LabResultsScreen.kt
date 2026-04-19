@@ -76,6 +76,7 @@ fun LabResultsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(start = if (onBack != null) 16.dp else 24.dp, end = 24.dp, top = 18.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

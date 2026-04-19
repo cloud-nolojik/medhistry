@@ -12,7 +12,11 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.addJsonObject
 
 /**
  * Thrown by [MedHistryApi.ensureSuccess] when the backend returns a non-2xx
@@ -544,6 +548,33 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
             setBody(ChatSendRequest(message))
         }.ensureSuccess().body<ChatSendResponse>()
         return response.assistantMessage.content
+    }
+
+    /** Save pre-formed messages verbatim — no AI generation (used for doc injections). */
+    suspend fun recordPersonChatMessages(
+        patientId: String? = null,
+        messages: List<Pair<String, String>>, // role → content
+    ) {
+        val url = if (patientId != null) {
+            "$baseUrl/patients/$patientId/chat/record"
+        } else {
+            "$baseUrl/patients/chat/record"
+        }
+        val body = buildJsonObject {
+            putJsonArray("messages") {
+                messages.forEach { (role, content) ->
+                    addJsonObject {
+                        put("role", role)
+                        put("content", content)
+                    }
+                }
+            }
+        }
+        client.post(url) {
+            contentType(ContentType.Application.Json)
+            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
+            setBody(body)
+        }.ensureSuccess()
     }
 
     /** Load persistent chat history for a patient (or dependent). */

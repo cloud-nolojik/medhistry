@@ -1,6 +1,9 @@
 package com.medhistry.patient.ui
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,13 +24,12 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.medhistry.data.ChatMessage
 import com.medhistry.data.DocumentOut
 import com.medhistry.data.MedHistryApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -58,6 +62,30 @@ import kotlinx.coroutines.launch
  *  - + button to upload a new record from within chat
  *  - imePadding() so the keyboard never covers the composer
  */
+
+// Top-level so it survives navigation (not reset by remember{} when screen recreates)
+data class AiMessage(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val text: String,
+    val isUser: Boolean,
+    val isError: Boolean = false,
+    val isDocCard: Boolean = false,
+    val documentId: String? = null,
+    val docLabel: String? = null,
+    val docDate: String? = null,
+)
+
+// Cache survives within the same process — messages persist across navigation
+private object AiMessageCache {
+    var patientId: String? = "##unset##"
+    var messages: List<AiMessage> = emptyList()
+
+    fun cacheFor(pid: String?) = patientId == pid
+    fun save(pid: String?, msgs: List<AiMessage>) { patientId = pid; messages = msgs }
+    fun clear() { patientId = "##unset##"; messages = emptyList() }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AskAiScreen(
     api: MedHistryApi,
@@ -71,27 +99,28 @@ fun AskAiScreen(
 ) {
     BackHandler { onBack() }
 
-    data class Message(
-        val id: String = java.util.UUID.randomUUID().toString(),
-        val text: String,
-        val isUser: Boolean,
-        val isError: Boolean = false,
-        val isDocCard: Boolean = false,   // AI-injected document summary bubble
-        // Populated when this bubble is a tappable document attachment
-        val documentId: String? = null,
-        val docLabel: String? = null,
-        val docDate: String? = null,
-    )
-
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
+    // Restore from cache if we're returning to the same patient's chat; else start fresh
+    var messages by remember {
+        mutableStateOf(
+            if (AiMessageCache.cacheFor(activePatientId)) AiMessageCache.messages
+            else emptyList()
+        )
+    }
+
+    // Keep cache in sync whenever messages change
+    fun updateMessages(newMsgs: List<AiMessage>) {
+        messages = newMsgs
+        AiMessageCache.save(activePatientId, newMsgs)
+    }
     var input by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     var historyLoading by remember { mutableStateOf(true) }
-
-    // Documents belonging to this patient — shown as context cards before first message
-    var documents by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
+    var showPickerSheet by remember { mutableStateOf(false) }
+    // Inline upload status — shown as a temporary bubble above the composer
+    var uploadStatusText by remember { mutableStateOf<String?>(null) }
 
     val suggestedChips = listOf(
         "What's changed recently?",
@@ -100,47 +129,27 @@ fun AskAiScreen(
         "Are my lab results normal?",
     )
 
-    // Load persistent history + documents on open
+    // Load persistent history on open — skip if cache already has messages for this patient
     LaunchedEffect(activePatientId) {
+        if (AiMessageCache.cacheFor(activePatientId) && messages.isNotEmpty()) {
+            // Returning to same patient's chat — restore scroll position, skip reload
+            historyLoading = false
+            listState.scrollToItem(Int.MAX_VALUE)
+            return@LaunchedEffect
+        }
         historyLoading = true
         runCatching { api.getPersonChatHistory(activePatientId) }.onSuccess { history ->
-            messages = history.map { msg ->
-                Message(text = msg.content, isUser = msg.role == "user")
+            val loaded = history.map { msg ->
+                AiMessage(text = msg.content, isUser = msg.role == "user")
             }
-            if (messages.isNotEmpty()) {
-                listState.scrollToItem(messages.size - 1)
-            }
-        }
-        runCatching { api.listDocuments(includeFamily = true) }.onSuccess { result ->
-            documents = result.documents
-                .filter { doc ->
-                    doc.processingStatus == "completed" &&
-                    (activePatientId == null || doc.patientId == activePatientId)
-                }
-                .sortedByDescending { it.documentDate ?: it.createdAt }
+            updateMessages(loaded)
+            if (messages.isNotEmpty()) listState.scrollToItem(Int.MAX_VALUE)
         }
         historyLoading = false
     }
 
-    suspend fun sendMessage(text: String) {
-        if (text.isBlank() || sending) return
-        val trimmed = text.trim()
-        messages = messages + Message(text = trimmed, isUser = true)
-        input = ""
-        sending = true
-        listState.animateScrollToItem(messages.size - 1)
-        try {
-            val reply = api.sendPersonChat(activePatientId, trimmed)
-            messages = messages + Message(text = reply, isUser = false)
-        } catch (e: Exception) {
-            val errText = MedHistryApi.friendlyMessage(e)
-            messages = messages + Message(text = errText, isUser = false, isError = true)
-        }
-        sending = false
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
-    }
-
     // Inject a document attachment bubble (user side) + AI summary bubble below it
+    // Declared before doUpload so doUpload can call it
     fun injectDocumentSummary(doc: DocumentOut) {
         val label = doc.docType?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: "Report"
         val dateStr = (doc.documentDate ?: doc.createdAt).take(10).let { d ->
@@ -150,34 +159,150 @@ fun AskAiScreen(
                 "${parts[2].trimStart('0')} ${months[parts[1].toInt()-1]} ${parts[0]}"
             }.getOrDefault(d)
         }
-        // 1. Document attachment card — appears on the user side like a shared file
-        val docBubble = Message(
+        val docBubble = AiMessage(
             text = label,
             isUser = true,
             documentId = doc.id,
             docLabel = label,
             docDate = dateStr,
         )
-        // 2. AI summary reply below it
         val summary = doc.aiSummary
             ?: "No summary available yet — the record is still being processed."
-        val summaryBubble = Message(
+        val summaryBubble = AiMessage(
             text = "Here's a summary of the **$label** from $dateStr:\n\n$summary",
             isUser = false,
             isDocCard = true,
         )
-        messages = messages + docBubble + summaryBubble
+        updateMessages(messages + docBubble + summaryBubble)
         scope.launch {
-            if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+            listState.animateScrollToItem(Int.MAX_VALUE)
+            // Persist to backend so history survives logout/reinstall
+            runCatching {
+                api.recordPersonChatMessages(
+                    patientId = activePatientId,
+                    messages = listOf(
+                        "user" to docBubble.text,
+                        "assistant" to summaryBubble.text,
+                    )
+                )
+            }
         }
     }
 
-    // Auto-inject when opened from DocumentDetail — runs after documents are loaded
-    // (defined here so injectDocumentSummary is already in scope)
-    LaunchedEffect(documents, injectDocumentId) {
-        if (injectDocumentId != null && documents.isNotEmpty() && messages.isEmpty()) {
-            documents.firstOrNull { it.id == injectDocumentId }
-                ?.let { injectDocumentSummary(it) }
+    // ── Inline upload logic ────────────────────────────────────────────────────
+    fun doUpload(uri: android.net.Uri) {
+        scope.launch {
+            try {
+                uploadStatusText = "Uploading…"
+                listState.animateScrollToItem(Int.MAX_VALUE)
+                // Read file bytes + metadata
+                val cr = context.contentResolver
+                val mimeType = cr.getType(uri) ?: "application/octet-stream"
+                val ext = when {
+                    mimeType.contains("pdf")  -> "pdf"
+                    mimeType.contains("png")  -> "png"
+                    else -> "jpg"
+                }
+                val bytes = cr.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw Exception("Could not read file")
+                val filename = "record_${System.currentTimeMillis()}.$ext"
+
+                // Request SAS upload URL from backend
+                val uploadResp = api.requestUploadUrl(
+                    com.medhistry.data.UploadUrlRequest(
+                        filename = filename,
+                        contentType = mimeType,
+                        fileSizeBytes = bytes.size.toLong(),
+                        patientId = activePatientId,
+                    )
+                )
+                uploadStatusText = "Uploading… (${bytes.size / 1024} KB)"
+                // PUT to Azure
+                val status = api.uploadToAzure(uploadResp.uploadUrl, bytes, mimeType)
+                if (status !in 200..299) throw Exception("Upload failed (HTTP $status)")
+
+                // Confirm with backend → triggers AI processing
+                uploadStatusText = "Organising your record…"
+                val doc = api.confirmUpload(uploadResp.documentId)
+
+                // Poll for AI processing
+                var polls = 0
+                var finalDoc = doc
+                while (polls < 30) {
+                    delay(2000)
+                    val updated = runCatching { api.getDocument(doc.id) }.getOrNull()
+                    if (updated != null && updated.processingStatus == "completed") {
+                        finalDoc = updated
+                        break
+                    }
+                    if (updated != null && updated.processingStatus == "failed") {
+                        throw Exception("Processing failed. Please try again.")
+                    }
+                    polls++
+                }
+                uploadStatusText = null
+                // Inject as inline chat message + AI summary
+                injectDocumentSummary(finalDoc)
+            } catch (e: Exception) {
+                uploadStatusText = null
+                updateMessages(messages + AiMessage(
+                    text = "Upload failed: ${e.message ?: "unknown error"}",
+                    isUser = false,
+                    isError = true,
+                ))
+                listState.animateScrollToItem(Int.MAX_VALUE)
+            }
+        }
+    }
+
+    // Camera launcher
+    var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && cameraUri != null) doUpload(cameraUri!!)
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            val file = java.io.File(context.cacheDir, "cam_${System.currentTimeMillis()}.jpg")
+            cameraUri = androidx.core.content.FileProvider.getUriForFile(
+                context, "${context.packageName}.provider", file
+            )
+            cameraLauncher.launch(cameraUri!!)
+        }
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { doUpload(it) }
+    }
+    val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { doUpload(it) }
+    }
+    val notifPermLauncher = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    } else null
+
+    suspend fun sendMessage(text: String) {
+        if (text.isBlank() || sending) return
+        val trimmed = text.trim()
+        updateMessages(messages + AiMessage(text = trimmed, isUser = true))
+        input = ""
+        sending = true
+        listState.animateScrollToItem(Int.MAX_VALUE)
+        try {
+            val reply = api.sendPersonChat(activePatientId, trimmed)
+            updateMessages(messages + AiMessage(text = reply, isUser = false))
+        } catch (e: Exception) {
+            val errText = MedHistryApi.friendlyMessage(e)
+            updateMessages(messages + AiMessage(text = errText, isUser = false, isError = true))
+        }
+        sending = false
+        listState.animateScrollToItem(Int.MAX_VALUE)
+    }
+
+    // Auto-inject when opened from DocumentDetail
+    LaunchedEffect(injectDocumentId) {
+        if (injectDocumentId != null && messages.isEmpty()) {
+            runCatching { api.getDocument(injectDocumentId) }.onSuccess { doc ->
+                injectDocumentSummary(doc)
+            }
         }
     }
 
@@ -283,78 +408,6 @@ fun AskAiScreen(
                 item { WelcomeHint(personName) }
             }
 
-            // Records timeline — always visible so patient can access reports
-            // even mid-conversation; scrollable as part of the chat column
-            if (!historyLoading && documents.isNotEmpty()) {
-                item {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "Your records",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MedHistryColors.TextSecondary,
-                        modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
-                    )
-                }
-
-                val byDate = documents.groupBy { doc ->
-                    (doc.documentDate ?: doc.createdAt).take(10)
-                }
-                byDate.entries.sortedByDescending { it.key }.forEach { (dateKey, docs) ->
-                    item(key = "header_$dateKey") {
-                        val friendlyDate = runCatching {
-                            val parts = dateKey.split("-")
-                            val months = listOf("Jan","Feb","Mar","Apr","May","Jun",
-                                "Jul","Aug","Sep","Oct","Nov","Dec")
-                            "${parts[2].trimStart('0')} ${months[parts[1].toInt()-1]} ${parts[0]}"
-                        }.getOrDefault(dateKey)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp, bottom = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
-                            Text(
-                                friendlyDate,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MedHistryColors.TextSecondary,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
-                        }
-                    }
-                    items(docs, key = { it.id }) { doc ->
-                        TimelineDocCard(
-                            doc = doc,
-                            onClick = { onViewDocument(doc.id, personName) },
-                        )
-                    }
-                }
-
-                // Divider between records and chat messages
-                if (messages.isNotEmpty()) {
-                    item(key = "chat_divider") {
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
-                            Text(
-                                "  Conversation  ",
-                                fontSize = 11.sp,
-                                color = MedHistryColors.TextSecondary,
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
-                        }
-                    }
-                } else {
-                    item { Spacer(Modifier.height(8.dp)) }
-                }
-            }
-
             // Actual chat messages
             items(messages, key = { it.id }) { msg ->
                 ChatBubble(
@@ -374,6 +427,32 @@ fun AskAiScreen(
                 item {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         TypingIndicator()
+                    }
+                }
+            }
+
+            // Inline upload progress bubble
+            uploadStatusText?.let { status ->
+                item(key = "upload_status") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MedHistryColors.PrimaryLight)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                color = MedHistryColors.Primary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(status, fontSize = 13.sp, color = MedHistryColors.Primary)
+                        }
                     }
                 }
             }
@@ -429,7 +508,7 @@ fun AskAiScreen(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(MedHistryColors.PrimaryLight)
-                    .clickable { onUpload() },
+                    .clickable { showPickerSheet = true },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -501,6 +580,80 @@ fun AskAiScreen(
                     )
                 }
             }
+        }
+    }
+
+    // ── File picker bottom sheet ───────────────────────────────────────────────
+    if (showPickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showPickerSheet = false },
+            containerColor = MedHistryColors.Surface,
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                Text(
+                    "Add a record",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MedHistryColors.TextPrimary,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                PickerOption(
+                    icon = Icons.Outlined.PhotoCamera,
+                    label = "Take a photo",
+                    sub = "Point your camera at the report",
+                ) {
+                    showPickerSheet = false
+                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                }
+                PickerOption(
+                    icon = Icons.Outlined.PhotoLibrary,
+                    label = "Choose from gallery",
+                    sub = "Pick an existing photo",
+                ) {
+                    showPickerSheet = false
+                    galleryLauncher.launch("image/*")
+                }
+                PickerOption(
+                    icon = Icons.Outlined.PictureAsPdf,
+                    label = "PDF file",
+                    sub = "Choose from your files",
+                ) {
+                    showPickerSheet = false
+                    pdfLauncher.launch("application/pdf")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerOption(
+    icon: ImageVector,
+    label: String,
+    sub: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MedHistryColors.PrimaryLight),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = MedHistryColors.Primary, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column {
+            Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+            Text(sub, fontSize = 12.sp, color = MedHistryColors.TextSecondary)
         }
     }
 }

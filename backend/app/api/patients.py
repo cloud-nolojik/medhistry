@@ -433,6 +433,7 @@ from app.models.patient_chat_message import PatientChatMessage
 from app.services import patient_chat_service
 from app.schemas.patient_chat import (
     PatientChatSendRequest, PatientChatSendResponse, PatientChatMessageOut,
+    PatientChatRecordRequest,
 )
 
 
@@ -529,6 +530,40 @@ async def patient_dependent_chat(
     """Patient-level AI chat for a dependent — full context of their records."""
     target = await resolve_patient_context(dependent_id, primary, db)
     return await _patient_chat_reply(target, request, db)
+
+
+@router.post("/chat/record", status_code=204)
+async def record_patient_chat_messages(
+    request: PatientChatRecordRequest,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save pre-formed messages verbatim (no AI reply) — used for inline doc injections."""
+    for entry in request.messages:
+        db.add(PatientChatMessage(
+            patient_id=primary.id,
+            role=entry.role,
+            content=entry.content,
+        ))
+    await db.commit()
+
+
+@router.post("/{dependent_id}/chat/record", status_code=204)
+async def record_dependent_chat_messages(
+    dependent_id: UUID,
+    request: PatientChatRecordRequest,
+    primary: Patient = Depends(get_current_patient),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save pre-formed messages for a dependent verbatim."""
+    target = await resolve_patient_context(dependent_id, primary, db)
+    for entry in request.messages:
+        db.add(PatientChatMessage(
+            patient_id=target.id,
+            role=entry.role,
+            content=entry.content,
+        ))
+    await db.commit()
 
 
 @router.get("/chat", response_model=list[PatientChatMessageOut])

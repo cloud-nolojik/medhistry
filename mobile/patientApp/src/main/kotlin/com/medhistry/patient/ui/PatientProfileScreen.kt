@@ -94,6 +94,7 @@ fun PatientProfileScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

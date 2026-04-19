@@ -96,6 +96,7 @@ fun DocumentDetailScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MedHistryColors.Surface)
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
