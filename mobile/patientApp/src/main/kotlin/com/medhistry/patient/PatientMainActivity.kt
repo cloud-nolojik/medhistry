@@ -432,6 +432,9 @@ private fun PatientAppRoot(
             injectDocumentId = s.injectDocumentId,
             onBack = { screen = Screen.Home(s.session, PatientTab.Dashboard) },
             onUpload = { screen = Screen.Upload(s.session) },
+            onViewTimeline = {
+                screen = Screen.FullTimeline(s.session, s.activePatientId)
+            },
             onViewDocument = { docId, memberName ->
                 screen = Screen.DocumentDetail(
                     session = s.session,
@@ -619,14 +622,11 @@ private fun PatientShell(
                     onShareDoctor = {
                         onNavigate(Screen.Share(ShareMode.QR, activePatientId, session))
                     },
-                    onViewAllLabReports = {
-                        onNavigate(Screen.LabReportsList(session, activePatientId))
+                    onViewTimeline = {
+                        onNavigate(Screen.FullTimeline(session, activePatientId))
                     },
                     onViewAllPrescriptions = {
                         onNavigate(Screen.PrescriptionsList(session, activePatientId))
-                    },
-                    onViewTimeline = {
-                        onNavigate(Screen.FullTimeline(session, activePatientId))
                     },
                     onScanReport = { onNavigate(Screen.Upload(session)) },
                     onManageFamily = { onTab(PatientTab.Family) },

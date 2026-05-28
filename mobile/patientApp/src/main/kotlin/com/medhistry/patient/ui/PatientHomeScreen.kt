@@ -12,16 +12,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,12 +41,11 @@ import kotlinx.serialization.json.jsonPrimitive
  *   2. "How [name] is doing" AI summary card
  *   3. Ask AI CTA (teal gradient, opens person-scoped chat)
  *   4. Share with Doctor CTA (outlined, opens QR share)
- *   5. Upcoming section (UpcomingEventsCard — reused as-is)
- *   6. Currently Taking (top 3 medicines + "View all →" link)
- *   7. Latest Results (top 3 lab values + "View all →" link)
- *   8. Recent Activity (top 3 recent docs + "Full timeline →" link)
- *   9. All Records 2×2 grid
- *   10. Empty-state variant when zero records
+ *   5. Current Medications (top 3 medicines + "View all →" link)
+ *   6. Latest Results (top 3 lab values + "View all →" link)
+ *   7. Recent Activity (top 3 recent docs + "Full timeline →" link)
+ *   8. All Records 2×2 grid
+ *   9. Empty-state variant when zero records
  *
  * activePatientId (null = primary/owner) is lifted to PatientShell.
  */
@@ -63,23 +57,18 @@ fun PatientHomeScreen(
     onSetActivePerson: (String?) -> Unit,
     onAskAi: () -> Unit,
     onShareDoctor: () -> Unit,
-    onViewAllLabReports: () -> Unit,
-    onViewAllPrescriptions: () -> Unit,
     onViewTimeline: () -> Unit,
+    onViewAllPrescriptions: () -> Unit,
     onScanReport: () -> Unit,
     onManageFamily: () -> Unit,
 ) {
     var healthSummary by remember { mutableStateOf<PatientHealthSummary?>(null) }
-    var recentDocs by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var showSwitcher by remember { mutableStateOf(false) }
 
     LaunchedEffect(activePatientId) {
         loading = true
         runCatching { api.getHealthSummary(activePatientId) }.onSuccess { healthSummary = it }
-        runCatching {
-            api.listDocuments(patientId = activePatientId, includeFamily = false)
-        }.onSuccess { recentDocs = it.documents.take(3) }
         loading = false
     }
 
@@ -127,17 +116,6 @@ fun PatientHomeScreen(
                     EmptyDashboard(personName = activeName, onScan = onScanReport)
             } else {
                 // ── Records exist — show full dashboard ───────────────────────
-                AiSummaryCard(
-                    personName = activeName,
-                    summary = hs?.patientSummary ?: hs?.overallSummary,
-                    alertMessage = when (hs?.overallStatus) {
-                        "critical" -> hs.overallStatusMessage ?: "Some results need your attention."
-                        "needs_attention" -> hs.overallStatusMessage
-                        else -> null
-                    },
-                    hasRecords = true,
-                )
-                Spacer(Modifier.height(12.dp))
 
                 // ── 3. Ask AI CTA ─────────────────────────────────────────────
                 AskAiCard(personName = activeName, onClick = onAskAi)
@@ -145,16 +123,17 @@ fun PatientHomeScreen(
 
                 // ── 4. Share with Doctor CTA ──────────────────────────────────
                 ShareDoctorCard(personName = activeName, onClick = onShareDoctor)
+                Spacer(Modifier.height(10.dp))
+
+                // ── 5. Timeline CTA ───────────────────────────────────────────
+                TimelineCard(onClick = onViewTimeline)
                 Spacer(Modifier.height(20.dp))
 
-                // ── 5. Upcoming ───────────────────────────────────────────
-                    UpcomingEventsCard(api = api, activePatientId = activePatientId)
-
-                    // ── 6. Currently Taking ───────────────────────────────────
+                    // ── 5. Current Medications ────────────────────────────────
                     val meds = hs?.medications ?: emptyList()
                     if (meds.isNotEmpty()) {
                         DashSectionHeader(
-                            title = "Currently Taking",
+                            title = "Current Medications",
                             linkLabel = "View all (${meds.size}) →",
                             onLink = onViewAllPrescriptions,
                         )
@@ -162,6 +141,7 @@ fun PatientHomeScreen(
                             meds.take(3).forEachIndexed { i, med ->
                                 if (i > 0) Divider(color = MedHistryColors.Border)
                                 val medName = med["name"]?.jsonPrimitive?.content ?: "Medicine"
+                                val purpose = med["purpose"]?.jsonPrimitive?.content?.takeIf { it != "null" }
                                 val dosage = med["dosage"]?.jsonPrimitive?.content?.takeIf { it != "null" }
                                 val timing = med["timing"]?.jsonPrimitive?.content?.takeIf { it != "null" }
                                 val timingStr = listOfNotNull(dosage, timing).joinToString(" · ").ifBlank { null }
@@ -178,6 +158,9 @@ fun PatientHomeScreen(
                                     Spacer(Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(medName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
+                                        if (!purpose.isNullOrBlank()) {
+                                            Text(purpose, fontSize = 12.sp, color = MedHistryColors.Primary, fontWeight = FontWeight.Medium)
+                                        }
                                         if (!timingStr.isNullOrBlank()) {
                                             Text(timingStr, fontSize = 12.sp, color = MedHistryColors.TextSecondary)
                                         }
@@ -189,111 +172,6 @@ fun PatientHomeScreen(
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    // ── 7. Latest Results ─────────────────────────────────────
-                    val labs = hs?.labResults ?: emptyList()
-                    if (labs.isNotEmpty()) {
-                        DashSectionHeader(
-                            title = "Latest Results",
-                            linkLabel = "View all (${labs.size}) →",
-                            onLink = onViewAllLabReports,
-                        )
-                        DashCard {
-                            labs.take(3).forEachIndexed { i, lab ->
-                                if (i > 0) Divider(color = MedHistryColors.Border)
-                                val labName = lab["test_name"]?.jsonPrimitive?.content
-                                    ?: lab["name"]?.jsonPrimitive?.content ?: "Test"
-                                val value = lab["value"]?.jsonPrimitive?.content ?: ""
-                                val unit = lab["unit"]?.jsonPrimitive?.content ?: ""
-                                val ref = lab["reference_range"]?.jsonPrimitive?.content?.takeIf { it != "null" }
-                                val status = lab["status"]?.jsonPrimitive?.content
-                                val (chipLabel, chipText, chipBg) = labStatusStyle(status)
-                                val valueColor = when (status) {
-                                    "normal" -> Color(0xFF16A34A)
-                                    "high", "low" -> Color(0xFFD97706)
-                                    "critical" -> Color(0xFFDC2626)
-                                    else -> MedHistryColors.Primary
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(labName, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MedHistryColors.TextPrimary)
-                                        if (!ref.isNullOrBlank()) {
-                                            Text("Range: $ref", fontSize = 11.sp, color = MedHistryColors.TextLight)
-                                        }
-                                    }
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        "$value $unit".trim(),
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = valueColor,
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    StatusChip(chipLabel, chipText, chipBg)
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                    }
-
-                    // ── 8. Recent Activity ────────────────────────────────────
-                    if (recentDocs.isNotEmpty()) {
-                        DashSectionHeader(
-                            title = "Recent Activity",
-                            linkLabel = "Full timeline →",
-                            onLink = onViewTimeline,
-                        )
-                        DashCard {
-                            recentDocs.forEachIndexed { i, doc ->
-                                if (i > 0) Divider(color = MedHistryColors.Border)
-                                val (icon, tint) = docTypeIcon(doc.docType)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(tint.copy(alpha = 0.12f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-                                    }
-                                    Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            doc.filename.ifBlank { doc.docType ?: "Document" },
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MedHistryColors.TextPrimary,
-                                            maxLines = 1,
-                                        )
-                                        Text(
-                                            formatDocDate(doc.createdAt),
-                                            fontSize = 11.sp,
-                                            color = MedHistryColors.TextLight,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                    }
-
-                    // ── 9. All Records 2×2 grid ───────────────────────────────
-                    DashSectionHeader(title = "All Records", linkLabel = null, onLink = null)
-                    AllRecordsGrid(
-                        labCount = labs.size,
-                        prescCount = meds.size,
-                        totalDocs = hs?.totalDocuments ?: 0,
-                        onLabReports = onViewAllLabReports,
-                        onPrescriptions = onViewAllPrescriptions,
-                        onTimeline = onViewTimeline,
-                    )
-                    Spacer(Modifier.height(16.dp))
             }
         }
 
@@ -464,59 +342,6 @@ private fun SwitcherRow(name: String, subtitle: String?, selected: Boolean, onCl
 
 // ── AI Summary card ─────────────────────────────────────────────────────────────
 
-@Composable
-private fun AiSummaryCard(
-    personName: String,
-    summary: String?,
-    alertMessage: String?,
-    hasRecords: Boolean,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MedHistryColors.Surface)
-            .border(1.dp, MedHistryColors.Border, RoundedCornerShape(16.dp))
-            .padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Lightbulb, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                "How $personName is doing",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MedHistryColors.TextSecondary,
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-
-        if (!alertMessage.isNullOrBlank()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFFFFBEB))
-                    .border(1.dp, Color(0xFFFDE68A), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(alertMessage, fontSize = 12.sp, color = Color(0xFF92400E))
-            }
-            Spacer(Modifier.height(10.dp))
-        }
-
-        val text = when {
-            !hasRecords -> "Welcome. Start by scanning a prescription or lab report. I'll read, organise, and summarise it in plain language."
-            !summary.isNullOrBlank() -> summary
-            else -> "Looking good — no concerns to flag right now."
-        }
-        Text(text, fontSize = 14.sp, color = MedHistryColors.TextSecondary, lineHeight = 20.sp)
-    }
-}
 
 // ── Ask AI CTA ──────────────────────────────────────────────────────────────────
 
@@ -573,52 +398,28 @@ private fun ShareDoctorCard(personName: String, onClick: () -> Unit) {
     }
 }
 
-// ── All Records 2×2 grid ────────────────────────────────────────────────────────
+// ── Timeline CTA ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun AllRecordsGrid(
-    labCount: Int,
-    prescCount: Int,
-    totalDocs: Int,
-    onLabReports: () -> Unit,
-    onPrescriptions: () -> Unit,
-    onTimeline: () -> Unit,
-) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RecordBucket("🧪", "Lab Reports", labCount, Modifier.weight(1f), onLabReports)
-            RecordBucket("💊", "Prescriptions", prescCount, Modifier.weight(1f), onPrescriptions)
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RecordBucket("📋", "All Records", totalDocs, Modifier.weight(1f), onTimeline)
-            RecordBucket("📅", "Timeline", null, Modifier.weight(1f), onTimeline)
-        }
-    }
-}
-
-@Composable
-private fun RecordBucket(
-    emoji: String,
-    label: String,
-    count: Int?,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = modifier
+private fun TimelineCard(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(MedHistryColors.Surface)
             .border(1.dp, MedHistryColors.Border, RoundedCornerShape(14.dp))
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(emoji, fontSize = 22.sp)
-        Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MedHistryColors.TextPrimary)
-        if (count != null) {
-            Text("$count ${if (count == 1) "record" else "records"}", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
+        Icon(Icons.Outlined.History, contentDescription = null, tint = MedHistryColors.TextSecondary, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Timeline", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MedHistryColors.TextPrimary)
+            Text("All records in chronological order", fontSize = 12.sp, color = MedHistryColors.TextSecondary)
         }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MedHistryColors.TextSecondary, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -703,33 +504,3 @@ private fun StatusChip(label: String, textColor: Color, bgColor: Color) {
     }
 }
 
-private fun labStatusStyle(status: String?): Triple<String, Color, Color> = when (status) {
-    "normal" -> Triple("Normal", Color(0xFF16A34A), Color(0xFFF0FDF4))
-    "high", "low" -> Triple("Needs attention", Color(0xFFD97706), Color(0xFFFFFBEB))
-    "critical" -> Triple("Important", Color(0xFFDC2626), Color(0xFFFEF2F2))
-    else -> Triple("Looks fine", Color(0xFF16A34A), Color(0xFFF0FDF4))
-}
-
-private fun docTypeIcon(docType: String?): Pair<ImageVector, Color> = when (docType?.lowercase()) {
-    "prescription", "medicine" -> Icons.Outlined.Medication to Color(0xFF7C3AED)
-    "lab_report", "lab report" -> Icons.Outlined.Science to Color(0xFF0891B2)
-    "imaging", "scan", "x-ray" -> Icons.Outlined.Image to Color(0xFF0D9488)
-    "visit", "consultation" -> Icons.Outlined.LocalHospital to Color(0xFF16A34A)
-    else -> Icons.Outlined.Description to MedHistryColors.Primary
-}
-
-private fun formatDocDate(uploadedAt: String?): String {
-    if (uploadedAt.isNullOrBlank()) return ""
-    return try {
-        val date = uploadedAt.take(10)
-        val parts = date.split("-")
-        if (parts.size == 3) {
-            val months = listOf("", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-            val month = parts[1].toIntOrNull()?.let { months.getOrNull(it) } ?: parts[1]
-            "${parts[2]} $month"
-        } else date
-    } catch (_: Exception) {
-        uploadedAt.take(10)
-    }
-}

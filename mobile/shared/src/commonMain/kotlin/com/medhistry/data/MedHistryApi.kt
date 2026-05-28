@@ -484,46 +484,6 @@ class MedHistryApi(private val baseUrl: String = "https://app.medhistry.com/api/
         }.ensureSuccess().body()
     }
 
-    // --- Upcoming Events ---
-
-    suspend fun listUpcomingEvents(
-        patientId: String? = null,
-        includeCompleted: Boolean = false,
-    ): UpcomingEventListOut {
-        return client.get("$baseUrl/upcoming-events") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-            patientId?.let { parameter("patient_id", it) }
-            if (includeCompleted) parameter("include_completed", "true")
-        }.ensureSuccess().body()
-    }
-
-    suspend fun completeUpcomingEvent(eventId: String): UpcomingEvent {
-        return client.post("$baseUrl/upcoming-events/$eventId/complete") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-        }.ensureSuccess().body()
-    }
-
-    suspend fun dismissUpcomingEvent(eventId: String): UpcomingEvent {
-        return client.post("$baseUrl/upcoming-events/$eventId/dismiss") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-        }.ensureSuccess().body()
-    }
-
-    /** Dismiss ONLY the "Looks done?" completion suggestion — the event stays
-     *  pending. Used when the user taps the ✕ on the suggestion banner. */
-    suspend fun dismissUpcomingEventSuggestion(eventId: String): UpcomingEvent {
-        return client.post("$baseUrl/upcoming-events/$eventId/dismiss-suggestion") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-        }.ensureSuccess().body()
-    }
-
-    /** Returns the raw ICS body the OS calendar app can open via intent. */
-    suspend fun getUpcomingEventIcs(eventId: String): String {
-        return client.get("$baseUrl/upcoming-events/$eventId/calendar.ics") {
-            bearerAuth(authToken ?: throw IllegalStateException("Not authenticated"))
-        }.ensureSuccess().bodyAsText()
-    }
-
     // --- Person-scoped Chat (all documents for a family member) ---
 
     /**

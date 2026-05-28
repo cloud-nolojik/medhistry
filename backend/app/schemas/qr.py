@@ -63,9 +63,7 @@ class PatientAccessLogEntry(BaseModel):
 class FollowUpNote(BaseModel):
     """One structured follow-up item extracted from a document.
 
-    The doctor sees these grouped per-document in the briefing. The same items
-    flow into the patient's `/upcoming-events` list after date-anchoring +
-    stale-document filtering.
+    Shown to the doctor grouped per-document in the briefing card.
     """
     kind: str
     title: str

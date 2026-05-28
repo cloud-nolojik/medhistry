@@ -418,43 +418,6 @@ data class AccessLogEntry(
     @SerialName("accessed_at") val accessedAt: String,
 )
 
-// --- Upcoming Events (follow-ups, lab repeats, appointments) ---
-
-@Serializable
-data class UpcomingEvent(
-    val id: String,
-    @SerialName("patient_id") val patientId: String,
-    @SerialName("source_document_id") val sourceDocumentId: String? = null,
-    val kind: String,                                             // lab_test / appointment / ...
-    val title: String,
-    @SerialName("with_whom") val withWhom: String? = null,
-    val notes: String? = null,
-    @SerialName("due_on") val dueOn: String? = null,              // ISO date (yyyy-MM-dd) or null
-    @SerialName("due_hint_text") val dueHintText: String? = null, // "in 3 months", "after 15 days"
-    val urgency: String = "routine",                              // urgent | soon | routine
-    val status: String = "pending",                               // pending | completed | dismissed
-    @SerialName("is_overdue") val isOverdue: Boolean = false,
-    @SerialName("days_until_due") val daysUntilDue: Int? = null,
-    @SerialName("created_at") val createdAt: String,
-
-    // "Looks done?" suggestion — non-null when a newer document appears to
-    // fulfil this pending event (e.g. a lab report containing the repeat
-    // tests a discharge summary was nagging about). UI renders a banner
-    // with tick/cross so the user can confirm or dismiss the suggestion.
-    @SerialName("suggested_complete_by_document_id")
-    val suggestedCompleteByDocumentId: String? = null,
-    @SerialName("suggested_complete_reason")
-    val suggestedCompleteReason: String? = null,        // e.g. "HB, PCV found in this report"
-    @SerialName("suggested_complete_doc_label")
-    val suggestedCompleteDocLabel: String? = null,      // e.g. "Lab report · 14 Apr"
-)
-
-@Serializable
-data class UpcomingEventListOut(
-    val events: List<UpcomingEvent> = emptyList(),
-    val total: Int = 0,
-)
-
 // --- Per-document Chat ---
 
 @Serializable

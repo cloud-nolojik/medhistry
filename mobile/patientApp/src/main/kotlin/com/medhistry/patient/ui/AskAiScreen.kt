@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -38,6 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,6 +98,7 @@ fun AskAiScreen(
     onBack: () -> Unit,
     onUpload: () -> Unit = {},
     onViewDocument: (documentId: String, memberName: String) -> Unit = { _, _ -> },
+    onViewTimeline: () -> Unit = {},
     // When opened from DocumentDetail, inject that document's summary immediately
     injectDocumentId: String? = null,
 ) {
@@ -102,6 +107,12 @@ fun AskAiScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+
+    // Scroll to bottom whenever the keyboard opens so the last message stays visible
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    LaunchedEffect(imeVisible) {
+        if (imeVisible) listState.animateScrollToItem(Int.MAX_VALUE)
+    }
     // Restore from cache if we're returning to the same patient's chat; else start fresh
     var messages by remember {
         mutableStateOf(
@@ -119,6 +130,8 @@ fun AskAiScreen(
     var sending by remember { mutableStateOf(false) }
     var historyLoading by remember { mutableStateOf(true) }
     var showPickerSheet by remember { mutableStateOf(false) }
+    var showDocsSheet by remember { mutableStateOf(false) }
+    var patientDocuments by remember { mutableStateOf<List<DocumentOut>>(emptyList()) }
     // Inline upload status — shown as a temporary bubble above the composer
     var uploadStatusText by remember { mutableStateOf<String?>(null) }
 
@@ -132,20 +145,41 @@ fun AskAiScreen(
     // Load persistent history on open — skip if cache already has messages for this patient
     LaunchedEffect(activePatientId) {
         if (AiMessageCache.cacheFor(activePatientId) && messages.isNotEmpty()) {
-            // Returning to same patient's chat — restore scroll position, skip reload
+            // Returning to same patient's chat — restore scroll position, skip history reload
             historyLoading = false
             listState.scrollToItem(Int.MAX_VALUE)
-            return@LaunchedEffect
-        }
-        historyLoading = true
-        runCatching { api.getPersonChatHistory(activePatientId) }.onSuccess { history ->
-            val loaded = history.map { msg ->
-                AiMessage(text = msg.content, isUser = msg.role == "user")
+        } else {
+            historyLoading = true
+            runCatching { api.getPersonChatHistory(activePatientId) }.onSuccess { history ->
+                val loaded = history.map { msg ->
+                    // Reconstruct doc card bubbles from encoded content
+                    if (msg.role == "user" && msg.content.startsWith("MEDHISTRY_DOC:")) {
+                        val parts = msg.content.removePrefix("MEDHISTRY_DOC:").split("|", limit = 3)
+                        if (parts.size == 3) {
+                            AiMessage(
+                                text = parts[0],  // documentId stored first but not displayed
+                                isUser = true,
+                                documentId = parts[0],
+                                docLabel = parts[1],
+                                docDate = parts[2],
+                            )
+                        } else {
+                            AiMessage(text = msg.content, isUser = true)
+                        }
+                    } else {
+                        AiMessage(text = msg.content, isUser = msg.role == "user")
+                    }
+                }
+                updateMessages(loaded)
+                if (messages.isNotEmpty()) listState.scrollToItem(Int.MAX_VALUE)
             }
-            updateMessages(loaded)
-            if (messages.isNotEmpty()) listState.scrollToItem(Int.MAX_VALUE)
+            historyLoading = false
         }
-        historyLoading = false
+        // Always load documents — needed regardless of message cache state
+        runCatching { api.listDocuments(patientId = activePatientId, includeFamily = false) }.onSuccess { result ->
+            patientDocuments = result.documents
+                .sortedByDescending { it.documentDate ?: it.createdAt }
+        }
     }
 
     // Inject a document attachment bubble (user side) + AI summary bubble below it
@@ -159,8 +193,10 @@ fun AskAiScreen(
                 "${parts[2].trimStart('0')} ${months[parts[1].toInt()-1]} ${parts[0]}"
             }.getOrDefault(d)
         }
+        // Encode metadata into content so it survives backend round-trip
+        val encodedDoc = "MEDHISTRY_DOC:${doc.id}|$label|$dateStr"
         val docBubble = AiMessage(
-            text = label,
+            text = encodedDoc,
             isUser = true,
             documentId = doc.id,
             docLabel = label,
@@ -176,12 +212,12 @@ fun AskAiScreen(
         updateMessages(messages + docBubble + summaryBubble)
         scope.launch {
             listState.animateScrollToItem(Int.MAX_VALUE)
-            // Persist to backend so history survives logout/reinstall
+            // Persist to backend — encoded content reconstructs card on reload
             runCatching {
                 api.recordPersonChatMessages(
                     patientId = activePatientId,
                     messages = listOf(
-                        "user" to docBubble.text,
+                        "user" to encodedDoc,
                         "assistant" to summaryBubble.text,
                     )
                 )
@@ -241,6 +277,10 @@ fun AskAiScreen(
                     polls++
                 }
                 uploadStatusText = null
+                // Refresh docs list so the header count and sheet update
+                runCatching { api.listDocuments(patientId = activePatientId, includeFamily = false) }.onSuccess { result ->
+                    patientDocuments = result.documents.sortedByDescending { it.documentDate ?: it.createdAt }
+                }
                 // Inject as inline chat message + AI summary
                 injectDocumentSummary(finalDoc)
             } catch (e: Exception) {
@@ -354,6 +394,25 @@ fun AskAiScreen(
                     fontSize = 12.sp,
                     color = MedHistryColors.TextSecondary,
                 )
+            }
+            // Timeline button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MedHistryColors.PrimaryLight)
+                    .clickable { onViewTimeline() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Outlined.History, contentDescription = null, tint = MedHistryColors.Primary, modifier = Modifier.size(14.dp))
+                    Text(
+                        "Timeline",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MedHistryColors.Primary,
+                    )
+                }
             }
         }
         HorizontalDivider(color = MedHistryColors.Border)
@@ -578,6 +637,85 @@ fun AskAiScreen(
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
+                }
+            }
+        }
+    }
+
+    // ── All reports bottom sheet ───────────────────────────────────────────────
+    if (showDocsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showDocsSheet = false },
+            containerColor = MedHistryColors.Surface,
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "All reports",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MedHistryColors.TextPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "${patientDocuments.size} records",
+                        fontSize = 13.sp,
+                        color = MedHistryColors.TextSecondary,
+                    )
+                }
+                if (patientDocuments.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("No reports uploaded yet", fontSize = 14.sp, color = MedHistryColors.TextSecondary)
+                    }
+                } else {
+                    // Group by date key (YYYY-MM-DD), sorted newest first
+                    val byDate = patientDocuments
+                        .groupBy { (it.documentDate ?: it.createdAt).take(10) }
+                        .entries.sortedByDescending { it.key }
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.heightIn(max = 480.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        byDate.forEach { (dateKey, docs) ->
+                            // Date divider header
+                            item(key = "header_$dateKey") {
+                                val friendlyDate = runCatching {
+                                    val p = dateKey.split("-")
+                                    val months = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+                                    "${p[2].trimStart('0')} ${months[p[1].toInt()-1]} ${p[0]}"
+                                }.getOrDefault(dateKey)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
+                                    Text(
+                                        friendlyDate,
+                                        fontSize = 11.sp,
+                                        color = MedHistryColors.TextSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 10.dp),
+                                    )
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MedHistryColors.Border)
+                                }
+                            }
+                            items(docs, key = { it.id }) { doc ->
+                                TimelineDocCard(
+                                    doc = doc,
+                                    onClick = {
+                                        showDocsSheet = false
+                                        onViewDocument(doc.id, personName)
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

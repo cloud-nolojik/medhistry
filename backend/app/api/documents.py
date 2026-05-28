@@ -39,7 +39,6 @@ from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.medical_document import MedicalDocument
 from app.models.document_chat_message import DocumentChatMessage
-from app.models.patient_upcoming_event import PatientUpcomingEvent
 from app.schemas.document import (
     DocumentOut,
     DocumentListOut,
@@ -149,44 +148,6 @@ async def _process_and_update(doc_id: uuid.UUID, file_path: str, file_type: str,
             # Step 2: Gemini updates the patient's aggregated medical_summary
             # (incremental merge if possible, full rebuild on first doc or fallback)
             await _update_patient_summary(patient_id, db, new_doc_data=doc.extracted_data)
-
-            # Step 3: sync structured follow-ups from this document into the
-            # patient's upcoming-events list. Parses relative phrases like
-            # "after 15 days" against the DOCUMENT date, and drops items when
-            # the document itself is too old (so uploading an ancient record
-            # doesn't resurrect expired reminders).
-            from app.services.upcoming_events_service import (
-                sync_upcoming_events_for_document,
-                detect_fulfillments_for_document,
-            )
-            from datetime import date as _date
-            doc_date: _date | None = None
-            if doc.document_date:
-                try:
-                    doc_date = _date.fromisoformat(doc.document_date)
-                except ValueError:
-                    doc_date = None
-            follow_ups_raw = (doc.extracted_data or {}).get("follow_ups") or []
-            await sync_upcoming_events_for_document(
-                db=db,
-                patient_id=patient_id,
-                document_id=doc.id,
-                document_date=doc_date,
-                follow_ups=follow_ups_raw,
-            )
-
-            # After syncing any NEW follow-ups from this doc, scan the
-            # patient's EXISTING pending events to see if this doc looks
-            # like it fulfils any of them (e.g. a lab report arrives that
-            # contains the very tests a previous event was nagging about).
-            # We never auto-complete; we just attach a "Looks done?"
-            # suggestion and let the user tap the tick or cross.
-            await detect_fulfillments_for_document(
-                db=db,
-                patient_id=patient_id,
-                document_id=doc.id,
-                extracted_data=doc.extracted_data,
-            )
 
             await db.commit()
         except Exception as e:
@@ -538,19 +499,10 @@ async def delete_document(
     patient_id = doc.patient_id
     blob_path = doc.file_path
 
-    # Clean up related rows that reference this document. These tables
-    # (document_chat_messages, patient_upcoming_events) use a non-cascading
-    # FK to medical_documents.id, so we must drop them explicitly before
-    # deleting the document itself — otherwise Postgres raises a FK
-    # violation and the whole request 500s.
+    # Clean up chat messages that reference this document before deleting it.
     await db.execute(
         sql_delete(DocumentChatMessage).where(
             DocumentChatMessage.document_id == document_id
-        )
-    )
-    await db.execute(
-        sql_delete(PatientUpcomingEvent).where(
-            PatientUpcomingEvent.source_document_id == document_id
         )
     )
 
